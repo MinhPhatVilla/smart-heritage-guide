@@ -26,26 +26,26 @@ import {
   formatWalkingDuration,
 } from '../utils/geoUtils';
 
-type MapTileMode = 'osm' | 'voyager' | 'satellite';
+type MapTileMode = 'roadmap' | 'terrain' | 'satellite';
 
 const TILE_LAYERS: Record<
   MapTileMode,
   { label: string; url: string; attribution: string }
 > = {
-  osm: {
-    label: 'Bản đồ Đường phố',
-    url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-    attribution: '&copy; OpenStreetMap contributors',
+  roadmap: {
+    label: 'Đường phố',
+    url: 'https://mt1.google.com/vt/lyrs=m&hl=vi&x={x}&y={y}&z={z}',
+    attribution: '&copy; Google Maps',
   },
-  voyager: {
-    label: 'Bản đồ Tối giản',
-    url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
-    attribution: '&copy; OpenStreetMap &copy; CARTO',
+  terrain: {
+    label: 'Địa hình',
+    url: 'https://mt1.google.com/vt/lyrs=p&hl=vi&x={x}&y={y}&z={z}',
+    attribution: '&copy; Google Maps Terrain',
   },
   satellite: {
     label: 'Vệ tinh',
-    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-    attribution: 'Tiles &copy; Esri',
+    url: 'https://mt1.google.com/vt/lyrs=y&hl=vi&x={x}&y={y}&z={z}',
+    attribution: '&copy; Google Maps Satellite',
   },
 };
 
@@ -100,11 +100,10 @@ export const MapExplorer: React.FC<MapExplorerProps> = ({
   const routeLayerRef = useRef<L.LayerGroup | null>(null);
   const prevCenterRef = useRef<[number, number]>(userLocation);
 
-  const [tileMode, setTileMode] = useState<MapTileMode>('osm');
+  const [tileMode, setTileMode] = useState<MapTileMode>('roadmap');
   const [showRestaurantsOnMap, setShowRestaurantsOnMap] =
     useState<boolean>(true);
 
-  // Khởi tạo bản đồ Leaflet + ResizeObserver đảm bảo luôn hiển thị đầy đủ kích thước
   useEffect(() => {
     const container = mapContainerRef.current;
     if (!container || mapInstanceRef.current) return;
@@ -120,7 +119,7 @@ export const MapExplorer: React.FC<MapExplorerProps> = ({
     const tileCfg = TILE_LAYERS[tileMode];
     const baseTile = L.tileLayer(tileCfg.url, {
       attribution: tileCfg.attribution,
-      maxZoom: 19,
+      maxZoom: 20,
     }).addTo(map);
 
     const markersGroup = L.layerGroup().addTo(map);
@@ -135,24 +134,30 @@ export const MapExplorer: React.FC<MapExplorerProps> = ({
     markersLayerRef.current = markersGroup;
     routeLayerRef.current = routeGroup;
 
-    // Ép Leaflet tính lại kích thước sau khi DOM render
-    setTimeout(() => {
-      map.invalidateSize();
+    const timer = setTimeout(() => {
+      if (mapInstanceRef.current === map) {
+        map.invalidateSize();
+      }
     }, 100);
 
     const resizeObserver = new ResizeObserver(() => {
-      map.invalidateSize();
+      if (mapInstanceRef.current === map) {
+        map.invalidateSize();
+      }
     });
     resizeObserver.observe(container);
 
     return () => {
+      clearTimeout(timer);
       resizeObserver.disconnect();
       map.remove();
       mapInstanceRef.current = null;
+      tileLayerRef.current = null;
+      markersLayerRef.current = null;
+      routeLayerRef.current = null;
     };
   }, []);
 
-  // Đổi lớp nền bản đồ (Đường phố OSM / Tối giản / Vệ tinh)
   useEffect(() => {
     const map = mapInstanceRef.current;
     if (!map) return;
@@ -163,11 +168,10 @@ export const MapExplorer: React.FC<MapExplorerProps> = ({
     const cfg = TILE_LAYERS[tileMode];
     tileLayerRef.current = L.tileLayer(cfg.url, {
       attribution: cfg.attribution,
-      maxZoom: 19,
+      maxZoom: 20,
     }).addTo(map);
   }, [tileMode]);
 
-  // Vẽ các Marker Vị trí khách hàng, Danh lam thắng cảnh & Quán ăn đề xuất
   useEffect(() => {
     const map = mapInstanceRef.current;
     const layer = markersLayerRef.current;
@@ -182,7 +186,6 @@ export const MapExplorer: React.FC<MapExplorerProps> = ({
     }
     prevCenterRef.current = userLocation;
 
-    // Vòng bán kính quét xung quanh vị trí người dùng
     if (searchRadiusMeters > 0 && searchRadiusMeters <= 25000) {
       L.circle(userLocation, {
         radius: searchRadiusMeters,
@@ -190,15 +193,14 @@ export const MapExplorer: React.FC<MapExplorerProps> = ({
         weight: 1.5,
         dashArray: '6 6',
         fillColor: '#2563eb',
-        fillOpacity: 0.04,
+        fillOpacity: 0.05,
       }).addTo(layer);
     }
 
-    // Marker vị trí hiện tại của người dùng (cho phép kéo thả hoặc click trên bản đồ)
     const userIcon = L.divIcon({
       className: 'custom-user-marker',
       html: `<div style="position:relative;display:flex;align-items:center;justify-content:center;width:32px;height:32px;">
-        <span style="position:absolute;width:32px;height:32px;border-radius:9999px;background:rgba(37,99,235,0.22);animation:ping 2s cubic-bezier(0,0,0.2,1) infinite;"></span>
+        <span style="position:absolute;width:32px;height:32px;border-radius:9999px;background:rgba(37,99,235,0.22);"></span>
         <span style="position:relative;width:16px;height:16px;border-radius:9999px;background:#2563eb;border:3px solid #ffffff;box-shadow:0 2px 8px rgba(0,0,0,0.35);"></span>
       </div>`,
       iconSize: [32, 32],
@@ -223,7 +225,6 @@ export const MapExplorer: React.FC<MapExplorerProps> = ({
       onMoveUserLocation(pos.lat, pos.lng);
     });
 
-    // Marker Danh lam thắng cảnh & Quán ăn gần đó
     sites.forEach((site) => {
       const isVisited = visitedRecords.some((r) => r.siteId === site.id);
       const isSelected = selectedSiteId === site.id;
@@ -290,7 +291,6 @@ export const MapExplorer: React.FC<MapExplorerProps> = ({
         }
       });
 
-      // Hiển thị các tiệm ăn uống đề xuất gần đó trên bản đồ
       if (showRestaurantsOnMap) {
         site.nearbyRestaurants.forEach((res) => {
           const resIcon = L.divIcon({
@@ -341,7 +341,6 @@ export const MapExplorer: React.FC<MapExplorerProps> = ({
     showRestaurantsOnMap,
   ]);
 
-  // Vẽ lộ trình dẫn đường đi bộ trên bản đồ
   useEffect(() => {
     const map = mapInstanceRef.current;
     const routeLayer = routeLayerRef.current;
@@ -377,16 +376,14 @@ export const MapExplorer: React.FC<MapExplorerProps> = ({
   };
 
   return (
-    <div className="relative h-[520px] lg:h-[calc(100vh-96px)] min-h-[500px] w-full overflow-hidden rounded-2xl border border-[#E6E4DD] bg-[#EFEDE6] shadow-xs">
-      {/* Container Bản đồ Leaflet có chiều cao tường minh */}
+    <div className="relative h-[520px] lg:h-[calc(100vh-96px)] min-h-[500px] w-full overflow-hidden rounded-2xl border border-[#E6E4DD] bg-[#E5E3DF] shadow-xs">
       <div
         ref={mapContainerRef}
         className="absolute inset-0 h-full w-full z-0"
       />
 
-      {/* Thanh công cụ Bản đồ phía trên (Top Map Controls) */}
+      {/* Top Map Controls */}
       <div className="pointer-events-auto absolute top-3 inset-x-3 z-10 flex flex-wrap items-center justify-between gap-2">
-        {/* Chú giải & Bật/tắt quán ăn */}
         <div className="flex flex-wrap items-center gap-1.5">
           <div className="flex items-center gap-3 rounded-xl border border-[#E6E4DD] bg-white/95 px-3 py-1.5 text-[11px] font-medium text-[#57554F] shadow-xs backdrop-blur-xs">
             <span className="inline-flex items-center gap-1.5">
@@ -414,24 +411,25 @@ export const MapExplorer: React.FC<MapExplorerProps> = ({
           </button>
         </div>
 
-        {/* Chuyển đổi kiểu bản đồ & Định vị */}
         <div className="flex items-center gap-1.5">
           <div className="inline-flex items-center rounded-xl border border-[#E6E4DD] bg-white/95 p-0.5 shadow-xs backdrop-blur-xs">
             <Layers className="mx-1.5 h-3.5 w-3.5 text-[#8A877F]" />
-            {(['osm', 'voyager', 'satellite'] as MapTileMode[]).map((mode) => (
-              <button
-                key={mode}
-                type="button"
-                onClick={() => setTileMode(mode)}
-                className={`rounded-lg px-2 py-1 text-[11px] font-medium transition-colors ${
-                  tileMode === mode
-                    ? 'bg-[#141413] text-white'
-                    : 'text-[#57554F] hover:text-[#141413]'
-                }`}
-              >
-                {TILE_LAYERS[mode].label}
-              </button>
-            ))}
+            {(['roadmap', 'terrain', 'satellite'] as MapTileMode[]).map(
+              (mode) => (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => setTileMode(mode)}
+                  className={`rounded-lg px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                    tileMode === mode
+                      ? 'bg-[#141413] text-white'
+                      : 'text-[#57554F] hover:text-[#141413]'
+                  }`}
+                >
+                  {TILE_LAYERS[mode].label}
+                </button>
+              )
+            )}
           </div>
 
           <button
@@ -457,7 +455,6 @@ export const MapExplorer: React.FC<MapExplorerProps> = ({
         </div>
       </div>
 
-      {/* Trạng thái đang tính đường đi */}
       {isRoutingLoading && (
         <div className="pointer-events-none absolute inset-x-4 bottom-4 z-10 flex items-center justify-center">
           <div className="rounded-xl border border-[#E6E4DD] bg-white/95 px-4 py-2.5 text-xs font-medium text-[#141413] shadow-md">
@@ -466,7 +463,6 @@ export const MapExplorer: React.FC<MapExplorerProps> = ({
         </div>
       )}
 
-      {/* Thanh Dẫn đường Đi bộ Trực tiếp (Turn-by-Turn Navigation Overlay) */}
       {activeRoute && !isRoutingLoading && (
         <div className="pointer-events-auto absolute bottom-3 inset-x-3 z-10 rounded-xl border border-[#E6E4DD] bg-white/98 p-4 shadow-lg backdrop-blur-md">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#E6E4DD] pb-3">
@@ -528,7 +524,6 @@ export const MapExplorer: React.FC<MapExplorerProps> = ({
             </div>
           </div>
 
-          {/* Danh sách bước rẽ */}
           <div className="mt-2.5 flex gap-2 overflow-x-auto pb-0.5">
             {activeRoute.steps.map((step, idx) => (
               <div

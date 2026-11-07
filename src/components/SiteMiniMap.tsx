@@ -28,23 +28,28 @@ export const SiteMiniMap: React.FC<SiteMiniMapProps> = ({
       zoomControl: true,
     });
 
-    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; OpenStreetMap',
-      maxZoom: 19,
+    L.tileLayer('https://mt1.google.com/vt/lyrs=m&hl=vi&x={x}&y={y}&z={z}', {
+      attribution: '&copy; Google Maps',
+      maxZoom: 20,
     }).addTo(map);
 
     mapRef.current = map;
 
-    setTimeout(() => {
-      map.invalidateSize();
+    const timer = setTimeout(() => {
+      if (mapRef.current === map) {
+        map.invalidateSize();
+      }
     }, 120);
 
     const ro = new ResizeObserver(() => {
-      map.invalidateSize();
+      if (mapRef.current === map) {
+        map.invalidateSize();
+      }
     });
     ro.observe(el);
 
     return () => {
+      clearTimeout(timer);
       ro.disconnect();
       map.remove();
       mapRef.current = null;
@@ -61,7 +66,6 @@ export const SiteMiniMap: React.FC<SiteMiniMapProps> = ({
       }
     });
 
-    // Marker Di tích chính
     const siteIcon = L.divIcon({
       className: 'custom-heritage-marker',
       html: `<div style="display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border-radius:999px;background:#141413;color:#ffffff;border:2px solid #ffffff;box-shadow:0 4px 12px rgba(0,0,0,0.28);font-weight:700;font-size:11px;white-space:nowrap;">
@@ -74,7 +78,6 @@ export const SiteMiniMap: React.FC<SiteMiniMapProps> = ({
 
     L.marker([site.lat, site.lng], { icon: siteIcon }).addTo(map);
 
-    // Marker các quán ăn đề xuất xung quanh di tích
     const boundsPoints: [number, number][] = [[site.lat, site.lng]];
 
     restaurants.forEach((res) => {
@@ -95,7 +98,6 @@ export const SiteMiniMap: React.FC<SiteMiniMapProps> = ({
         onSelectRestaurant?.(res);
       });
 
-      // Đường nối nét đứt từ di tích tới quán ăn
       L.polyline(
         [
           [site.lat, site.lng],
@@ -121,7 +123,7 @@ export const SiteMiniMap: React.FC<SiteMiniMapProps> = ({
   }, [site, userLocation, restaurants]);
 
   return (
-    <div className="relative h-60 w-full overflow-hidden rounded-xl border border-[#E6E4DD] bg-[#EFEDE6]">
+    <div className="relative h-60 w-full overflow-hidden rounded-xl border border-[#E6E4DD] bg-[#E5E3DF]">
       <div ref={containerRef} className="absolute inset-0 h-full w-full z-0" />
     </div>
   );
