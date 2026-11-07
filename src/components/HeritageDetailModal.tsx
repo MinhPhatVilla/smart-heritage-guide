@@ -22,21 +22,27 @@ import {
   getRecommendedRestaurants,
 } from '../utils/geoUtils';
 import { AudioGuidePlayer } from './AudioGuidePlayer';
+import { SiteMiniMap } from './SiteMiniMap';
 
 interface HeritageDetailModalProps {
   site: HeritageSite;
+  userLocation: [number, number];
   distanceMeters: number;
   estimatedWalkingSeconds: number;
   selectedLanguage: SupportedLanguage;
   onLanguageChange: (lang: SupportedLanguage) => void;
   onClose: () => void;
   onStartNavigation: (site: HeritageSite) => void;
-  onNavigateToRestaurant: (restaurant: NearbyRestaurant, parentSite: HeritageSite) => void;
+  onNavigateToRestaurant: (
+    restaurant: NearbyRestaurant,
+    parentSite: HeritageSite
+  ) => void;
   onOpenPhotoCheckIn: (site: HeritageSite) => void;
 }
 
 export const HeritageDetailModal: React.FC<HeritageDetailModalProps> = ({
   site,
+  userLocation,
   distanceMeters,
   estimatedWalkingSeconds,
   selectedLanguage,
@@ -46,7 +52,9 @@ export const HeritageDetailModal: React.FC<HeritageDetailModalProps> = ({
   onNavigateToRestaurant,
   onOpenPhotoCheckIn,
 }) => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'media' | 'dining'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'media' | 'dining'>(
+    'overview'
+  );
   const [minRatingFilter, setMinRatingFilter] = useState<number>(4.5);
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
 
@@ -122,7 +130,8 @@ export const HeritageDetailModal: React.FC<HeritageDetailModalProps> = ({
               <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-white/90 tabular-nums">
                 <span className="inline-flex items-center gap-1 font-medium">
                   <Footprints className="h-3.5 w-3.5 text-amber-300" />
-                  {formatWalkingDuration(estimatedWalkingSeconds)} ({formatDistance(distanceMeters)})
+                  {formatWalkingDuration(estimatedWalkingSeconds)} (
+                  {formatDistance(distanceMeters)})
                 </span>
                 <span>·</span>
                 <span className="inline-flex items-center gap-1">
@@ -156,9 +165,12 @@ export const HeritageDetailModal: React.FC<HeritageDetailModalProps> = ({
         {/* Navigation Tabs */}
         <div className="flex border-b border-[#E6E4DD] bg-[#FAF9F6] px-5">
           {[
-            { id: 'overview', label: 'Thuyết minh & Lịch sử' },
+            { id: 'overview', label: 'Thuyết minh & Bản đồ' },
             { id: 'media', label: `Tư liệu (${site.mediaGallery.length})` },
-            { id: 'dining', label: `Ẩm thực gần đó (${site.nearbyRestaurants.length})` },
+            {
+              id: 'dining',
+              label: `Ẩm thực gần đó (${site.nearbyRestaurants.length})`,
+            },
           ].map((tab) => {
             const active = activeTab === tab.id;
             return (
@@ -219,13 +231,17 @@ export const HeritageDetailModal: React.FC<HeritageDetailModalProps> = ({
                     <Clock className="h-4 w-4 shrink-0 text-[#8A877F] mt-0.5" />
                     <div>
                       <span className="text-[#8A877F] block">Giờ mở cửa</span>
-                      <span className="font-medium">{localized.openingHours}</span>
+                      <span className="font-medium">
+                        {localized.openingHours}
+                      </span>
                     </div>
                   </div>
                   <div className="flex items-start gap-2.5 text-[#141413]">
                     <Ticket className="h-4 w-4 shrink-0 text-[#8A877F] mt-0.5" />
                     <div>
-                      <span className="text-[#8A877F] block">Giá vé tham khảo</span>
+                      <span className="text-[#8A877F] block">
+                        Giá vé tham khảo
+                      </span>
                       <span className="font-medium">{site.ticketPrice}</span>
                     </div>
                   </div>
@@ -239,6 +255,29 @@ export const HeritageDetailModal: React.FC<HeritageDetailModalProps> = ({
                     </div>
                   </div>
                 </div>
+              </div>
+
+              {/* Bản đồ tương tác trực quan của Di tích & Quán ăn xung quanh */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-semibold uppercase tracking-wider text-[#8A877F]">
+                    Bản đồ Vị trí Di tích & Ẩm thực Xung quanh
+                  </h4>
+                  <button
+                    type="button"
+                    onClick={() => onStartNavigation(site)}
+                    className="inline-flex items-center gap-1 text-xs font-semibold text-[#B93815] hover:underline"
+                  >
+                    <Navigation className="h-3.5 w-3.5" />
+                    Mở dẫn đường đi bộ trên bản đồ lớn
+                  </button>
+                </div>
+                <SiteMiniMap
+                  site={site}
+                  userLocation={userLocation}
+                  restaurants={topRestaurants}
+                  onSelectRestaurant={(res) => onNavigateToRestaurant(res, site)}
+                />
               </div>
             </>
           )}
@@ -274,7 +313,9 @@ export const HeritageDetailModal: React.FC<HeritageDetailModalProps> = ({
                           </video>
                           <span className="absolute top-2.5 left-2.5 inline-flex items-center gap-1 rounded-md bg-[#141413]/80 px-2 py-0.5 text-[11px] font-medium text-white backdrop-blur-xs">
                             <Film className="h-3 w-3" /> Video tư liệu{' '}
-                            {media.durationLabel ? `· ${media.durationLabel}` : ''}
+                            {media.durationLabel
+                              ? `· ${media.durationLabel}`
+                              : ''}
                           </span>
                         </div>
                       ) : (
@@ -316,7 +357,8 @@ export const HeritageDetailModal: React.FC<HeritageDetailModalProps> = ({
                     Tiệm ăn uống đề xuất gần di tích
                   </h3>
                   <p className="text-xs text-[#57554F]">
-                    Sắp xếp theo điểm đánh giá thực khách và khoảng cách đi bộ
+                    Bản đồ vị trí và danh sách quán ăn được đánh giá cao nhất quanh{' '}
+                    {localized.name}
                   </p>
                 </div>
 
@@ -338,9 +380,18 @@ export const HeritageDetailModal: React.FC<HeritageDetailModalProps> = ({
                 </div>
               </div>
 
+              {/* Bản đồ trực quan nối từ Di tích tới các Quán ăn */}
+              <SiteMiniMap
+                site={site}
+                userLocation={userLocation}
+                restaurants={topRestaurants}
+                onSelectRestaurant={(res) => onNavigateToRestaurant(res, site)}
+              />
+
               {topRestaurants.length === 0 ? (
                 <div className="rounded-xl border border-[#E6E4DD] bg-[#FAF9F6] p-6 text-center text-xs text-[#57554F]">
-                  Không có quán ăn nào khớp mức lọc ≥ {minRatingFilter} ★. Hãy chọn mức lọc thấp hơn.
+                  Không có quán ăn nào khớp mức lọc ≥ {minRatingFilter} ★. Hãy
+                  chọn mức lọc thấp hơn.
                 </div>
               ) : (
                 <div className="divide-y divide-[#E6E4DD] rounded-xl border border-[#E6E4DD] bg-white">
@@ -374,9 +425,13 @@ export const HeritageDetailModal: React.FC<HeritageDetailModalProps> = ({
                           </p>
 
                           <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[11px] text-[#8A877F] tabular-nums">
-                            <span>Cách di tích {formatDistance(res.distanceMeters)}</span>
+                            <span>
+                              Cách di tích {formatDistance(res.distanceMeters)}
+                            </span>
                             <span>·</span>
-                            <span>~{formatWalkingDuration(res.walkingSeconds)}</span>
+                            <span>
+                              ~{formatWalkingDuration(res.walkingSeconds)}
+                            </span>
                             <span>·</span>
                             <span>{res.priceRange}</span>
                           </div>

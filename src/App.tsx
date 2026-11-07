@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import {
-  MapPin,
   Volume2,
   Navigation,
   Camera,
@@ -9,6 +8,8 @@ import {
   Footprints,
   X,
   Check,
+  Map as MapIcon,
+  List,
 } from 'lucide-react';
 import {
   CapturedPhoto,
@@ -47,6 +48,7 @@ export function App() {
   const [searchRadiusMeters, setSearchRadiusMeters] = useState<number>(15000);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [activeView, setActiveView] = useState<'explore' | 'journey'>('explore');
+  const [mobileLayout, setMobileLayout] = useState<'split' | 'map'>('split');
 
   const [selectedSite, setSelectedSite] = useState<HeritageSite | null>(null);
   const [quickAudioSite, setQuickAudioSite] = useState<HeritageSite | null>(
@@ -147,6 +149,7 @@ export function App() {
       (site.translations[selectedLanguage] || site.translations.vi).name;
     setSelectedSite(null);
     setActiveView('explore');
+    setMobileLayout('map');
     setIsRoutingLoading(true);
     const route = await fetchWalkingRoute(
       userLocation,
@@ -166,6 +169,7 @@ export function App() {
   ) => {
     setSelectedSite(null);
     setActiveView('explore');
+    setMobileLayout('map');
     setIsRoutingLoading(true);
     const route = await fetchWalkingRoute(
       userLocation,
@@ -357,9 +361,13 @@ export function App() {
             }}
           />
         ) : (
-          <div className="mx-auto flex max-w-[1440px] flex-col lg:flex-row lg:h-[calc(100vh-65px)] lg:overflow-hidden">
+          <div className="mx-auto flex max-w-[1440px] flex-col-reverse lg:flex-row lg:h-[calc(100vh-65px)] lg:overflow-hidden">
             {/* Left Column: Discovery Rail & Controls */}
-            <div className="flex w-full lg:w-[460px] xl:w-[500px] shrink-0 flex-col border-b lg:border-b-0 lg:border-r border-[#E6E4DD] bg-[#FAF9F6] lg:h-full lg:overflow-y-auto">
+            <div
+              className={`flex w-full lg:w-[460px] xl:w-[500px] shrink-0 flex-col border-t lg:border-t-0 lg:border-r border-[#E6E4DD] bg-[#FAF9F6] lg:h-full lg:overflow-y-auto ${
+                mobileLayout === 'map' ? 'hidden lg:flex' : 'flex'
+              }`}
+            >
               {/* Location Filter & Search Header */}
               <div className="space-y-3 border-b border-[#E6E4DD] bg-white p-4">
                 {/* City Presets + Real GPS */}
@@ -433,7 +441,7 @@ export function App() {
                   </select>
                 </div>
 
-                {/* Mobile Language Switcher + Auto Audio Toggle */}
+                {/* Auto Audio Toggle */}
                 <div className="flex flex-wrap items-center justify-between gap-2 pt-0.5 text-xs text-[#57554F]">
                   <span>
                     Tìm thấy{' '}
@@ -616,7 +624,7 @@ export function App() {
                             </div>
                           </div>
 
-                          {/* Clean Action Row: 1 Primary Action + 2 Subtle Secondary Controls */}
+                          {/* Clean Action Row */}
                           <div className="mt-3 flex items-center justify-between gap-2 pt-1">
                             <button
                               type="button"
@@ -654,8 +662,36 @@ export function App() {
               </div>
             </div>
 
-            {/* Right Column: Interactive Map Workspace */}
-            <div className="h-[420px] lg:h-full flex-1 p-3 sm:p-4 bg-[#FAF9F6]">
+            {/* Right Column: Interactive Map Workspace (Luôn nằm trên cùng ở màn hình nhỏ và bên phải ở màn hình lớn) */}
+            <div className="w-full flex-1 p-3 sm:p-4 bg-[#FAF9F6]">
+              {/* Nút chuyển nhanh Bản đồ / Danh sách trên màn hình nhỏ */}
+              <div className="mb-2 flex items-center justify-between lg:hidden">
+                <span className="text-xs font-semibold text-[#141413]">
+                  Bản đồ Định vị Di tích & Quán ăn
+                </span>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setMobileLayout((prev) =>
+                      prev === 'split' ? 'map' : 'split'
+                    )
+                  }
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-[#E6E4DD] bg-white px-2.5 py-1 text-xs font-medium text-[#141413]"
+                >
+                  {mobileLayout === 'split' ? (
+                    <>
+                      <MapIcon className="h-3.5 w-3.5" />
+                      <span>Mở rộng bản đồ</span>
+                    </>
+                  ) : (
+                    <>
+                      <List className="h-3.5 w-3.5" />
+                      <span>Hiện danh sách di tích</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
               <MapExplorer
                 userLocation={userLocation}
                 sites={nearbySitesWithMetrics.map((i) => i.site)}
@@ -669,6 +705,7 @@ export function App() {
                 searchRadiusMeters={searchRadiusMeters}
                 onSelectSite={(site) => setSelectedSite(site)}
                 onStartRouteToSite={handleStartNavigationToSite}
+                onStartRouteToRestaurant={handleNavigateToRestaurant}
                 onSimulateWalkAlongRoute={handleSimulateWalkAlongRoute}
                 onFinishWalkAndCheckIn={handleFinishWalkAndCheckIn}
                 onCancelRoute={() => setActiveRoute(null)}
@@ -697,6 +734,7 @@ export function App() {
       {selectedSite && (
         <HeritageDetailModal
           site={selectedSite}
+          userLocation={userLocation}
           distanceMeters={
             rawNearbySites.find((i) => i.site.id === selectedSite.id)
               ?.distanceMeters || 500

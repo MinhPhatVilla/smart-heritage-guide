@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import L from 'leaflet';
 import {
   Footprints,
   Camera,
@@ -32,6 +33,9 @@ export const JourneyAndRankingView: React.FC<JourneyAndRankingViewProps> = ({
   );
   const [previewPhotoUrl, setPreviewPhotoUrl] = useState<string | null>(null);
 
+  const journeyMapRef = useRef<HTMLDivElement | null>(null);
+  const leafletMapRef = useRef<L.Map | null>(null);
+
   const rankedList = rankVisitedSitesByWalkingTime(records, sortMode);
 
   const totalWalkingSeconds = records.reduce(
@@ -51,6 +55,92 @@ export const JourneyAndRankingView: React.FC<JourneyAndRankingViewProps> = ({
   const unvisitedSites = allSites.filter(
     (s) => !records.some((r) => r.siteId === s.id)
   );
+
+  // Bản đồ tổng hợp dấu chân hành trình & các lộ trình đã đi bộ
+  useEffect(() => {
+    const el = journeyMapRef.current;
+    if (!el || leafletMapRef.current) return;
+
+    const map = L.map(el, {
+      center: [21.0313, 105.8412],
+      zoom: 14,
+      zoomControl: true,
+    });
+
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap',
+      maxZoom: 19,
+    }).addTo(map);
+
+    leafletMapRef.current = map;
+
+    setTimeout(() => {
+      map.invalidateSize();
+    }, 100);
+
+    const ro = new ResizeObserver(() => {
+      map.invalidateSize();
+    });
+    ro.observe(el);
+
+    return () => {
+      ro.disconnect();
+      map.remove();
+      leafletMapRef.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
+    const map = leafletMapRef.current;
+    if (!map) return;
+
+    map.eachLayer((layer) => {
+      if (!(layer instanceof L.TileLayer)) {
+        map.removeLayer(layer);
+      }
+    });
+
+    const boundsCoords: [number, number][] = [];
+
+    rankedList.forEach(({ rank, record }) => {
+      const site = allSites.find((s) => s.id === record.siteId);
+      if (!site) return;
+
+      boundsCoords.push([site.lat, site.lng]);
+
+      // Vẽ vết lộ trình đi bộ đã lưu của điểm này
+      if (record.routeCoordinates && record.routeCoordinates.length > 1) {
+        L.polyline(record.routeCoordinates, {
+          color: '#B93815',
+          weight: 4,
+          dashArray: '6 5',
+          opacity: 0.85,
+        }).addTo(map);
+      }
+
+      const icon = L.divIcon({
+        className: 'custom-heritage-marker',
+        html: `<div style="display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:999px;background:#141413;color:#ffffff;border:2px solid #ffffff;box-shadow:0 4px 12px rgba(0,0,0,0.28);font-weight:700;font-size:11px;white-space:nowrap;">
+          <span style="background:#B93815;color:#fff;padding:1px 5px;border-radius:999px;font-size:10px;">#${rank}</span>
+          <span>${record.siteName} (${formatWalkingDuration(record.walkingDurationSeconds)})</span>
+        </div>`,
+        iconSize: [190, 28],
+        iconAnchor: [95, 14],
+      });
+
+      const marker = L.marker([site.lat, site.lng], { icon }).addTo(map);
+      marker.on('click', () => {
+        onSelectSiteById(record.siteId);
+      });
+    });
+
+    if (boundsCoords.length > 0) {
+      map.fitBounds(L.latLngBounds(boundsCoords), {
+        padding: [48, 48],
+        maxZoom: 15,
+      });
+    }
+  }, [rankedList, allSites]);
 
   return (
     <div className="mx-auto max-w-5xl space-y-8 px-4 py-6 sm:px-6">
@@ -98,6 +188,26 @@ export const JourneyAndRankingView: React.FC<JourneyAndRankingViewProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Bản đồ Dấu chân Hành trình & Lộ trình Đi bộ đã Ghi lại */}
+      <section className="space-y-2.5">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-base font-semibold text-[#141413]">
+              Bản đồ Hành trình & Lộ trình Đi bộ Đã Ghi nhận
+            </h3>
+            <p className="text-xs text-[#57554F]">
+              Hiển thị các danh lam thắng cảnh bạn đã đi qua kèm vết đường đi bộ và thứ hạng
+            </p>
+          </div>
+        </div>
+        <div className="relative h-72 sm:h-80 w-full overflow-hidden rounded-2xl border border-[#E6E4DD] bg-[#EFEDE6]">
+          <div
+            ref={journeyMapRef}
+            className="absolute inset-0 h-full w-full z-0"
+          />
+        </div>
+      </section>
 
       {/* Walking-Time Leaderboard */}
       <section className="space-y-4">
