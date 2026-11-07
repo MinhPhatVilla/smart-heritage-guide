@@ -1,14 +1,11 @@
 import React, { useState } from 'react';
 import {
-  Trophy,
   Footprints,
   Camera,
   Calendar,
   MapPin,
   ArrowUpDown,
-  Medal,
-  Sparkles,
-  Navigation,
+  ArrowUpRight,
 } from 'lucide-react';
 import { HeritageSite, VisitedSiteRecord } from '../types/heritage';
 import {
@@ -33,6 +30,7 @@ export const JourneyAndRankingView: React.FC<JourneyAndRankingViewProps> = ({
   const [sortMode, setSortMode] = useState<'longest_walk' | 'shortest_walk'>(
     'longest_walk'
   );
+  const [previewPhotoUrl, setPreviewPhotoUrl] = useState<string | null>(null);
 
   const rankedList = rankVisitedSitesByWalkingTime(records, sortMode);
 
@@ -55,82 +53,61 @@ export const JourneyAndRankingView: React.FC<JourneyAndRankingViewProps> = ({
   );
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6 p-4 sm:p-6">
-      {/* Thống kê tổng quan hành trình */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        <div className="rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-50 to-white p-4 shadow-2xs">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-amber-900 uppercase">
-              Di tích đã đi qua
-            </span>
-            <Trophy className="h-5 w-5 text-amber-600" />
-          </div>
-          <p className="mt-2 text-2xl font-extrabold text-stone-900">
-            {records.length} / {allSites.length}
-          </p>
-          <p className="mt-0.5 text-xs text-stone-500">
-            Danh lam thắng cảnh đã ghi nhận
-          </p>
+    <div className="mx-auto max-w-5xl space-y-8 px-4 py-6 sm:px-6">
+      {/* Page Header & Architectural Metrics Strip */}
+      <div className="space-y-4">
+        <div>
+          <span className="text-xs font-semibold uppercase tracking-wider text-[#8A877F]">
+            Nhật ký Bộ hành & Lưu trữ
+          </span>
+          <h2 className="mt-1 font-serif-editorial text-2xl sm:text-3xl font-semibold text-[#141413]">
+            Hành trình & Xếp hạng theo Thời gian Đi bộ
+          </h2>
         </div>
 
-        <div className="rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-white p-4 shadow-2xs">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-emerald-900 uppercase">
-              Tổng thời gian đi bộ
-            </span>
-            <Footprints className="h-5 w-5 text-emerald-600" />
+        <div className="grid grid-cols-2 sm:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-[#E6E4DD] rounded-xl border border-[#E6E4DD] bg-white">
+          <div className="p-4">
+            <span className="text-xs text-[#8A877F]">Điểm di sản đã đi</span>
+            <p className="mt-1 text-2xl font-semibold text-[#141413] tabular-nums">
+              {records.length}
+              <span className="text-sm font-normal text-[#8A877F]">
+                /{allSites.length}
+              </span>
+            </p>
           </div>
-          <p className="mt-2 text-2xl font-extrabold text-stone-900">
-            {formatWalkingDuration(totalWalkingSeconds)}
-          </p>
-          <p className="mt-0.5 text-xs text-stone-500">
-            Tích lũy qua các chặng hành trình
-          </p>
-        </div>
 
-        <div className="rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-50 to-white p-4 shadow-2xs">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-blue-900 uppercase">
-              Quãng đường bộ hành
-            </span>
-            <Navigation className="h-5 w-5 text-blue-600" />
+          <div className="p-4">
+            <span className="text-xs text-[#8A877F]">Tổng thời gian đi bộ</span>
+            <p className="mt-1 text-2xl font-semibold text-[#141413] tabular-nums">
+              {formatWalkingDuration(totalWalkingSeconds)}
+            </p>
           </div>
-          <p className="mt-2 text-2xl font-extrabold text-stone-900">
-            {formatDistance(totalDistanceMeters)}
-          </p>
-          <p className="mt-0.5 text-xs text-stone-500">
-            Ước tính ~{Math.round(totalDistanceMeters * 1.35).toLocaleString()} bước chân
-          </p>
-        </div>
 
-        <div className="rounded-2xl border border-red-200 bg-gradient-to-br from-red-50 to-white p-4 shadow-2xs">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-red-900 uppercase">
-              Ảnh chụp tại Di tích
-            </span>
-            <Camera className="h-5 w-5 text-red-700" />
+          <div className="p-4">
+            <span className="text-xs text-[#8A877F]">Quãng đường tích lũy</span>
+            <p className="mt-1 text-2xl font-semibold text-[#141413] tabular-nums">
+              {formatDistance(totalDistanceMeters)}
+            </p>
           </div>
-          <p className="mt-2 text-2xl font-extrabold text-stone-900">
-            {totalPhotos} ảnh
-          </p>
-          <p className="mt-0.5 text-xs text-stone-500">
-            Lưu trong Sổ tay Hành trình Di sản
-          </p>
+
+          <div className="p-4">
+            <span className="text-xs text-[#8A877F]">Ảnh lưu tại di tích</span>
+            <p className="mt-1 text-2xl font-semibold text-[#141413] tabular-nums">
+              {totalPhotos}
+            </p>
+          </div>
         </div>
       </div>
 
-      {/* Bảng Xếp hạng những nơi đã đi thông qua thời gian đi bộ */}
-      <div className="rounded-3xl border border-stone-200 bg-white p-5 sm:p-6 shadow-xs">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-stone-200 pb-4">
+      {/* Walking-Time Leaderboard */}
+      <section className="space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#E6E4DD] pb-3">
           <div>
-            <div className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-3 py-0.5 text-xs font-bold text-amber-900">
-              <Medal className="h-3.5 w-3.5" /> Bảng Xếp Hạng Hành Trình Đi Bộ
-            </div>
-            <h2 className="mt-1 text-lg sm:text-xl font-extrabold text-stone-900">
-              Xếp hạng Những Nơi Đã Đi qua Thời Gian Đi Bộ tới Di Tích
-            </h2>
-            <p className="text-xs text-stone-500">
-              Đánh giá và xếp hạng các danh lam thắng cảnh bạn đã khám phá dựa trên thời gian đi bộ thực tế tới điểm đó
+            <h3 className="text-base font-semibold text-[#141413]">
+              Bảng xếp hạng nơi đã đi qua thời gian đi bộ
+            </h3>
+            <p className="text-xs text-[#57554F]">
+              Xếp hạng mức độ đi bộ chinh phục từng danh lam thắng cảnh
             </p>
           </div>
 
@@ -141,140 +118,131 @@ export const JourneyAndRankingView: React.FC<JourneyAndRankingViewProps> = ({
                 prev === 'longest_walk' ? 'shortest_walk' : 'longest_walk'
               )
             }
-            className="inline-flex items-center gap-2 rounded-xl border border-stone-300 bg-stone-50 px-3.5 py-2 text-xs font-bold text-stone-800 hover:bg-stone-100"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-[#E6E4DD] bg-white px-3 py-1.5 text-xs font-medium text-[#141413] hover:bg-[#F3F1EC] transition-colors"
           >
-            <ArrowUpDown className="h-4 w-4 text-red-700" />
+            <ArrowUpDown className="h-3.5 w-3.5 text-[#8A877F]" />
             {sortMode === 'longest_walk'
-              ? 'Đang xếp: Thời gian đi bộ lâu nhất (Nỗ lực cao nhất)'
-              : 'Đang xếp: Thời gian đi bộ nhanh nhất'}
+              ? 'Xếp theo: Đi bộ lâu nhất'
+              : 'Xếp theo: Đi bộ nhanh nhất'}
           </button>
         </div>
 
-        <div className="mt-5 space-y-4">
-          {rankedList.map(({ rank, record, badgeTitle, effortScore }) => {
+        <div className="divide-y divide-[#E6E4DD] rounded-xl border border-[#E6E4DD] bg-white">
+          {rankedList.map(({ rank, record, badgeTitle }) => {
             const widthPercent = Math.max(
-              15,
-              Math.round((record.walkingDurationSeconds / maxDurationSeconds) * 100)
+              12,
+              Math.round(
+                (record.walkingDurationSeconds / maxDurationSeconds) * 100
+              )
             );
-            const medalBadge =
-              rank === 1 ? '🥇 Hạng 1' : rank === 2 ? '🥈 Hạng 2' : rank === 3 ? '🥉 Hạng 3' : `#${rank}`;
 
             return (
-              <div
-                key={record.id}
-                className="rounded-2xl border border-stone-200 bg-stone-50/70 p-4 transition hover:border-amber-300 hover:bg-white"
-              >
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                  <div className="flex items-start gap-3.5">
-                    <div
-                      className={`flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-2xl font-extrabold text-xs shadow-xs ${
+              <div key={record.id} className="p-5 space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                  <div className="flex items-start gap-4">
+                    <span
+                      className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-xs font-semibold tabular-nums ${
                         rank === 1
-                          ? 'bg-amber-400 text-stone-950'
-                          : rank === 2
-                            ? 'bg-stone-300 text-stone-900'
-                            : rank === 3
-                              ? 'bg-amber-700 text-white'
-                              : 'bg-stone-200 text-stone-700'
+                          ? 'bg-[#141413] text-white'
+                          : 'border border-[#E6E4DD] bg-[#FAF9F6] text-[#57554F]'
                       }`}
                     >
-                      <span>{medalBadge}</span>
-                    </div>
+                      0{rank}
+                    </span>
 
-                    <div>
+                    <div className="space-y-1.5">
                       <div className="flex flex-wrap items-center gap-2">
-                        <h3
+                        <button
+                          type="button"
                           onClick={() => onSelectSiteById(record.siteId)}
-                          className="cursor-pointer text-base font-bold text-stone-900 hover:text-red-800"
+                          className="font-serif-editorial text-lg font-semibold text-[#141413] hover:underline text-left"
                         >
                           {record.siteName}
-                        </h3>
-                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-0.5 text-[11px] font-bold text-emerald-900">
-                          <Sparkles className="h-3 w-3" /> {badgeTitle}
-                        </span>
-                        <span className="rounded-full bg-stone-200 px-2 py-0.5 text-[11px] font-semibold text-stone-700">
-                          {effortScore} điểm bộ hành
+                        </button>
+                        <span className="rounded border border-[#E6E4DD] bg-[#FAF9F6] px-2 py-0.5 text-[11px] font-medium text-[#57554F]">
+                          {badgeTitle}
                         </span>
                       </div>
 
-                      <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-stone-600">
-                        <span className="inline-flex items-center gap-1 font-bold text-emerald-800">
-                          <Footprints className="h-3.5 w-3.5" /> Thời gian đi bộ:{' '}
+                      <div className="flex flex-wrap items-center gap-3 text-xs text-[#57554F] tabular-nums">
+                        <span className="inline-flex items-center gap-1 font-semibold text-[#141413]">
+                          <Footprints className="h-3.5 w-3.5 text-[#B93815]" />
                           {formatWalkingDuration(record.walkingDurationSeconds)}
                         </span>
-                        <span>• Quãng đường: {formatDistance(record.walkingDistanceMeters)}</span>
-                        <span className="inline-flex items-center gap-1">
-                          <Calendar className="h-3.5 w-3.5" />{' '}
+                        <span>·</span>
+                        <span>{formatDistance(record.walkingDistanceMeters)}</span>
+                        <span>·</span>
+                        <span className="inline-flex items-center gap-1 text-[#8A877F]">
+                          <Calendar className="h-3 w-3" />
                           {new Date(record.visitedAt).toLocaleDateString('vi-VN')}
                         </span>
                       </div>
 
-                      {/* Thanh biểu đồ trực quan so sánh thời gian đi bộ */}
-                      <div className="mt-2.5 w-full max-w-md rounded-full bg-stone-200 h-2.5 overflow-hidden">
-                        <div
-                          className="bg-gradient-to-r from-red-700 via-amber-600 to-emerald-600 h-full rounded-full transition-all duration-500"
-                          style={{ width: `${widthPercent}%` }}
-                        />
+                      {/* Minimalist Bar Visualizer */}
+                      <div className="w-full max-w-md pt-1">
+                        <div className="h-1.5 w-full overflow-hidden rounded-full bg-[#F3F1EC]">
+                          <div
+                            className={`h-full rounded-full transition-all duration-500 ${
+                              rank === 1 ? 'bg-[#B93815]' : 'bg-[#141413]'
+                            }`}
+                            style={{ width: `${widthPercent}%` }}
+                          />
+                        </div>
                       </div>
 
                       {record.userNote && (
-                        <p className="mt-2 text-xs italic text-stone-600">
-                          “{record.userNote}”
+                        <p className="pt-1 text-xs text-[#57554F]">
+                          {record.userNote}
                         </p>
                       )}
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 self-end md:self-center">
+                  <div className="flex items-center gap-2 self-end sm:self-start">
                     <button
                       type="button"
                       onClick={() => onOpenCaptureForSite(record.siteId)}
-                      className="inline-flex items-center gap-1.5 rounded-xl bg-amber-500 px-3 py-2 text-xs font-bold text-stone-950 hover:bg-amber-400"
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-[#E6E4DD] bg-white px-3 py-1.5 text-xs font-medium text-[#141413] hover:bg-[#FAF9F6]"
                     >
-                      <Camera className="h-3.5 w-3.5" /> Chụp thêm ảnh
+                      <Camera className="h-3.5 w-3.5" />
+                      Thêm ảnh
                     </button>
                     <button
                       type="button"
                       onClick={() => onSelectSiteById(record.siteId)}
-                      className="rounded-xl border border-stone-300 bg-white px-3 py-2 text-xs font-semibold text-stone-700 hover:bg-stone-100"
+                      className="inline-flex items-center gap-1 rounded-lg bg-[#FAF9F6] px-3 py-1.5 text-xs font-medium text-[#57554F] hover:text-[#141413]"
                     >
-                      Xem Di tích
+                      <span>Chi tiết</span>
+                      <ArrowUpRight className="h-3.5 w-3.5" />
                     </button>
                   </div>
                 </div>
 
-                {/* Bộ sưu tập ảnh chụp tại di tích này */}
+                {/* Captured Photos Strip */}
                 {record.photos.length > 0 && (
-                  <div className="mt-4 border-t border-stone-200/80 pt-3">
-                    <p className="mb-2 text-xs font-bold text-stone-700">
-                      📸 Ảnh kỷ niệm đã lưu tại {record.siteName} ({record.photos.length}):
-                    </p>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                  <div className="pl-0 sm:pl-13 pt-1">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                       {record.photos.map((photo) => (
-                        <div
+                        <button
                           key={photo.id}
-                          className="overflow-hidden rounded-xl border border-stone-200 bg-white shadow-2xs"
+                          type="button"
+                          onClick={() => setPreviewPhotoUrl(photo.dataUrl)}
+                          className="group flex items-center gap-3 rounded-lg border border-[#E6E4DD] bg-[#FAF9F6] p-2 text-left hover:border-[#141413]/40 transition-colors"
                         >
                           <img
                             src={photo.dataUrl}
                             alt={photo.caption}
-                            className="h-36 w-full object-cover"
+                            className="h-14 w-16 shrink-0 rounded object-cover"
                           />
-                          <div className="p-2.5">
-                            <p className="text-xs font-semibold text-stone-800 line-clamp-1">
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-xs font-medium text-[#141413]">
                               {photo.caption}
                             </p>
-                            <p className="mt-0.5 text-[11px] text-stone-500 flex items-center justify-between">
-                              <span>
-                                {new Date(photo.takenAt).toLocaleDateString('vi-VN')}
-                              </span>
-                              {photo.walkingDurationSecondsAtCapture && (
-                                <span className="text-emerald-700 font-semibold">
-                                  🚶 {formatWalkingDuration(photo.walkingDurationSecondsAtCapture)}
-                                </span>
-                              )}
+                            <p className="mt-0.5 text-[11px] text-[#8A877F] tabular-nums">
+                              {new Date(photo.takenAt).toLocaleDateString('vi-VN')}
                             </p>
                           </div>
-                        </div>
+                        </button>
                       ))}
                     </div>
                   </div>
@@ -283,31 +251,31 @@ export const JourneyAndRankingView: React.FC<JourneyAndRankingViewProps> = ({
             );
           })}
         </div>
-      </div>
+      </section>
 
-      {/* Gợi ý các di tích tiếp theo để chinh phục và lưu ảnh */}
+      {/* Remaining Unvisited Heritage Sites */}
       {unvisitedSites.length > 0 && (
-        <div className="rounded-3xl border border-stone-200 bg-white p-5 sm:p-6 shadow-xs">
-          <h3 className="text-base font-bold text-stone-900">
-            Danh lam thắng cảnh tiếp theo đang chờ bạn khám phá & check-in ({unvisitedSites.length})
+        <section className="space-y-3">
+          <h3 className="text-sm font-semibold text-[#141413]">
+            Điểm di sản chưa check-in ({unvisitedSites.length})
           </h3>
-          <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {unvisitedSites.map((site) => (
               <div
                 key={site.id}
-                className="flex items-center justify-between rounded-2xl border border-stone-200 p-3 hover:border-amber-300"
+                className="flex items-center justify-between rounded-xl border border-[#E6E4DD] bg-white p-3"
               >
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 min-w-0">
                   <img
                     src={site.coverImage}
                     alt={site.translations.vi.name}
-                    className="h-14 w-14 rounded-xl object-cover"
+                    className="h-12 w-12 shrink-0 rounded-lg object-cover"
                   />
-                  <div>
-                    <h4 className="text-xs font-bold text-stone-900">
+                  <div className="min-w-0">
+                    <h4 className="truncate text-xs font-semibold text-[#141413]">
                       {site.translations.vi.name}
                     </h4>
-                    <span className="mt-0.5 inline-flex items-center gap-1 text-[11px] text-stone-500">
+                    <span className="mt-0.5 inline-flex items-center gap-1 text-[11px] text-[#8A877F]">
                       <MapPin className="h-3 w-3" /> {site.city}
                     </span>
                   </div>
@@ -315,13 +283,26 @@ export const JourneyAndRankingView: React.FC<JourneyAndRankingViewProps> = ({
                 <button
                   type="button"
                   onClick={() => onOpenCaptureForSite(site.id)}
-                  className="rounded-xl bg-red-800 px-3 py-1.5 text-xs font-bold text-white hover:bg-red-900"
+                  className="shrink-0 rounded-lg border border-[#E6E4DD] bg-[#FAF9F6] px-2.5 py-1.5 text-xs font-medium text-[#141413] hover:bg-[#141413] hover:text-white transition-colors"
                 >
                   Check-in
                 </button>
               </div>
             ))}
           </div>
+        </section>
+      )}
+
+      {previewPhotoUrl && (
+        <div
+          onClick={() => setPreviewPhotoUrl(null)}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-[#141413]/90 p-4"
+        >
+          <img
+            src={previewPhotoUrl}
+            alt="Ảnh kỷ niệm tại di tích"
+            className="max-h-[88vh] max-w-[92vw] rounded-xl object-contain"
+          />
         </div>
       )}
     </div>

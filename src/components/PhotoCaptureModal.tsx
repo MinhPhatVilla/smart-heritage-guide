@@ -2,11 +2,11 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
   Camera,
   Upload,
-  CheckCircle2,
+  Check,
   X,
   Footprints,
   MapPin,
-  Sparkles,
+  Stamp,
 } from 'lucide-react';
 import { CapturedPhoto, HeritageSite } from '../types/heritage';
 import { formatWalkingDuration } from '../utils/geoUtils';
@@ -34,12 +34,11 @@ export const PhotoCaptureModal: React.FC<PhotoCaptureModalProps> = ({
 }) => {
   const [previewDataUrl, setPreviewDataUrl] = useState<string>(site.coverImage);
   const [caption, setCaption] = useState<string>(
-    `Check-in kỷ niệm tại ${site.translations.vi.name}`
+    `Check-in tại ${site.translations.vi.name}`
   );
   const [userNote, setUserNote] = useState<string>(
-    `Hành trình đi bộ tuyệt vời đến ${site.translations.vi.name}!`
+    `Đi bộ khám phá và lưu ảnh tại ${site.translations.vi.name}.`
   );
-  const [userRating, setUserRating] = useState<number>(5);
   const [customMinutes, setCustomMinutes] = useState<number>(
     Math.max(5, Math.round(walkingDurationSeconds / 60))
   );
@@ -50,7 +49,12 @@ export const PhotoCaptureModal: React.FC<PhotoCaptureModalProps> = ({
   const streamRef = useRef<MediaStream | null>(null);
 
   useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKeyDown);
     return () => {
+      window.removeEventListener('keydown', onKeyDown);
       stopCamera();
     };
   }, []);
@@ -79,9 +83,30 @@ export const PhotoCaptureModal: React.FC<PhotoCaptureModalProps> = ({
       }, 100);
     } catch {
       setCameraError(
-        'Không thể truy cập Camera trực tiếp trên thiết bị này. Bạn có thể tải ảnh từ máy hoặc tạo ảnh đóng dấu tem di sản!'
+        'Thiết bị hiện không mở được Camera trực tiếp. Bạn có thể tải ảnh từ máy hoặc đóng dấu tem bưu thiếp.'
       );
     }
+  };
+
+  const stampCanvasOverlay = (
+    ctx: CanvasRenderingContext2D,
+    width: number,
+    height: number
+  ) => {
+    ctx.fillStyle = 'rgba(20, 20, 19, 0.78)';
+    ctx.fillRect(0, height - 80, width, 80);
+
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '600 20px Inter, sans-serif';
+    ctx.fillText(site.translations.vi.name, 24, height - 46);
+
+    ctx.fillStyle = '#d6d3cd';
+    ctx.font = '14px Inter, sans-serif';
+    ctx.fillText(
+      `Đi bộ ${customMinutes} phút · ${site.lat.toFixed(4)}°N, ${site.lng.toFixed(4)}°E · ${new Date().toLocaleDateString('vi-VN')}`,
+      24,
+      height - 20
+    );
   };
 
   const captureFromWebcam = () => {
@@ -94,29 +119,8 @@ export const PhotoCaptureModal: React.FC<PhotoCaptureModalProps> = ({
 
     ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
     stampCanvasOverlay(ctx, canvas.width, canvas.height);
-    setPreviewDataUrl(canvas.toDataURL('image/jpeg', 0.85));
+    setPreviewDataUrl(canvas.toDataURL('image/jpeg', 0.88));
     stopCamera();
-  };
-
-  const stampCanvasOverlay = (
-    ctx: CanvasRenderingContext2D,
-    width: number,
-    height: number
-  ) => {
-    ctx.fillStyle = 'rgba(28, 25, 23, 0.72)';
-    ctx.fillRect(0, height - 88, width, 88);
-
-    ctx.fillStyle = '#fbbf24';
-    ctx.font = 'bold 20px sans-serif';
-    ctx.fillText(`🏛️ ${site.translations.vi.name}`, 20, height - 50);
-
-    ctx.fillStyle = '#ffffff';
-    ctx.font = '15px sans-serif';
-    ctx.fillText(
-      `🚶 Đi bộ: ${customMinutes} phút • 📍 GPS: ${site.lat.toFixed(4)}, ${site.lng.toFixed(4)} • 📅 ${new Date().toLocaleDateString('vi-VN')}`,
-      20,
-      height - 22
-    );
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -134,48 +138,44 @@ export const PhotoCaptureModal: React.FC<PhotoCaptureModalProps> = ({
   const generateStampedPostcard = () => {
     const canvas = document.createElement('canvas');
     canvas.width = 800;
-    canvas.height = 500;
+    canvas.height = 480;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const grad = ctx.createLinearGradient(0, 0, 800, 500);
-    grad.addColorStop(0, '#7f1d1d');
-    grad.addColorStop(0.6, '#991b1b');
-    grad.addColorStop(1, '#b45309');
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, 800, 500);
+    ctx.fillStyle = '#141413';
+    ctx.fillRect(0, 0, 800, 480);
 
-    ctx.strokeStyle = '#fbbf24';
-    ctx.lineWidth = 4;
-    ctx.strokeRect(24, 24, 752, 452);
+    ctx.strokeStyle = '#57554f';
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(24, 24, 752, 432);
 
-    ctx.fillStyle = '#fef3c7';
-    ctx.font = 'bold 28px sans-serif';
-    ctx.fillText('CHỨNG NHẬN CHECK-IN DI SẢN VIỆT NAM', 60, 95);
+    ctx.fillStyle = '#8a877f';
+    ctx.font = '600 13px Inter, sans-serif';
+    ctx.fillText('SMART HERITAGE GUIDE · DẤU MỘC HÀNH TRÌNH', 52, 76);
 
-    ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 34px sans-serif';
-    ctx.fillText(site.translations.vi.name, 60, 165);
+    ctx.fillStyle = '#faf9f6';
+    ctx.font = '600 32px Georgia, serif';
+    ctx.fillText(site.translations.vi.name, 52, 136);
 
-    ctx.fillStyle = '#fde68a';
-    ctx.font = '20px sans-serif';
+    ctx.fillStyle = '#d6d3cd';
+    ctx.font = '18px Inter, sans-serif';
     ctx.fillText(
-      `Thời gian đi bộ chinh phục: ${customMinutes} phút (${walkingDistanceMeters}m)`,
-      60,
-      235
+      `Thời gian đi bộ: ${customMinutes} phút (~${Math.max(walkingDistanceMeters, customMinutes * 75)}m)`,
+      52,
+      200
     );
     ctx.fillText(
-      `Tọa độ Di tích: ${site.lat.toFixed(4)}°N, ${site.lng.toFixed(4)}°E`,
-      60,
-      280
+      `Tọa độ: ${site.lat.toFixed(4)}°N, ${site.lng.toFixed(4)}°E`,
+      52,
+      236
     );
     ctx.fillText(
-      `Thời điểm lưu dấu: ${new Date().toLocaleString('vi-VN')}`,
-      60,
-      325
+      `Ghi nhận: ${new Date().toLocaleString('vi-VN')}`,
+      52,
+      272
     );
 
-    stampCanvasOverlay(ctx, 800, 500);
+    stampCanvasOverlay(ctx, 800, 480);
     setPreviewDataUrl(canvas.toDataURL('image/jpeg', 0.9));
   };
 
@@ -196,7 +196,7 @@ export const PhotoCaptureModal: React.FC<PhotoCaptureModalProps> = ({
     onSaveCheckIn({
       photo,
       userNote,
-      userRating,
+      userRating: 5,
       walkingDurationSeconds: finalSeconds,
       walkingDistanceMeters: Math.max(100, Math.round(finalSeconds * 1.25)),
     });
@@ -204,67 +204,74 @@ export const PhotoCaptureModal: React.FC<PhotoCaptureModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 p-4 backdrop-blur-xs">
-      <div className="relative max-h-[92vh] w-full max-w-xl overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl">
-        <div className="flex items-center justify-between border-b border-stone-200 pb-4">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-[#141413]/50 p-4 backdrop-blur-[2px]"
+      onClick={onClose}
+    >
+      <div
+        className="relative max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-[#E6E4DD] bg-white p-5 sm:p-6 shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-start justify-between border-b border-[#E6E4DD] pb-3.5">
           <div>
-            <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-900">
-              <Camera className="h-3.5 w-3.5" /> Lưu ảnh tại Di tích & Xếp hạng Đi bộ
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-[#8A877F]">
+              Lưu ảnh & Ghi nhận Hành trình
             </span>
-            <h3 className="mt-1 text-lg font-bold text-stone-900">
+            <h3 className="mt-0.5 font-serif-editorial text-xl font-semibold text-[#141413]">
               {site.translations.vi.name}
             </h3>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-full p-2 text-stone-500 hover:bg-stone-100"
+            className="rounded-lg p-1.5 text-[#8A877F] hover:bg-[#F3F1EC] hover:text-[#141413]"
+            aria-label="Đóng"
           >
-            <X className="h-5 w-5" />
+            <X className="h-4 w-4" />
           </button>
         </div>
 
-        {/* Khung Camera hoặc Ảnh xem trước */}
+        {/* Camera / Image Preview */}
         <div className="mt-4">
           {cameraActive ? (
-            <div className="relative overflow-hidden rounded-2xl bg-black">
+            <div className="relative overflow-hidden rounded-xl bg-[#141413]">
               <video
                 ref={videoRef}
                 autoPlay
                 playsInline
-                className="h-64 w-full object-cover"
+                className="h-56 w-full object-cover"
               />
-              <div className="absolute bottom-3 inset-x-0 flex justify-center gap-3">
+              <div className="absolute bottom-3 inset-x-0 flex justify-center gap-2">
                 <button
                   type="button"
                   onClick={captureFromWebcam}
-                  className="inline-flex items-center gap-2 rounded-full bg-red-700 px-5 py-2 text-sm font-bold text-white shadow-lg hover:bg-red-800"
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-white px-4 py-2 text-xs font-semibold text-[#141413] shadow-md"
                 >
-                  <Camera className="h-4 w-4" /> Chụp ngay
+                  <Camera className="h-3.5 w-3.5" /> Chụp ảnh
                 </button>
                 <button
                   type="button"
                   onClick={stopCamera}
-                  className="rounded-full bg-stone-800/80 px-4 py-2 text-xs font-medium text-white"
+                  className="rounded-lg bg-[#141413]/80 px-3 py-2 text-xs font-medium text-white"
                 >
-                  Hủy Camera
+                  Hủy
                 </button>
               </div>
             </div>
           ) : (
-            <div className="relative overflow-hidden rounded-2xl border border-stone-200 bg-stone-100">
+            <div className="relative overflow-hidden rounded-xl border border-[#E6E4DD] bg-[#F3F1EC]">
               <img
                 src={previewDataUrl}
                 alt={site.translations.vi.name}
-                className="h-56 w-full object-cover"
+                className="h-52 w-full object-cover"
               />
-              <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-3 text-white">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="inline-flex items-center gap-1 font-semibold text-amber-300">
+              <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-[#141413]/85 via-[#141413]/40 to-transparent p-3 text-white">
+                <div className="flex items-center justify-between text-xs tabular-nums">
+                  <span className="inline-flex items-center gap-1 font-medium">
                     <MapPin className="h-3.5 w-3.5" /> {site.translations.vi.name}
                   </span>
                   <span className="inline-flex items-center gap-1">
-                    <Footprints className="h-3.5 w-3.5 text-emerald-300" />
+                    <Footprints className="h-3.5 w-3.5" />
                     {formatWalkingDuration(customMinutes * 60)}
                   </span>
                 </div>
@@ -273,23 +280,22 @@ export const PhotoCaptureModal: React.FC<PhotoCaptureModalProps> = ({
           )}
 
           {cameraError && (
-            <p className="mt-2 rounded-xl bg-amber-50 p-2.5 text-xs text-amber-800 border border-amber-200">
+            <p className="mt-2 rounded-lg border border-[#E6E4DD] bg-[#FAF9F6] p-2.5 text-xs text-[#57554F]">
               {cameraError}
             </p>
           )}
 
-          {/* Các nút chọn nguồn ảnh */}
-          <div className="mt-3 flex flex-wrap gap-2">
+          <div className="mt-2.5 flex flex-wrap gap-2">
             <button
               type="button"
               onClick={startCamera}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-stone-300 bg-white px-3 py-2 text-xs font-semibold text-stone-700 hover:bg-stone-50"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-[#E6E4DD] bg-white px-3 py-1.5 text-xs font-medium text-[#141413] hover:bg-[#FAF9F6]"
             >
-              <Camera className="h-4 w-4 text-red-700" /> Mở Camera Chụp ảnh
+              <Camera className="h-3.5 w-3.5" /> Mở Camera
             </button>
 
-            <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl border border-stone-300 bg-white px-3 py-2 text-xs font-semibold text-stone-700 hover:bg-stone-50">
-              <Upload className="h-4 w-4 text-amber-700" /> Tải ảnh từ thiết bị
+            <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-[#E6E4DD] bg-white px-3 py-1.5 text-xs font-medium text-[#141413] hover:bg-[#FAF9F6]">
+              <Upload className="h-3.5 w-3.5" /> Chọn ảnh từ máy
               <input
                 type="file"
                 accept="image/*"
@@ -301,78 +307,77 @@ export const PhotoCaptureModal: React.FC<PhotoCaptureModalProps> = ({
             <button
               type="button"
               onClick={generateStampedPostcard}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-900 hover:bg-amber-100"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-[#E6E4DD] bg-[#FAF9F6] px-3 py-1.5 text-xs font-medium text-[#141413] hover:bg-[#F3F1EC]"
             >
-              <Sparkles className="h-4 w-4 text-amber-700" /> Tạo Thẻ Dấu Mộc Di Sản
+              <Stamp className="h-3.5 w-3.5" /> Đóng dấu bưu thiếp
             </button>
           </div>
         </div>
 
-        {/* Thông số thời gian đi bộ & ghi chú */}
-        <div className="mt-4 space-y-3">
-          <div className="rounded-2xl bg-emerald-50/80 border border-emerald-200 p-3.5">
-            <label className="flex items-center justify-between text-xs font-bold text-emerald-900">
-              <span className="inline-flex items-center gap-1.5">
-                <Footprints className="h-4 w-4 text-emerald-700" />
-                Thời gian đi bộ tới danh lam thắng cảnh (phút):
+        {/* Walking Duration & Note Inputs */}
+        <div className="mt-4 space-y-3.5">
+          <div className="rounded-xl border border-[#E6E4DD] bg-[#FAF9F6] p-3.5">
+            <div className="flex items-center justify-between text-xs">
+              <span className="font-medium text-[#141413]">
+                Thời gian đi bộ tới điểm di tích
               </span>
-              <span className="rounded-lg bg-emerald-700 px-2 py-0.5 text-white">
+              <span className="font-semibold text-[#141413] tabular-nums">
                 {customMinutes} phút (~{Math.round(customMinutes * 75)}m)
               </span>
-            </label>
+            </div>
             <input
               type="range"
               min={2}
               max={60}
               value={customMinutes}
               onChange={(e) => setCustomMinutes(Number(e.target.value))}
-              className="mt-2 w-full accent-emerald-700"
+              className="mt-2 w-full accent-[#141413]"
             />
-            <p className="mt-1 text-[11px] text-emerald-700">
-              * Thời gian đi bộ này được dùng để xếp hạng mức độ chinh phục di tích trong Nhật ký Hành trình của bạn.
+            <p className="mt-1 text-[11px] text-[#8A877F]">
+              Dùng để xếp hạng các điểm đã đi trong Sổ tay Hành trình của bạn.
             </p>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-stone-700">
-              Chú thích bức ảnh tại di tích
+            <label className="block text-xs font-medium text-[#57554F]">
+              Chú thích ảnh
             </label>
             <input
               type="text"
               value={caption}
               onChange={(e) => setCaption(e.target.value)}
-              className="mt-1 w-full rounded-xl border border-stone-300 px-3 py-2 text-sm focus:border-red-700 focus:outline-hidden"
+              className="mt-1 w-full rounded-lg border border-[#E6E4DD] bg-white px-3 py-2 text-sm text-[#141413] focus:border-[#141413] focus:outline-hidden"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-stone-700">
-              Nhật ký cảm nhận hành trình
+            <label className="block text-xs font-medium text-[#57554F]">
+              Ghi chú cảm nhận
             </label>
             <textarea
               rows={2}
               value={userNote}
               onChange={(e) => setUserNote(e.target.value)}
-              className="mt-1 w-full rounded-xl border border-stone-300 px-3 py-2 text-sm focus:border-red-700 focus:outline-hidden"
+              className="mt-1 w-full rounded-lg border border-[#E6E4DD] bg-white px-3 py-2 text-sm text-[#141413] focus:border-[#141413] focus:outline-hidden"
             />
           </div>
         </div>
 
-        <div className="mt-5 flex items-center justify-end gap-2 border-t border-stone-200 pt-4">
+        <div className="mt-5 flex items-center justify-end gap-2 border-t border-[#E6E4DD] pt-4">
           <button
             type="button"
             onClick={onClose}
-            className="rounded-xl px-4 py-2.5 text-xs font-semibold text-stone-600 hover:bg-stone-100"
+            className="rounded-lg px-3.5 py-2 text-xs font-medium text-[#57554F] hover:bg-[#F3F1EC]"
           >
-            Đóng
+            Hủy
           </button>
           <button
             type="button"
             onClick={handleConfirmSave}
-            className="inline-flex items-center gap-2 rounded-xl bg-red-800 px-5 py-2.5 text-xs font-bold text-white shadow-md hover:bg-red-900"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-[#141413] px-4 py-2 text-xs font-semibold text-white hover:bg-[#2C2B29]"
           >
-            <CheckCircle2 className="h-4 w-4" />
-            Lưu Ảnh & Ghi Nhận Xếp Hạng Đi Bộ
+            <Check className="h-3.5 w-3.5" />
+            Lưu ảnh & Xếp hạng
           </button>
         </div>
       </div>

@@ -1,19 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import {
-  Compass,
   MapPin,
   Volume2,
   Navigation,
   Camera,
-  Trophy,
-  Star,
-  Utensils,
-  Film,
-  Footprints,
   LocateFixed,
-  Globe,
-  Sparkles,
-  Award,
+  Search,
+  Footprints,
+  X,
+  Check,
 } from 'lucide-react';
 import {
   CapturedPhoto,
@@ -42,20 +37,17 @@ import { JourneyAndRankingView } from './components/JourneyAndRankingView';
 import { AudioGuidePlayer } from './components/AudioGuidePlayer';
 
 export function App() {
-  // Vị trí mặc định: Trung tâm Hà Nội (gần Hoàng Thành Thăng Long & Văn Miếu)
   const [userLocation, setUserLocation] = useState<[number, number]>([
     21.0313, 105.8412,
   ]);
   const [activeCityId, setActiveCityId] = useState<string>('Ha Noi');
-  const [gpsStatus, setGpsStatus] = useState<string>(
-    'Đang dùng tâm điểm di sản Hà Nội (Nhấn bản đồ để di chuyển hoặc bật GPS thực)'
-  );
+  const [gpsStatus, setGpsStatus] = useState<string>('Trung tâm Hà Nội');
   const [selectedLanguage, setSelectedLanguage] =
     useState<SupportedLanguage>('vi');
   const [searchRadiusMeters, setSearchRadiusMeters] = useState<number>(15000);
+  const [searchQuery, setSearchQuery] = useState<string>('');
   const [activeView, setActiveView] = useState<'explore' | 'journey'>('explore');
 
-  // Trạng thái di tích đang chọn, dẫn đường, bấm giờ đi bộ & lưu ảnh
   const [selectedSite, setSelectedSite] = useState<HeritageSite | null>(null);
   const [quickAudioSite, setQuickAudioSite] = useState<HeritageSite | null>(
     null
@@ -65,16 +57,16 @@ export function App() {
   const [activeRoute, setActiveRoute] = useState<WalkingRouteResult | null>(
     null
   );
+  const [isRoutingLoading, setIsRoutingLoading] = useState<boolean>(false);
   const [activeWalkSeconds, setActiveWalkSeconds] = useState<number>(0);
   const [isSimulatingWalk, setIsSimulatingWalk] = useState<boolean>(false);
   const [autoAudioGuide, setAutoAudioGuide] = useState<boolean>(true);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // Dữ liệu lịch sử hành trình & ảnh chụp tại di tích
   const [visitedRecords, setVisitedRecords] = useState<VisitedSiteRecord[]>(() =>
     loadVisitedSiteRecords()
   );
 
-  // Đồng hồ đếm thời gian đi bộ khi đang bật chế độ dẫn đường
   useEffect(() => {
     if (!activeRoute) return;
     const interval = setInterval(() => {
@@ -83,44 +75,63 @@ export function App() {
     return () => clearInterval(interval);
   }, [activeRoute]);
 
-  // Tính danh sách các danh lam thắng cảnh gần vị trí người dùng
-  const nearbySitesWithMetrics = getNearbySitesWithMetrics(
+  useEffect(() => {
+    if (!toastMessage) return;
+    const t = setTimeout(() => setToastMessage(null), 4000);
+    return () => clearTimeout(t);
+  }, [toastMessage]);
+
+  const rawNearbySites = getNearbySitesWithMetrics(
     HERITAGE_SITES,
     userLocation[0],
     userLocation[1],
     searchRadiusMeters > 0 ? searchRadiusMeters : undefined
   );
 
-  const closestSiteItem = nearbySitesWithMetrics[0];
+  const nearbySitesWithMetrics = rawNearbySites.filter(({ site }) => {
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase();
+    const local = site.translations[selectedLanguage] || site.translations.vi;
+    const matchesName =
+      local.name.toLowerCase().includes(q) ||
+      site.translations.vi.name.toLowerCase().includes(q) ||
+      local.shortSummary.toLowerCase().includes(q);
+    const matchesFood = site.nearbyRestaurants.some(
+      (r) =>
+        r.name.toLowerCase().includes(q) ||
+        r.specialtyDishes.some((d) => d.toLowerCase().includes(q))
+    );
+    return matchesName || matchesFood;
+  });
 
-  // Lấy vị trí GPS thực tế từ trình duyệt
+  const closestSiteItem = rawNearbySites[0];
+
   const handleDetectRealGps = () => {
     if (!('geolocation' in navigator)) {
-      setGpsStatus('Trình duyệt không hỗ trợ Geolocation API.');
+      setToastMessage('Trình duyệt không hỗ trợ định vị GPS.');
       return;
     }
-    setGpsStatus('Đang xác định tọa độ GPS thực tế của bạn...');
+    setGpsStatus('Đang xác định GPS…');
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         const lat = pos.coords.latitude;
         const lng = pos.coords.longitude;
         setUserLocation([lat, lng]);
-        setSearchRadiusMeters(0); // Mở rộng bán kính toàn quốc để luôn thấy di tích gần nhất
+        setSearchRadiusMeters(0);
         setActiveCityId('GPS');
-        setGpsStatus(
-          `Đã định vị GPS thực tế (${lat.toFixed(4)}°N, ${lng.toFixed(4)}°E)`
-        );
+        setGpsStatus(`${lat.toFixed(4)}°N, ${lng.toFixed(4)}°E`);
+        setToastMessage('Đã cập nhật vị trí GPS thực tế của bạn.');
       },
       () => {
-        setGpsStatus(
-          'Không thể lấy GPS thực tế (Vui lòng cấp quyền vị trí hoặc chọn khu vực di sản bên dưới)'
+        setGpsStatus('Chưa cấp quyền GPS · Đang dùng vị trí mẫu');
+        setToastMessage(
+          'Không lấy được GPS thực tế. Bạn có thể chọn khu vực hoặc nhấn lên bản đồ.'
         );
       },
       { enableHighAccuracy: true, timeout: 6000 }
     );
   };
 
-  // Chuyển nhanh khu vực thành phố để trải nghiệm
   const handleSelectCityPreset = (presetId: string) => {
     const preset = CITY_PRESETS.find((c) => c.id === presetId);
     if (!preset) return;
@@ -128,13 +139,15 @@ export function App() {
     setUserLocation([preset.lat, preset.lng]);
     setSearchRadiusMeters(15000);
     setActiveRoute(null);
-    setGpsStatus(`Vị trí khách hàng: ${preset.label} (${preset.subtitle})`);
+    setGpsStatus(preset.label);
   };
 
-  // Bắt đầu dẫn đường đi bộ tới danh lam thắng cảnh
   const handleStartNavigationToSite = async (site: HeritageSite) => {
     const localName =
       (site.translations[selectedLanguage] || site.translations.vi).name;
+    setSelectedSite(null);
+    setActiveView('explore');
+    setIsRoutingLoading(true);
     const route = await fetchWalkingRoute(
       userLocation,
       [site.lat, site.lng],
@@ -142,31 +155,30 @@ export function App() {
       'heritage',
       site.id
     );
+    setIsRoutingLoading(false);
     setActiveRoute(route);
     setActiveWalkSeconds(0);
-    setSelectedSite(null);
-    setActiveView('explore');
   };
 
-  // Bắt đầu dẫn đường đi bộ tới tiệm ăn uống đề xuất gần di tích
   const handleNavigateToRestaurant = async (
     restaurant: NearbyRestaurant,
     _parentSite: HeritageSite
   ) => {
+    setSelectedSite(null);
+    setActiveView('explore');
+    setIsRoutingLoading(true);
     const route = await fetchWalkingRoute(
       userLocation,
       [restaurant.lat, restaurant.lng],
-      `🍜 ${restaurant.name} (${restaurant.rating}⭐)`,
+      `${restaurant.name} (${restaurant.rating}★)`,
       'restaurant',
       restaurant.id
     );
+    setIsRoutingLoading(false);
     setActiveRoute(route);
     setActiveWalkSeconds(0);
-    setSelectedSite(null);
-    setActiveView('explore');
   };
 
-  // Mô phỏng bước đi bộ dọc theo lộ trình tới danh lam thắng cảnh
   const handleSimulateWalkAlongRoute = () => {
     if (!activeRoute || isSimulatingWalk) return;
     setIsSimulatingWalk(true);
@@ -175,7 +187,9 @@ export function App() {
     let stepIdx = 0;
     const stepDurationIncrement = Math.max(
       25,
-      Math.round(activeRoute.estimatedDurationSeconds / Math.max(1, coords.length))
+      Math.round(
+        activeRoute.estimatedDurationSeconds / Math.max(1, coords.length)
+      )
     );
 
     const walkTimer = setInterval(() => {
@@ -189,13 +203,17 @@ export function App() {
           Math.max(prev, activeRoute.estimatedDurationSeconds)
         );
 
-        // Nếu đích đến là danh lam thắng cảnh và đang bật tự động thuyết minh
         if (activeRoute.targetType === 'heritage') {
           const targetSite = HERITAGE_SITES.find(
             (s) => s.id === activeRoute.targetId
           );
-          if (targetSite && autoAudioGuide) {
-            setQuickAudioSite(targetSite);
+          if (targetSite) {
+            setToastMessage(
+              `Đã đi bộ đến ${targetSite.translations.vi.name}.`
+            );
+            if (autoAudioGuide) {
+              setQuickAudioSite(targetSite);
+            }
           }
         }
         return;
@@ -203,10 +221,9 @@ export function App() {
 
       setUserLocation(coords[stepIdx]);
       setActiveWalkSeconds((prev) => prev + stepDurationIncrement);
-    }, 380);
+    }, 350);
   };
 
-  // Hoàn tất đi bộ tới di tích -> Mở cửa sổ chụp ảnh & ghi nhận thời gian đi bộ
   const handleFinishWalkAndCheckIn = () => {
     if (!activeRoute) return;
     const targetSite = HERITAGE_SITES.find((s) => s.id === activeRoute.targetId);
@@ -215,7 +232,6 @@ export function App() {
     }
   };
 
-  // Lưu ảnh chụp tại di tích lịch sử & cập nhật bảng xếp hạng thời gian đi bộ
   const handleSavePhotoCheckIn = (data: {
     photo: CapturedPhoto;
     userNote: string;
@@ -241,138 +257,91 @@ export function App() {
     });
     setVisitedRecords(updated);
     setActiveRoute(null);
+    setToastMessage(
+      `Đã lưu ảnh và xếp hạng hành trình tại ${photoCaptureSite.translations.vi.name}.`
+    );
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-stone-50 text-stone-900">
-      {/* Header chính */}
-      <header className="sticky top-0 z-30 border-b border-stone-200 bg-white/95 backdrop-blur-md shadow-2xs">
-        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3">
-          {/* Thương hiệu */}
-          <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-red-800 to-amber-700 text-white shadow-md">
-              <Compass className="h-6 w-6" />
+    <div className="min-h-screen flex flex-col bg-[#FAF9F6] text-[#141413]">
+      {/* Minimalist Top Bar */}
+      <header className="sticky top-0 z-30 border-b border-[#E6E4DD] bg-[#FAF9F6]/95 backdrop-blur-md">
+        <div className="mx-auto flex h-16 max-w-[1440px] items-center justify-between gap-4 px-4 sm:px-6">
+          {/* Brand & Live Location */}
+          <div className="flex items-center gap-4 min-w-0">
+            <div className="flex items-center gap-2.5">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#141413] text-xs font-bold tracking-wider text-white">
+                SHG
+              </span>
+              <span className="font-serif-editorial text-lg font-semibold tracking-tight text-[#141413] truncate">
+                Smart Heritage Guide
+              </span>
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-base sm:text-lg font-extrabold tracking-tight text-stone-900">
-                  Smart Heritage Guide
-                </h1>
-                <span className="hidden sm:inline-block rounded-full bg-amber-100 px-2.5 py-0.5 text-[11px] font-bold text-amber-900">
-                  GPS • Đa ngôn ngữ • Ẩm thực & Hành trình
-                </span>
-              </div>
-              <p className="text-xs text-stone-500 line-clamp-1">{gpsStatus}</p>
-            </div>
+
+            <span className="hidden md:inline-flex items-center gap-1.5 rounded-full border border-[#E6E4DD] bg-white px-2.5 py-1 text-xs text-[#57554F]">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-600" />
+              <span className="truncate max-w-[200px]">{gpsStatus}</span>
+            </span>
           </div>
 
-          {/* Chuyển đổi Phân hệ & Ngôn ngữ */}
-          <div className="flex flex-wrap items-center gap-2">
-            {/* Bộ chọn ngôn ngữ nhanh */}
-            <div className="flex items-center rounded-xl border border-stone-200 bg-stone-100 p-1">
-              <Globe className="mx-1.5 h-3.5 w-3.5 text-stone-500" />
+          {/* Primary Navigation & Language Selector */}
+          <div className="flex items-center gap-2.5">
+            {/* View Switcher */}
+            <nav
+              className="inline-flex rounded-lg border border-[#E6E4DD] bg-white p-0.5"
+              aria-label="Chuyển chế độ xem"
+            >
+              <button
+                type="button"
+                onClick={() => setActiveView('explore')}
+                className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                  activeView === 'explore'
+                    ? 'bg-[#141413] text-white'
+                    : 'text-[#57554F] hover:text-[#141413]'
+                }`}
+              >
+                Bản đồ & Di tích
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveView('journey')}
+                className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors tabular-nums ${
+                  activeView === 'journey'
+                    ? 'bg-[#141413] text-white'
+                    : 'text-[#57554F] hover:text-[#141413]'
+                }`}
+              >
+                Hành trình & Xếp hạng ({visitedRecords.length})
+              </button>
+            </nav>
+
+            {/* Language Selector */}
+            <div
+              className="hidden sm:inline-flex items-center rounded-lg border border-[#E6E4DD] bg-white p-0.5"
+              role="group"
+              aria-label="Ngôn ngữ thuyết minh"
+            >
               {SUPPORTED_LANGUAGES.map((lang) => (
                 <button
                   key={lang.code}
                   type="button"
                   onClick={() => setSelectedLanguage(lang.code)}
-                  className={`rounded-lg px-2 py-1 text-xs font-bold transition ${
+                  className={`rounded-md px-2 py-1 text-xs font-medium uppercase transition-colors ${
                     selectedLanguage === lang.code
-                      ? 'bg-red-800 text-white shadow-2xs'
-                      : 'text-stone-600 hover:text-stone-900'
+                      ? 'bg-[#141413] text-white'
+                      : 'text-[#57554F] hover:text-[#141413]'
                   }`}
                   title={lang.nativeLabel}
                 >
-                  {lang.flag} {lang.code.toUpperCase()}
+                  {lang.code}
                 </button>
               ))}
-            </div>
-
-            {/* Chuyển Tab Khám phá / Hành trình & Xếp hạng */}
-            <div className="flex rounded-xl border border-stone-200 bg-stone-100 p-1">
-              <button
-                type="button"
-                onClick={() => setActiveView('explore')}
-                className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition ${
-                  activeView === 'explore'
-                    ? 'bg-white text-red-800 shadow-xs'
-                    : 'text-stone-600 hover:text-stone-900'
-                }`}
-              >
-                <Compass className="h-4 w-4" />
-                Khám phá & Dẫn đường
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveView('journey')}
-                className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition ${
-                  activeView === 'journey'
-                    ? 'bg-white text-red-800 shadow-xs'
-                    : 'text-stone-600 hover:text-stone-900'
-                }`}
-              >
-                <Trophy className="h-4 w-4 text-amber-600" />
-                Hành trình & Xếp hạng ({visitedRecords.length})
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Thanh điều khiển Vị trí GPS & Khu vực Di sản */}
-        <div className="border-t border-stone-100 bg-stone-100/70 px-4 py-2">
-          <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-2">
-            <div className="flex flex-wrap items-center gap-1.5">
-              <button
-                type="button"
-                onClick={handleDetectRealGps}
-                className="inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-3 py-1.5 text-xs font-bold text-white shadow-2xs hover:bg-blue-700"
-              >
-                <LocateFixed className="h-3.5 w-3.5" /> Định vị GPS Thực tế
-              </button>
-
-              {CITY_PRESETS.map((city) => (
-                <button
-                  key={city.id}
-                  type="button"
-                  onClick={() => handleSelectCityPreset(city.id)}
-                  className={`inline-flex items-center gap-1 rounded-xl px-3 py-1.5 text-xs font-semibold transition ${
-                    activeCityId === city.id
-                      ? 'bg-amber-500 text-stone-950 font-bold shadow-2xs'
-                      : 'bg-white text-stone-700 border border-stone-200 hover:bg-stone-50'
-                  }`}
-                >
-                  <MapPin className="h-3.5 w-3.5" />
-                  {city.label}
-                </button>
-              ))}
-            </div>
-
-            <div className="flex flex-wrap items-center gap-3 text-xs">
-              <label className="inline-flex cursor-pointer items-center gap-1.5 font-medium text-stone-700">
-                <input
-                  type="checkbox"
-                  checked={autoAudioGuide}
-                  onChange={(e) => setAutoAudioGuide(e.target.checked)}
-                  className="accent-red-800 h-3.5 w-3.5 rounded"
-                />
-                <span>Tự động phát giọng nói khi đến gần di tích</span>
-              </label>
-
-              <select
-                value={searchRadiusMeters}
-                onChange={(e) => setSearchRadiusMeters(Number(e.target.value))}
-                className="rounded-lg border border-stone-300 bg-white px-2.5 py-1 text-xs font-semibold text-stone-700"
-              >
-                <option value={5000}>Bán kính gần: 5 km</option>
-                <option value={15000}>Bán kính: 15 km</option>
-                <option value={0}>Tất cả di tích Việt Nam</option>
-              </select>
             </div>
           </div>
         </div>
       </header>
 
-      {/* Nội dung chính */}
+      {/* Main Content */}
       <main className="flex-1">
         {activeView === 'journey' ? (
           <JourneyAndRankingView
@@ -388,116 +357,177 @@ export function App() {
             }}
           />
         ) : (
-          <div className="mx-auto max-w-7xl space-y-6 p-4 sm:p-6">
-            {/* Cảnh báo thông minh khi phát hiện danh lam thắng cảnh ở rất gần (< 350m) */}
-            {closestSiteItem && closestSiteItem.distanceMeters <= 350 && (
-              <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-300 bg-gradient-to-r from-amber-100 via-amber-50 to-white p-4 shadow-sm">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-800 text-white">
-                    <Sparkles className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <span className="text-xs font-extrabold uppercase tracking-wider text-red-800">
-                      Phát hiện Danh lam Thắng cảnh ngay gần bạn ({formatDistance(closestSiteItem.distanceMeters)})
-                    </span>
-                    <h3 className="text-sm sm:text-base font-bold text-stone-900">
-                      {(
-                        closestSiteItem.site.translations[selectedLanguage] ||
-                        closestSiteItem.site.translations.vi
-                      ).name}
-                    </h3>
-                  </div>
+          <div className="mx-auto flex max-w-[1440px] flex-col lg:flex-row lg:h-[calc(100vh-65px)] lg:overflow-hidden">
+            {/* Left Column: Discovery Rail & Controls */}
+            <div className="flex w-full lg:w-[460px] xl:w-[500px] shrink-0 flex-col border-b lg:border-b-0 lg:border-r border-[#E6E4DD] bg-[#FAF9F6] lg:h-full lg:overflow-y-auto">
+              {/* Location Filter & Search Header */}
+              <div className="space-y-3 border-b border-[#E6E4DD] bg-white p-4">
+                {/* City Presets + Real GPS */}
+                <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5">
+                  <button
+                    type="button"
+                    onClick={handleDetectRealGps}
+                    className={`inline-flex shrink-0 items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-colors ${
+                      activeCityId === 'GPS'
+                        ? 'border-[#141413] bg-[#141413] text-white'
+                        : 'border-[#E6E4DD] bg-[#FAF9F6] text-[#141413] hover:bg-[#F3F1EC]'
+                    }`}
+                  >
+                    <LocateFixed className="h-3.5 w-3.5 text-blue-600" />
+                    <span>GPS thực tế</span>
+                  </button>
+
+                  {CITY_PRESETS.map((city) => {
+                    const active = activeCityId === city.id;
+                    return (
+                      <button
+                        key={city.id}
+                        type="button"
+                        onClick={() => handleSelectCityPreset(city.id)}
+                        className={`inline-flex shrink-0 items-center gap-1 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-colors ${
+                          active
+                            ? 'border-[#141413] bg-[#141413] text-white'
+                            : 'border-[#E6E4DD] bg-white text-[#57554F] hover:text-[#141413]'
+                        }`}
+                      >
+                        {city.label}
+                      </button>
+                    );
+                  })}
                 </div>
+
+                {/* Search & Radius Bar */}
                 <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setQuickAudioSite(closestSiteItem.site)}
-                    className="inline-flex items-center gap-1.5 rounded-xl bg-red-800 px-3.5 py-2 text-xs font-bold text-white hover:bg-red-900"
+                  <div className="relative flex-1">
+                    <Search className="pointer-events-none absolute top-1/2 left-3 h-3.5 w-3.5 -translate-y-1/2 text-[#8A877F]" />
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Tìm di tích hoặc món ăn đặc sản…"
+                      className="w-full rounded-lg border border-[#E6E4DD] bg-[#FAF9F6] py-1.5 pr-7 pl-8 text-xs text-[#141413] placeholder:text-[#8A877F] focus:border-[#141413] focus:bg-white focus:outline-hidden"
+                    />
+                    {searchQuery && (
+                      <button
+                        type="button"
+                        onClick={() => setSearchQuery('')}
+                        className="absolute top-1/2 right-2 -translate-y-1/2 text-[#8A877F] hover:text-[#141413]"
+                        aria-label="Xóa tìm kiếm"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                  </div>
+
+                  <select
+                    value={searchRadiusMeters}
+                    onChange={(e) =>
+                      setSearchRadiusMeters(Number(e.target.value))
+                    }
+                    className="rounded-lg border border-[#E6E4DD] bg-[#FAF9F6] px-2.5 py-1.5 text-xs font-medium text-[#141413] focus:border-[#141413] focus:outline-hidden"
+                    aria-label="Bán kính quét"
                   >
-                    <Volume2 className="h-4 w-4" /> Phát Giọng Nói Đa Ngôn Ngữ
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setPhotoCaptureSite(closestSiteItem.site)}
-                    className="inline-flex items-center gap-1.5 rounded-xl bg-amber-500 px-3.5 py-2 text-xs font-bold text-stone-950 hover:bg-amber-400"
-                  >
-                    <Camera className="h-4 w-4" /> Check-in & Lưu Ảnh
-                  </button>
+                    <option value={5000}>Trong 5 km</option>
+                    <option value={15000}>Trong 15 km</option>
+                    <option value={0}>Toàn quốc</option>
+                  </select>
                 </div>
-              </div>
-            )}
 
-            {/* Trình phát thuyết minh nhanh (Quick Audio Bar) nếu đang mở */}
-            {quickAudioSite && (
-              <div className="relative">
-                <button
-                  type="button"
-                  onClick={() => setQuickAudioSite(null)}
-                  className="absolute top-3 right-3 z-10 rounded-lg bg-stone-200/80 px-2 py-1 text-xs font-semibold text-stone-700 hover:bg-stone-300"
-                >
-                  Thu gọn
-                </button>
-                <AudioGuidePlayer
-                  site={quickAudioSite}
-                  selectedLanguage={selectedLanguage}
-                  onLanguageChange={setSelectedLanguage}
-                  autoPlayOnOpen={true}
-                />
-              </div>
-            )}
+                {/* Mobile Language Switcher + Auto Audio Toggle */}
+                <div className="flex flex-wrap items-center justify-between gap-2 pt-0.5 text-xs text-[#57554F]">
+                  <span>
+                    Tìm thấy{' '}
+                    <strong className="font-semibold text-[#141413] tabular-nums">
+                      {nearbySitesWithMetrics.length}
+                    </strong>{' '}
+                    danh lam thắng cảnh
+                  </span>
 
-            {/* Bản đồ Tương tác & Dẫn đường Đi bộ */}
-            <MapExplorer
-              userLocation={userLocation}
-              sites={nearbySitesWithMetrics.map((i) => i.site)}
-              visitedRecords={visitedRecords}
-              selectedLanguage={selectedLanguage}
-              activeRoute={activeRoute}
-              activeWalkSeconds={activeWalkSeconds}
-              isSimulatingWalk={isSimulatingWalk}
-              searchRadiusMeters={searchRadiusMeters}
-              onSelectSite={(site) => setSelectedSite(site)}
-              onStartRouteToSite={handleStartNavigationToSite}
-              onSimulateWalkAlongRoute={handleSimulateWalkAlongRoute}
-              onFinishWalkAndCheckIn={handleFinishWalkAndCheckIn}
-              onCancelRoute={() => setActiveRoute(null)}
-              onMoveUserLocation={(lat, lng) => {
-                setUserLocation([lat, lng]);
-                setGpsStatus(
-                  `Vị trí khách hàng trên bản đồ: ${lat.toFixed(4)}°N, ${lng.toFixed(4)}°E`
-                );
-              }}
-            />
-
-            {/* Danh sách Danh lam Thắng cảnh ở gần được sắp xếp theo Thời gian đi bộ */}
-            <section className="space-y-4">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div>
-                  <h2 className="text-lg sm:text-xl font-extrabold text-stone-900">
-                    Danh lam Thắng cảnh ở gần Vị trí của bạn ({nearbySitesWithMetrics.length})
-                  </h2>
-                  <p className="text-xs text-stone-500">
-                    Tự động tính khoảng cách, thời gian đi bộ, tích hợp thuyết minh đa ngôn ngữ, tư liệu lịch sử và quán ăn ngon gần đó
-                  </p>
+                  <label className="inline-flex cursor-pointer items-center gap-1.5">
+                    <input
+                      type="checkbox"
+                      checked={autoAudioGuide}
+                      onChange={(e) => setAutoAudioGuide(e.target.checked)}
+                      className="accent-[#141413] h-3.5 w-3.5 rounded"
+                    />
+                    <span>Tự động đọc khi đến gần</span>
+                  </label>
                 </div>
               </div>
 
-              {nearbySitesWithMetrics.length === 0 ? (
-                <div className="rounded-3xl border border-stone-200 bg-white p-8 text-center">
-                  <p className="text-sm font-semibold text-stone-700">
-                    Không tìm thấy di tích nào trong bán kính hiện tại.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => setSearchRadiusMeters(0)}
-                    className="mt-3 rounded-xl bg-red-800 px-4 py-2 text-xs font-bold text-white hover:bg-red-900"
-                  >
-                    Hiển thị tất cả Danh lam Thắng cảnh
-                  </button>
+              {/* Proximity Alert or Quick Audio Player */}
+              {quickAudioSite ? (
+                <div className="border-b border-[#E6E4DD] bg-white p-4">
+                  <div className="mb-2 flex items-center justify-between">
+                    <span className="text-[11px] font-semibold uppercase tracking-wider text-[#B93815]">
+                      Đang phát thuyết minh
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setQuickAudioSite(null)}
+                      className="text-xs text-[#8A877F] hover:text-[#141413]"
+                    >
+                      Đóng
+                    </button>
+                  </div>
+                  <AudioGuidePlayer
+                    site={quickAudioSite}
+                    selectedLanguage={selectedLanguage}
+                    onLanguageChange={setSelectedLanguage}
+                    autoPlayOnOpen={true}
+                    compact={true}
+                  />
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                  {nearbySitesWithMetrics.map(
+                closestSiteItem &&
+                closestSiteItem.distanceMeters <= 350 && (
+                  <div className="flex items-center justify-between gap-3 border-b border-[#E6E4DD] bg-white px-4 py-3">
+                    <div className="min-w-0">
+                      <span className="text-[11px] font-semibold text-[#B93815]">
+                        Cách bạn {formatDistance(closestSiteItem.distanceMeters)}
+                      </span>
+                      <p className="truncate text-xs font-semibold text-[#141413]">
+                        {(
+                          closestSiteItem.site.translations[selectedLanguage] ||
+                          closestSiteItem.site.translations.vi
+                        ).name}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setQuickAudioSite(closestSiteItem.site)}
+                      className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-[#141413] px-3 py-1.5 text-xs font-medium text-white hover:bg-[#2C2B29]"
+                    >
+                      <Volume2 className="h-3.5 w-3.5" />
+                      Nghe ngay
+                    </button>
+                  </div>
+                )
+              )}
+
+              {/* Heritage Sites Feed */}
+              <div className="divide-y divide-[#E6E4DD]">
+                {nearbySitesWithMetrics.length === 0 ? (
+                  <div className="p-8 text-center space-y-3">
+                    <p className="text-sm font-medium text-[#141413]">
+                      Không tìm thấy danh lam thắng cảnh phù hợp
+                    </p>
+                    <p className="text-xs text-[#8A877F]">
+                      Thử mở rộng bán kính tìm kiếm hoặc xóa từ khóa lọc hiện tại.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSearchRadiusMeters(0);
+                        setSearchQuery('');
+                      }}
+                      className="rounded-lg bg-[#141413] px-3.5 py-2 text-xs font-medium text-white"
+                    >
+                      Xem toàn bộ di tích
+                    </button>
+                  </div>
+                ) : (
+                  nearbySitesWithMetrics.map(
                     ({ site, distanceMeters, estimatedWalkingSeconds }, idx) => {
                       const local =
                         site.translations[selectedLanguage] ||
@@ -510,152 +540,169 @@ export function App() {
                       )[0];
 
                       return (
-                        <div
+                        <article
                           key={site.id}
-                          className="group flex flex-col justify-between overflow-hidden rounded-3xl border border-stone-200 bg-white shadow-xs transition hover:border-amber-400 hover:shadow-md"
+                          className="group bg-white p-4 transition-colors hover:bg-[#FAF9F6]"
                         >
-                          <div>
-                            {/* Ảnh đại diện di tích */}
-                            <div
+                          <div className="flex gap-3.5">
+                            {/* Thumbnail */}
+                            <button
+                              type="button"
                               onClick={() => setSelectedSite(site)}
-                              className="relative h-48 w-full cursor-pointer overflow-hidden bg-stone-900"
+                              className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl border border-[#E6E4DD] bg-[#F3F1EC]"
                             >
                               <img
                                 src={site.coverImage}
                                 alt={local.name}
-                                className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                                className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
                               />
-                              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-transparent" />
+                              <span className="absolute top-1.5 left-1.5 rounded bg-[#141413]/80 px-1.5 py-0.5 text-[10px] font-semibold text-white tabular-nums">
+                                0{idx + 1}
+                              </span>
+                            </button>
 
-                              <div className="absolute top-3 left-3 flex flex-wrap gap-1.5">
-                                <span className="rounded-full bg-stone-900/80 px-2.5 py-1 text-[11px] font-bold text-amber-300 backdrop-blur-xs">
-                                  #{idx + 1} Gần nhất
+                            {/* Content */}
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center justify-between gap-2 text-[11px] text-[#8A877F]">
+                                <span className="truncate">
+                                  {site.city} · {local.historicalEra}
                                 </span>
-                                {site.unescoRecognized && (
-                                  <span className="inline-flex items-center gap-1 rounded-full bg-amber-500 px-2.5 py-1 text-[11px] font-extrabold text-stone-950">
-                                    <Award className="h-3 w-3" /> UNESCO
-                                  </span>
-                                )}
                                 {visitedRecord && (
-                                  <span className="rounded-full bg-emerald-600 px-2.5 py-1 text-[11px] font-bold text-white">
-                                    ✓ Đã đi bộ (
+                                  <span className="shrink-0 font-medium text-emerald-700 tabular-nums">
+                                    ✓ Đã đi{' '}
                                     {formatWalkingDuration(
                                       visitedRecord.walkingDurationSeconds
                                     )}
-                                    )
                                   </span>
                                 )}
                               </div>
 
-                              <div className="absolute bottom-3 inset-x-3 flex items-end justify-between text-white">
-                                <div>
-                                  <span className="text-[11px] font-medium text-amber-300">
-                                    {site.city} • {local.historicalEra}
-                                  </span>
-                                  <h3 className="text-base font-extrabold leading-snug">
-                                    {local.name}
-                                  </h3>
-                                </div>
-                              </div>
-                            </div>
+                              <h3
+                                onClick={() => setSelectedSite(site)}
+                                className="mt-0.5 cursor-pointer font-serif-editorial text-base font-semibold leading-snug text-[#141413] hover:underline"
+                              >
+                                {local.name}
+                              </h3>
 
-                            {/* Thông số khoảng cách, thời gian đi bộ, tư liệu & quán ăn */}
-                            <div className="p-4 space-y-3">
-                              <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-stone-100 px-3 py-2 text-xs">
-                                <span className="inline-flex items-center gap-1 font-bold text-emerald-800">
-                                  <Footprints className="h-4 w-4 text-emerald-600" />
+                              <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-[#57554F] tabular-nums">
+                                <span className="inline-flex items-center gap-1 font-medium text-[#141413]">
+                                  <Footprints className="h-3.5 w-3.5 text-[#B93815]" />
                                   {formatWalkingDuration(estimatedWalkingSeconds)}
                                 </span>
-                                <span className="font-semibold text-stone-600">
-                                  Khoảng cách: {formatDistance(distanceMeters)}
-                                </span>
+                                <span>·</span>
+                                <span>{formatDistance(distanceMeters)}</span>
+                                <span>·</span>
+                                <span>{site.mediaGallery.length} tư liệu</span>
                               </div>
 
-                              <p className="text-xs text-stone-600 line-clamp-2 leading-relaxed">
+                              <p className="mt-1.5 line-clamp-2 text-xs leading-relaxed text-[#57554F]">
                                 {local.shortSummary}
                               </p>
 
-                              {/* Tích hợp hiển thị nhanh Tư liệu & Quán ăn đề xuất gần đó */}
-                              <div className="space-y-1.5 border-t border-stone-100 pt-2.5 text-xs">
-                                <div className="flex items-center justify-between text-stone-600">
-                                  <span className="inline-flex items-center gap-1 font-medium">
-                                    <Film className="h-3.5 w-3.5 text-red-700" />
-                                    Tư liệu: {site.mediaGallery.length} Ảnh & Video
+                              {bestRestaurant && (
+                                <div className="mt-2 flex items-center justify-between rounded-lg border border-[#E6E4DD] bg-[#FAF9F6] px-2.5 py-1 text-[11px]">
+                                  <span className="truncate text-[#57554F]">
+                                    Ẩm thực gần đó:{' '}
+                                    <strong className="font-medium text-[#141413]">
+                                      {bestRestaurant.name}
+                                    </strong>
                                   </span>
-                                  <span className="inline-flex items-center gap-1 font-medium">
-                                    <Volume2 className="h-3.5 w-3.5 text-amber-700" />
-                                    5 ngôn ngữ
+                                  <span className="ml-2 shrink-0 font-semibold text-[#141413] tabular-nums">
+                                    <span className="text-[#B93815]">★</span>{' '}
+                                    {bestRestaurant.rating.toFixed(1)}
                                   </span>
                                 </div>
-
-                                {bestRestaurant && (
-                                  <div className="flex items-center justify-between rounded-xl bg-amber-50/90 border border-amber-200/80 px-2.5 py-1.5">
-                                    <span className="inline-flex items-center gap-1.5 font-semibold text-amber-950 truncate">
-                                      <Utensils className="h-3.5 w-3.5 shrink-0 text-amber-700" />
-                                      <span className="truncate">
-                                        Gần đó: {bestRestaurant.name}
-                                      </span>
-                                    </span>
-                                    <span className="inline-flex shrink-0 items-center gap-0.5 font-extrabold text-amber-800">
-                                      <Star className="h-3 w-3 fill-amber-500 text-amber-500" />
-                                      {bestRestaurant.rating.toFixed(1)}
-                                    </span>
-                                  </div>
-                                )}
-                              </div>
+                              )}
                             </div>
                           </div>
 
-                          {/* Nhóm nút thao tác nhanh */}
-                          <div className="grid grid-cols-3 gap-1.5 border-t border-stone-100 bg-stone-50 p-3">
+                          {/* Clean Action Row: 1 Primary Action + 2 Subtle Secondary Controls */}
+                          <div className="mt-3 flex items-center justify-between gap-2 pt-1">
                             <button
                               type="button"
                               onClick={() => setSelectedSite(site)}
-                              className="inline-flex items-center justify-center gap-1 rounded-xl bg-red-800 px-2.5 py-2 text-xs font-bold text-white hover:bg-red-900"
+                              className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-[#141413] px-3 py-2 text-xs font-medium text-white hover:bg-[#2C2B29] transition-colors"
                             >
                               <Volume2 className="h-3.5 w-3.5" />
-                              <span>Thuyết minh</span>
+                              <span>Thuyết minh & Tư liệu</span>
                             </button>
 
                             <button
                               type="button"
                               onClick={() => handleStartNavigationToSite(site)}
-                              className="inline-flex items-center justify-center gap-1 rounded-xl bg-blue-600 px-2.5 py-2 text-xs font-bold text-white hover:bg-blue-700"
+                              className="inline-flex items-center gap-1 rounded-lg border border-[#E6E4DD] bg-white px-3 py-2 text-xs font-medium text-[#141413] hover:bg-[#F3F1EC] transition-colors"
                             >
-                              <Navigation className="h-3.5 w-3.5" />
+                              <Navigation className="h-3.5 w-3.5 text-[#B93815]" />
                               <span>Dẫn đường</span>
                             </button>
 
                             <button
                               type="button"
                               onClick={() => setPhotoCaptureSite(site)}
-                              className="inline-flex items-center justify-center gap-1 rounded-xl bg-amber-500 px-2.5 py-2 text-xs font-bold text-stone-950 hover:bg-amber-400"
+                              className="inline-flex items-center gap-1 rounded-lg border border-[#E6E4DD] bg-white px-2.5 py-2 text-xs font-medium text-[#57554F] hover:bg-[#F3F1EC] hover:text-[#141413] transition-colors"
+                              title="Chụp & Lưu ảnh tại di tích"
                             >
                               <Camera className="h-3.5 w-3.5" />
-                              <span>Lưu ảnh</span>
+                              <span className="sr-only sm:not-sr-only">Lưu ảnh</span>
                             </button>
                           </div>
-                        </div>
+                        </article>
                       );
                     }
-                  )}
-                </div>
-              )}
-            </section>
+                  )
+                )}
+              </div>
+            </div>
+
+            {/* Right Column: Interactive Map Workspace */}
+            <div className="h-[420px] lg:h-full flex-1 p-3 sm:p-4 bg-[#FAF9F6]">
+              <MapExplorer
+                userLocation={userLocation}
+                sites={nearbySitesWithMetrics.map((i) => i.site)}
+                selectedSiteId={selectedSite?.id || activeRoute?.targetId}
+                visitedRecords={visitedRecords}
+                selectedLanguage={selectedLanguage}
+                activeRoute={activeRoute}
+                isRoutingLoading={isRoutingLoading}
+                activeWalkSeconds={activeWalkSeconds}
+                isSimulatingWalk={isSimulatingWalk}
+                searchRadiusMeters={searchRadiusMeters}
+                onSelectSite={(site) => setSelectedSite(site)}
+                onStartRouteToSite={handleStartNavigationToSite}
+                onSimulateWalkAlongRoute={handleSimulateWalkAlongRoute}
+                onFinishWalkAndCheckIn={handleFinishWalkAndCheckIn}
+                onCancelRoute={() => setActiveRoute(null)}
+                onDetectRealGps={handleDetectRealGps}
+                onMoveUserLocation={(lat, lng) => {
+                  setUserLocation([lat, lng]);
+                  setGpsStatus(`${lat.toFixed(4)}°N, ${lng.toFixed(4)}°E`);
+                }}
+              />
+            </div>
           </div>
         )}
       </main>
 
-      {/* Modal Chi tiết Danh lam Thắng cảnh, Giọng nói Đa ngôn ngữ, Tư liệu Ảnh/Video & Quán ăn */}
+      {/* Toast Feedback */}
+      {toastMessage && (
+        <div className="fixed bottom-4 left-1/2 z-50 -translate-x-1/2">
+          <div className="inline-flex items-center gap-2 rounded-xl border border-[#E6E4DD] bg-[#141413] px-4 py-2.5 text-xs font-medium text-white shadow-lg">
+            <Check className="h-3.5 w-3.5 text-emerald-400" />
+            <span>{toastMessage}</span>
+          </div>
+        </div>
+      )}
+
+      {/* Detail Modal */}
       {selectedSite && (
         <HeritageDetailModal
           site={selectedSite}
           distanceMeters={
-            nearbySitesWithMetrics.find((i) => i.site.id === selectedSite.id)
+            rawNearbySites.find((i) => i.site.id === selectedSite.id)
               ?.distanceMeters || 500
           }
           estimatedWalkingSeconds={
-            nearbySitesWithMetrics.find((i) => i.site.id === selectedSite.id)
+            rawNearbySites.find((i) => i.site.id === selectedSite.id)
               ?.estimatedWalkingSeconds || 400
           }
           selectedLanguage={selectedLanguage}
@@ -670,22 +717,20 @@ export function App() {
         />
       )}
 
-      {/* Modal Chụp & Lưu ảnh tại di tích + Xếp hạng thời gian đi bộ */}
+      {/* Photo Check-in & Walking Duration Modal */}
       {photoCaptureSite && (
         <PhotoCaptureModal
           site={photoCaptureSite}
           walkingDurationSeconds={
             activeWalkSeconds > 30
               ? activeWalkSeconds
-              : nearbySitesWithMetrics.find(
-                  (i) => i.site.id === photoCaptureSite.id
-                )?.estimatedWalkingSeconds || 600
+              : rawNearbySites.find((i) => i.site.id === photoCaptureSite.id)
+                  ?.estimatedWalkingSeconds || 600
           }
           walkingDistanceMeters={
             activeRoute?.totalDistanceMeters ||
-            nearbySitesWithMetrics.find(
-              (i) => i.site.id === photoCaptureSite.id
-            )?.distanceMeters ||
+            rawNearbySites.find((i) => i.site.id === photoCaptureSite.id)
+              ?.distanceMeters ||
             750
           }
           onClose={() => setPhotoCaptureSite(null)}

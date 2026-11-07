@@ -6,8 +6,6 @@ import {
   Square,
   SkipBack,
   SkipForward,
-  Globe,
-  Sparkles,
 } from 'lucide-react';
 import {
   HeritageSite,
@@ -107,36 +105,38 @@ export const AudioGuidePlayer: React.FC<AudioGuidePlayerProps> = ({
   };
 
   return (
-    <div className="rounded-2xl border border-amber-200/80 bg-gradient-to-br from-amber-50/90 via-white to-orange-50/60 p-4 shadow-sm">
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-amber-100 pb-3">
-        <div className="flex items-center gap-2">
-          <div
-            className={`flex h-9 w-9 items-center justify-center rounded-xl ${
+    <div className="rounded-xl border border-[#E6E4DD] bg-[#FAF9F6] p-4">
+      {/* Header & Language Switcher */}
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#E6E4DD] pb-3">
+        <div className="flex items-center gap-2.5">
+          <span
+            className={`flex h-8 w-8 items-center justify-center rounded-lg transition-colors ${
               playState === 'playing'
-                ? 'animate-pulse bg-red-700 text-white'
-                : 'bg-amber-100 text-red-800'
+                ? 'bg-[#B93815] text-white'
+                : 'bg-[#E6E4DD]/70 text-[#141413]'
             }`}
           >
-            <Volume2 className="h-5 w-5" />
-          </div>
+            <Volume2 className="h-4 w-4" />
+          </span>
           <div>
-            <div className="flex items-center gap-1.5">
-              <span className="text-xs font-bold tracking-wider text-red-800 uppercase">
-                Thuyết minh Giọng nói Đa ngôn ngữ
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold tracking-tight text-[#141413]">
+                Thuyết minh âm thanh
               </span>
-              {playState === 'playing' && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-semibold text-red-700">
-                  <Sparkles className="h-3 w-3" /> Đang đọc
-                </span>
-              )}
+              <span className="text-[11px] text-[#8A877F] tabular-nums">
+                Đoạn {activeParagraph + 1}/{paragraphs.length}
+              </span>
             </div>
-            <p className="text-xs text-stone-600">{localized.name}</p>
+            <p className="text-xs text-[#57554F] line-clamp-1">{localized.name}</p>
           </div>
         </div>
 
-        {/* Bộ chọn 5 ngôn ngữ */}
-        <div className="flex flex-wrap items-center gap-1">
-          <Globe className="mr-1 h-4 w-4 text-stone-500" />
+        {/* Language Segmented Control */}
+        <div
+          className="inline-flex items-center rounded-lg border border-[#E6E4DD] bg-white p-0.5"
+          role="group"
+          aria-label="Chọn ngôn ngữ thuyết minh"
+        >
           {SUPPORTED_LANGUAGES.map((lang) => {
             const active = selectedLanguage === lang.code;
             return (
@@ -144,87 +144,90 @@ export const AudioGuidePlayer: React.FC<AudioGuidePlayerProps> = ({
                 key={lang.code}
                 type="button"
                 onClick={() => handleLanguageSwitch(lang.code)}
-                className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-medium transition ${
+                className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
                   active
-                    ? 'bg-red-800 text-white shadow-xs'
-                    : 'bg-white text-stone-700 hover:bg-amber-100 border border-stone-200'
+                    ? 'bg-[#141413] text-white'
+                    : 'text-[#57554F] hover:text-[#141413]'
                 }`}
               >
-                <span>{lang.flag}</span>
-                <span>{lang.nativeLabel}</span>
+                {lang.nativeLabel}
               </button>
             );
           })}
         </div>
       </div>
 
-      {/* Điều khiển phát âm thanh */}
+      {/* Transport & Rate Controls */}
       <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => handleStepParagraph(-1)}
-            disabled={activeParagraph === 0}
-            className="rounded-lg border border-stone-200 bg-white p-2 text-stone-700 hover:bg-stone-100 disabled:opacity-40"
-            title="Đoạn trước"
-          >
-            <SkipBack className="h-4 w-4" />
-          </button>
-
+        <div className="flex items-center gap-1.5">
           <button
             type="button"
             onClick={handleTogglePlay}
-            className="inline-flex items-center gap-2 rounded-xl bg-red-800 px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-red-900 transition"
+            className={`inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-xs font-medium text-white transition-colors ${
+              playState === 'playing'
+                ? 'bg-[#B93815] hover:bg-[#9E2F11]'
+                : 'bg-[#141413] hover:bg-[#2C2B29]'
+            }`}
           >
             {playState === 'playing' ? (
               <>
-                <Pause className="h-4 w-4" />
+                <Pause className="h-3.5 w-3.5" />
                 <span>Tạm dừng</span>
               </>
             ) : (
               <>
-                <Play className="h-4 w-4" />
+                <Play className="h-3.5 w-3.5 fill-current" />
                 <span>
-                  {playState === 'paused' ? 'Tiếp tục nghe' : 'Phát thuyết minh'}
+                  {playState === 'paused' ? 'Tiếp tục' : 'Nghe thuyết minh'}
                 </span>
               </>
             )}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => handleStepParagraph(-1)}
+            disabled={activeParagraph === 0}
+            className="rounded-lg border border-[#E6E4DD] bg-white p-2 text-[#141413] hover:bg-[#F3F1EC] disabled:opacity-35"
+            aria-label="Đoạn trước"
+          >
+            <SkipBack className="h-3.5 w-3.5" />
+          </button>
+
+          <button
+            type="button"
+            onClick={() => handleStepParagraph(1)}
+            disabled={activeParagraph >= paragraphs.length - 1}
+            className="rounded-lg border border-[#E6E4DD] bg-white p-2 text-[#141413] hover:bg-[#F3F1EC] disabled:opacity-35"
+            aria-label="Đoạn tiếp theo"
+          >
+            <SkipForward className="h-3.5 w-3.5" />
           </button>
 
           {playState !== 'idle' && (
             <button
               type="button"
               onClick={handleStop}
-              className="rounded-lg border border-stone-200 bg-white p-2 text-stone-700 hover:bg-stone-100"
-              title="Dừng hẳn"
+              className="rounded-lg border border-[#E6E4DD] bg-white p-2 text-[#57554F] hover:bg-[#F3F1EC] hover:text-[#141413]"
+              aria-label="Dừng đọc"
             >
-              <Square className="h-4 w-4" />
+              <Square className="h-3.5 w-3.5" />
             </button>
           )}
-
-          <button
-            type="button"
-            onClick={() => handleStepParagraph(1)}
-            disabled={activeParagraph >= paragraphs.length - 1}
-            className="rounded-lg border border-stone-200 bg-white p-2 text-stone-700 hover:bg-stone-100 disabled:opacity-40"
-            title="Đoạn tiếp theo"
-          >
-            <SkipForward className="h-4 w-4" />
-          </button>
         </div>
 
-        {/* Tốc độ giọng đọc */}
-        <div className="flex items-center gap-1.5 text-xs">
-          <span className="text-stone-500">Tốc độ:</span>
+        {/* Speed Selector */}
+        <div className="flex items-center gap-1 text-xs">
+          <span className="text-[#8A877F] mr-1">Tốc độ</span>
           {[0.85, 1.0, 1.25].map((r) => (
             <button
               key={r}
               type="button"
               onClick={() => handleRateChange(r)}
-              className={`rounded-md px-2 py-0.5 font-medium ${
+              className={`rounded-md px-2 py-1 font-medium tabular-nums transition-colors ${
                 speechRate === r
-                  ? 'bg-amber-600 text-white'
-                  : 'bg-white text-stone-600 border border-stone-200 hover:bg-stone-100'
+                  ? 'bg-[#141413] text-white'
+                  : 'bg-white text-[#57554F] border border-[#E6E4DD] hover:text-[#141413]'
               }`}
             >
               {r}x
@@ -233,29 +236,30 @@ export const AudioGuidePlayer: React.FC<AudioGuidePlayerProps> = ({
         </div>
       </div>
 
-      {/* Phụ đề đồng bộ theo từng câu thuyết minh */}
+      {/* Synchronized Transcript */}
       {!compact && (
-        <div className="mt-3 space-y-2 max-h-52 overflow-y-auto pr-1">
+        <div className="mt-3.5 space-y-1.5 max-h-56 overflow-y-auto pr-1">
           {paragraphs.map((para, idx) => {
             const isCurrent = idx === activeParagraph;
             return (
-              <div
+              <button
                 key={idx}
+                type="button"
                 onClick={() => {
                   setActiveParagraph(idx);
                   startSpeaking(idx);
                 }}
-                className={`cursor-pointer rounded-xl p-2.5 text-sm leading-relaxed transition ${
+                className={`w-full text-left rounded-lg border-l-2 px-3 py-2.5 text-sm leading-relaxed transition-colors ${
                   isCurrent
-                    ? 'border border-amber-400 bg-amber-100/80 font-medium text-stone-900 shadow-2xs'
-                    : 'bg-white/70 text-stone-600 hover:bg-white'
+                    ? 'border-[#B93815] bg-white font-medium text-[#141413] shadow-2xs'
+                    : 'border-transparent text-[#57554F] hover:bg-white/60 hover:text-[#141413]'
                 }`}
               >
-                <span className="mr-2 inline-block rounded-md bg-stone-200/80 px-1.5 py-0.5 text-[11px] font-bold text-stone-700">
-                  #{idx + 1}
+                <span className="mr-2 text-[11px] font-semibold text-[#8A877F] tabular-nums">
+                  0{idx + 1}
                 </span>
                 {para}
-              </div>
+              </button>
             );
           })}
         </div>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   X,
   Navigation,
@@ -8,11 +8,8 @@ import {
   Ticket,
   Film,
   Image as ImageIcon,
-  Utensils,
-  Award,
   Footprints,
   MapPin,
-  Landmark,
 } from 'lucide-react';
 import {
   HeritageSite,
@@ -61,111 +58,127 @@ export const HeritageDetailModal: React.FC<HeritageDetailModalProps> = ({
     minRatingFilter
   );
 
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (lightboxImage) {
+          setLightboxImage(null);
+        } else {
+          onClose();
+        }
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [lightboxImage, onClose]);
+
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/60 p-3 sm:p-5 backdrop-blur-xs">
-      <div className="relative flex max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl">
-        {/* Ảnh bìa & Header */}
-        <div className="relative h-56 sm:h-64 w-full shrink-0 overflow-hidden bg-stone-900">
+    <div
+      className="fixed inset-0 z-40 flex items-end sm:items-center justify-center bg-[#141413]/45 p-0 sm:p-4 backdrop-blur-[2px]"
+      onClick={onClose}
+    >
+      <div
+        className="relative flex max-h-[92vh] w-full max-w-3xl flex-col overflow-hidden rounded-t-2xl sm:rounded-2xl border border-[#E6E4DD] bg-white shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header Image & Orientation */}
+        <div className="relative h-52 sm:h-60 w-full shrink-0 overflow-hidden bg-[#141413]">
           <img
             src={site.coverImage}
             alt={localized.name}
-            className="h-full w-full object-cover opacity-90"
+            className="h-full w-full object-cover opacity-85"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-black/10" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#141413]/90 via-[#141413]/35 to-transparent" />
 
           <button
             type="button"
             onClick={onClose}
-            className="absolute top-4 right-4 rounded-full bg-black/50 p-2 text-white backdrop-blur-xs hover:bg-black/75"
+            className="absolute top-4 right-4 rounded-full bg-[#141413]/60 p-2 text-white backdrop-blur-xs hover:bg-[#141413]"
+            aria-label="Đóng"
           >
-            <X className="h-5 w-5" />
+            <X className="h-4 w-4" />
           </button>
 
-          <div className="absolute bottom-4 inset-x-5 flex flex-wrap items-end justify-between gap-3 text-white">
-            <div>
-              <div className="flex flex-wrap items-center gap-2">
+          <div className="absolute bottom-4 inset-x-5 flex flex-wrap items-end justify-between gap-4 text-white">
+            <div className="max-w-xl">
+              <div className="flex flex-wrap items-center gap-2 text-xs text-white/85">
+                <span className="font-medium">{site.city}</span>
+                <span>·</span>
+                <span>{localized.historicalEra}</span>
                 {site.unescoRecognized && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-amber-500 px-2.5 py-0.5 text-xs font-bold text-stone-950">
-                    <Award className="h-3.5 w-3.5" /> Di sản UNESCO
-                  </span>
+                  <>
+                    <span>·</span>
+                    <span className="rounded bg-white/20 px-1.5 py-0.5 text-[11px] font-medium text-white">
+                      Di sản UNESCO
+                    </span>
+                  </>
                 )}
-                <span className="inline-flex items-center gap-1 rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-medium backdrop-blur-xs">
-                  <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-                  {site.rating.toFixed(1)} ({site.reviewCount.toLocaleString()} đánh giá)
-                </span>
-                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-600/90 px-2.5 py-0.5 text-xs font-semibold">
-                  <Footprints className="h-3.5 w-3.5" /> Cách bạn {formatDistance(distanceMeters)} (~
-                  {formatWalkingDuration(estimatedWalkingSeconds)})
-                </span>
               </div>
-              <h2 className="mt-1.5 text-xl sm:text-2xl font-extrabold tracking-tight">
+
+              <h2 className="mt-1 font-serif-editorial text-2xl sm:text-3xl font-semibold tracking-tight text-white">
                 {localized.name}
               </h2>
-              <p className="text-xs text-stone-200">{localized.historicalEra}</p>
+
+              <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-white/90 tabular-nums">
+                <span className="inline-flex items-center gap-1 font-medium">
+                  <Footprints className="h-3.5 w-3.5 text-amber-300" />
+                  {formatWalkingDuration(estimatedWalkingSeconds)} ({formatDistance(distanceMeters)})
+                </span>
+                <span>·</span>
+                <span className="inline-flex items-center gap-1">
+                  <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                  {site.rating.toFixed(1)} ({site.reviewCount.toLocaleString()})
+                </span>
+              </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={() => onStartNavigation(site)}
-                className="inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-3.5 py-2 text-xs font-bold text-white shadow-md hover:bg-blue-700"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3.5 py-2 text-xs font-semibold text-[#141413] hover:bg-[#F3F1EC] transition-colors"
               >
-                <Navigation className="h-4 w-4" /> Dẫn đường tới đây
+                <Navigation className="h-3.5 w-3.5 text-[#B93815]" />
+                Dẫn đường
               </button>
               <button
                 type="button"
                 onClick={() => onOpenPhotoCheckIn(site)}
-                className="inline-flex items-center gap-1.5 rounded-xl bg-amber-500 px-3.5 py-2 text-xs font-bold text-stone-950 shadow-md hover:bg-amber-400"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-white/30 bg-white/15 px-3.5 py-2 text-xs font-medium text-white backdrop-blur-xs hover:bg-white/25 transition-colors"
               >
-                <Camera className="h-4 w-4" /> Chụp & Lưu ảnh Di tích
+                <Camera className="h-3.5 w-3.5" />
+                Lưu ảnh
               </button>
             </div>
           </div>
         </div>
 
-        {/* Thanh chuyển Tab */}
-        <div className="flex border-b border-stone-200 bg-stone-50 px-5">
-          <button
-            type="button"
-            onClick={() => setActiveTab('overview')}
-            className={`inline-flex items-center gap-2 border-b-2 px-4 py-3 text-xs sm:text-sm font-bold transition ${
-              activeTab === 'overview'
-                ? 'border-red-800 text-red-800'
-                : 'border-transparent text-stone-600 hover:text-stone-900'
-            }`}
-          >
-            <Landmark className="h-4 w-4" />
-            Thuyết minh Đa ngôn ngữ & Thông tin
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab('media')}
-            className={`inline-flex items-center gap-2 border-b-2 px-4 py-3 text-xs sm:text-sm font-bold transition ${
-              activeTab === 'media'
-                ? 'border-red-800 text-red-800'
-                : 'border-transparent text-stone-600 hover:text-stone-900'
-            }`}
-          >
-            <Film className="h-4 w-4" />
-            Ảnh & Video Tài liệu ({site.mediaGallery.length})
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab('dining')}
-            className={`inline-flex items-center gap-2 border-b-2 px-4 py-3 text-xs sm:text-sm font-bold transition ${
-              activeTab === 'dining'
-                ? 'border-red-800 text-red-800'
-                : 'border-transparent text-stone-600 hover:text-stone-900'
-            }`}
-          >
-            <Utensils className="h-4 w-4" />
-            Tiệm Ăn uống Gần đó ({site.nearbyRestaurants.length})
-          </button>
+        {/* Navigation Tabs */}
+        <div className="flex border-b border-[#E6E4DD] bg-[#FAF9F6] px-5">
+          {[
+            { id: 'overview', label: 'Thuyết minh & Lịch sử' },
+            { id: 'media', label: `Tư liệu (${site.mediaGallery.length})` },
+            { id: 'dining', label: `Ẩm thực gần đó (${site.nearbyRestaurants.length})` },
+          ].map((tab) => {
+            const active = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveTab(tab.id as any)}
+                className={`border-b-2 px-4 py-3 text-xs font-semibold transition-colors ${
+                  active
+                    ? 'border-[#141413] text-[#141413]'
+                    : 'border-transparent text-[#8A877F] hover:text-[#141413]'
+                }`}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
         </div>
 
-        {/* Nội dung từng Tab */}
+        {/* Body Content */}
         <div className="flex-1 overflow-y-auto p-5 space-y-5">
           {activeTab === 'overview' && (
             <>
@@ -175,22 +188,22 @@ export const HeritageDetailModal: React.FC<HeritageDetailModalProps> = ({
                 onLanguageChange={onLanguageChange}
               />
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="md:col-span-2 rounded-2xl border border-stone-200 bg-white p-4">
-                  <h4 className="text-sm font-bold text-stone-900">
-                    Điểm nhấn Kiến trúc & Giá trị Di sản
-                  </h4>
-                  <p className="mt-1.5 text-sm text-stone-600 leading-relaxed">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                <div className="md:col-span-2 space-y-3">
+                  <h3 className="text-xs font-semibold uppercase tracking-wider text-[#8A877F]">
+                    Giới thiệu & Điểm nhấn Kiến trúc
+                  </h3>
+                  <p className="text-sm text-[#141413] leading-relaxed">
                     {localized.shortSummary}
                   </p>
-                  <ul className="mt-3 space-y-2">
+                  <ul className="space-y-2 pt-1">
                     {localized.architecturalHighlights.map((item, idx) => (
                       <li
                         key={idx}
-                        className="flex items-start gap-2 text-xs sm:text-sm text-stone-700"
+                        className="flex items-start gap-2.5 text-sm text-[#57554F]"
                       >
-                        <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-red-100 text-[11px] font-bold text-red-800">
-                          {idx + 1}
+                        <span className="mt-0.5 text-xs font-semibold text-[#8A877F] tabular-nums">
+                          0{idx + 1}
                         </span>
                         <span>{item}</span>
                       </li>
@@ -198,29 +211,29 @@ export const HeritageDetailModal: React.FC<HeritageDetailModalProps> = ({
                   </ul>
                 </div>
 
-                <div className="space-y-3 rounded-2xl border border-stone-200 bg-stone-50 p-4 text-xs">
-                  <h4 className="text-sm font-bold text-stone-900">
-                    Thông tin Tham quan
+                <div className="space-y-3 rounded-xl border border-[#E6E4DD] bg-[#FAF9F6] p-4 text-xs">
+                  <h4 className="font-semibold uppercase tracking-wider text-[#8A877F]">
+                    Thông tin khách tham quan
                   </h4>
-                  <div className="flex items-start gap-2 text-stone-700">
-                    <Clock className="h-4 w-4 shrink-0 text-amber-700 mt-0.5" />
+                  <div className="flex items-start gap-2.5 text-[#141413]">
+                    <Clock className="h-4 w-4 shrink-0 text-[#8A877F] mt-0.5" />
                     <div>
-                      <span className="font-semibold block">Giờ mở cửa:</span>
-                      <span>{localized.openingHours}</span>
+                      <span className="text-[#8A877F] block">Giờ mở cửa</span>
+                      <span className="font-medium">{localized.openingHours}</span>
                     </div>
                   </div>
-                  <div className="flex items-start gap-2 text-stone-700">
-                    <Ticket className="h-4 w-4 shrink-0 text-red-700 mt-0.5" />
+                  <div className="flex items-start gap-2.5 text-[#141413]">
+                    <Ticket className="h-4 w-4 shrink-0 text-[#8A877F] mt-0.5" />
                     <div>
-                      <span className="font-semibold block">Giá vé tham khảo:</span>
-                      <span>{site.ticketPrice}</span>
+                      <span className="text-[#8A877F] block">Giá vé tham khảo</span>
+                      <span className="font-medium">{site.ticketPrice}</span>
                     </div>
                   </div>
-                  <div className="flex items-start gap-2 text-stone-700">
-                    <MapPin className="h-4 w-4 shrink-0 text-emerald-700 mt-0.5" />
+                  <div className="flex items-start gap-2.5 text-[#141413]">
+                    <MapPin className="h-4 w-4 shrink-0 text-[#8A877F] mt-0.5" />
                     <div>
-                      <span className="font-semibold block">Tọa độ GPS:</span>
-                      <span>
+                      <span className="text-[#8A877F] block">Tọa độ</span>
+                      <span className="font-medium tabular-nums">
                         {site.lat.toFixed(4)}°N, {site.lng.toFixed(4)}°E
                       </span>
                     </div>
@@ -232,15 +245,13 @@ export const HeritageDetailModal: React.FC<HeritageDetailModalProps> = ({
 
           {activeTab === 'media' && (
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-base font-bold text-stone-900">
-                    Kho Tư liệu Hình ảnh & Phim Tài liệu Lịch sử
-                  </h3>
-                  <p className="text-xs text-stone-500">
-                    Tổng hợp tư liệu trực quan về {localized.name} theo ngôn ngữ đang chọn
-                  </p>
-                </div>
+              <div>
+                <h3 className="text-sm font-semibold text-[#141413]">
+                  Hình ảnh & Phim tài liệu lịch sử
+                </h3>
+                <p className="text-xs text-[#57554F]">
+                  Tư liệu lưu trữ về {localized.name}
+                </p>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -250,43 +261,44 @@ export const HeritageDetailModal: React.FC<HeritageDetailModalProps> = ({
                   return (
                     <div
                       key={media.id}
-                      className="overflow-hidden rounded-2xl border border-stone-200 bg-stone-50 shadow-xs flex flex-col"
+                      className="overflow-hidden rounded-xl border border-[#E6E4DD] bg-[#FAF9F6] flex flex-col"
                     >
                       {media.type === 'video' ? (
-                        <div className="relative bg-black">
+                        <div className="relative bg-[#141413]">
                           <video
                             controls
                             poster={media.thumbnailUrl}
-                            className="h-52 w-full object-cover"
+                            className="h-48 w-full object-cover"
                           >
                             <source src={media.url} type="video/mp4" />
                           </video>
-                          <span className="absolute top-2 left-2 inline-flex items-center gap-1 rounded-md bg-red-700/90 px-2 py-0.5 text-[11px] font-bold text-white">
-                            <Film className="h-3 w-3" /> Video Tài liệu{' '}
-                            {media.durationLabel ? `• ${media.durationLabel}` : ''}
+                          <span className="absolute top-2.5 left-2.5 inline-flex items-center gap-1 rounded-md bg-[#141413]/80 px-2 py-0.5 text-[11px] font-medium text-white backdrop-blur-xs">
+                            <Film className="h-3 w-3" /> Video tư liệu{' '}
+                            {media.durationLabel ? `· ${media.durationLabel}` : ''}
                           </span>
                         </div>
                       ) : (
-                        <div
+                        <button
+                          type="button"
                           onClick={() => setLightboxImage(media.url)}
-                          className="group relative cursor-pointer overflow-hidden"
+                          className="group relative overflow-hidden text-left"
                         >
                           <img
                             src={media.url}
                             alt={captionText}
-                            className="h-52 w-full object-cover transition duration-300 group-hover:scale-105"
+                            className="h-48 w-full object-cover transition duration-300 group-hover:scale-102"
                           />
-                          <span className="absolute top-2 left-2 inline-flex items-center gap-1 rounded-md bg-stone-900/75 px-2 py-0.5 text-[11px] font-semibold text-white">
-                            <ImageIcon className="h-3 w-3" /> Ảnh Tư liệu (Nhấn để phóng to)
+                          <span className="absolute top-2.5 left-2.5 inline-flex items-center gap-1 rounded-md bg-[#141413]/75 px-2 py-0.5 text-[11px] font-medium text-white backdrop-blur-xs">
+                            <ImageIcon className="h-3 w-3" /> Phóng to ảnh
                           </span>
-                        </div>
+                        </button>
                       )}
                       <div className="p-3.5 flex-1 flex flex-col justify-between">
-                        <p className="text-xs sm:text-sm font-medium text-stone-800">
+                        <p className="text-xs sm:text-sm font-medium text-[#141413]">
                           {captionText}
                         </p>
-                        <p className="mt-2 text-[11px] text-stone-500">
-                          Nguồn tư liệu: {media.yearOrSource}
+                        <p className="mt-2 text-[11px] text-[#8A877F]">
+                          {media.yearOrSource}
                         </p>
                       </div>
                     </div>
@@ -300,110 +312,104 @@ export const HeritageDetailModal: React.FC<HeritageDetailModalProps> = ({
             <div className="space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
-                  <h3 className="text-base font-bold text-stone-900">
-                    Đề xuất Tiệm Ăn uống Gần Di tích có Điểm Đánh giá Tốt
+                  <h3 className="text-sm font-semibold text-[#141413]">
+                    Tiệm ăn uống đề xuất gần di tích
                   </h3>
-                  <p className="text-xs text-stone-500">
-                    Các quán ăn đặc sản nằm gần {localized.name} được du khách đánh giá cao nhất
+                  <p className="text-xs text-[#57554F]">
+                    Sắp xếp theo điểm đánh giá thực khách và khoảng cách đi bộ
                   </p>
                 </div>
 
-                <div className="flex items-center gap-1.5 text-xs">
-                  <span className="font-medium text-stone-600">Lọc điểm đánh giá:</span>
+                <div className="inline-flex items-center rounded-lg border border-[#E6E4DD] bg-[#FAF9F6] p-0.5 text-xs">
                   {[4.5, 4.7, 4.8].map((rating) => (
                     <button
                       key={rating}
                       type="button"
                       onClick={() => setMinRatingFilter(rating)}
-                      className={`rounded-lg px-2.5 py-1 font-semibold ${
+                      className={`rounded-md px-2.5 py-1 font-medium tabular-nums transition-colors ${
                         minRatingFilter === rating
-                          ? 'bg-amber-600 text-white'
-                          : 'bg-stone-100 text-stone-700 hover:bg-stone-200'
+                          ? 'bg-[#141413] text-white'
+                          : 'text-[#57554F] hover:text-[#141413]'
                       }`}
                     >
-                      ≥ {rating}⭐
+                      ≥ {rating} ★
                     </button>
                   ))}
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {topRestaurants.map((res) => (
-                  <div
-                    key={res.id}
-                    className="flex flex-col justify-between overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-xs hover:border-amber-300 transition"
-                  >
-                    <div>
-                      <div className="relative h-40 w-full overflow-hidden bg-stone-100">
+              {topRestaurants.length === 0 ? (
+                <div className="rounded-xl border border-[#E6E4DD] bg-[#FAF9F6] p-6 text-center text-xs text-[#57554F]">
+                  Không có quán ăn nào khớp mức lọc ≥ {minRatingFilter} ★. Hãy chọn mức lọc thấp hơn.
+                </div>
+              ) : (
+                <div className="divide-y divide-[#E6E4DD] rounded-xl border border-[#E6E4DD] bg-white">
+                  {topRestaurants.map((res) => (
+                    <div
+                      key={res.id}
+                      className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 hover:bg-[#FAF9F6] transition-colors"
+                    >
+                      <div className="flex items-start gap-3.5">
                         <img
                           src={res.imageUrl}
                           alt={res.name}
-                          className="h-full w-full object-cover"
+                          className="h-16 w-16 shrink-0 rounded-lg object-cover border border-[#E6E4DD]"
                         />
-                        <div className="absolute top-2.5 right-2.5 inline-flex items-center gap-1 rounded-full bg-amber-500 px-2.5 py-1 text-xs font-extrabold text-stone-950 shadow-sm">
-                          <Star className="h-3.5 w-3.5 fill-stone-950" />
-                          {res.rating.toFixed(1)} ({res.reviewCount})
-                        </div>
-                        <div className="absolute bottom-2 left-2 rounded-lg bg-black/70 px-2.5 py-1 text-[11px] font-semibold text-white">
-                          Cách di tích {formatDistance(res.distanceMeters)} (~
-                          {formatWalkingDuration(res.walkingSeconds)})
-                        </div>
-                      </div>
-
-                      <div className="p-4">
-                        <span className="text-[11px] font-bold tracking-wide text-amber-800 uppercase">
-                          {res.cuisine}
-                        </span>
-                        <h4 className="mt-0.5 text-base font-bold text-stone-900">
-                          {res.name}
-                        </h4>
-                        <p className="mt-1 text-xs text-stone-500">
-                          📍 {res.address} • ⏰ {res.openHours}
-                        </p>
-
-                        <div className="mt-2.5 flex flex-wrap gap-1.5">
-                          {res.specialtyDishes.map((dish, idx) => (
-                            <span
-                              key={idx}
-                              className="rounded-md bg-amber-50 border border-amber-200 px-2 py-0.5 text-[11px] font-medium text-amber-900"
-                            >
-                              🍜 {dish}
+                        <div>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <h4 className="text-sm font-semibold text-[#141413]">
+                              {res.name}
+                            </h4>
+                            <span className="inline-flex items-center gap-1 rounded bg-[#FAF9F6] border border-[#E6E4DD] px-1.5 py-0.5 text-xs font-semibold text-[#141413] tabular-nums">
+                              <span className="text-[#B93815]">★</span>
+                              {res.rating.toFixed(1)}
+                              <span className="font-normal text-[#8A877F]">
+                                ({res.reviewCount})
+                              </span>
                             </span>
-                          ))}
+                          </div>
+
+                          <p className="mt-0.5 text-xs text-[#57554F]">
+                            {res.specialtyDishes.join(' · ')}
+                          </p>
+
+                          <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[11px] text-[#8A877F] tabular-nums">
+                            <span>Cách di tích {formatDistance(res.distanceMeters)}</span>
+                            <span>·</span>
+                            <span>~{formatWalkingDuration(res.walkingSeconds)}</span>
+                            <span>·</span>
+                            <span>{res.priceRange}</span>
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    <div className="flex items-center justify-between border-t border-stone-100 bg-stone-50 px-4 py-2.5">
-                      <span className="text-xs font-bold text-stone-700">
-                        Mức giá: {res.priceRange}
-                      </span>
                       <button
                         type="button"
                         onClick={() => onNavigateToRestaurant(res, site)}
-                        className="inline-flex items-center gap-1.5 rounded-xl bg-red-800 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-900"
+                        className="inline-flex shrink-0 items-center justify-center gap-1.5 self-end sm:self-center rounded-lg border border-[#E6E4DD] bg-white px-3 py-1.5 text-xs font-medium text-[#141413] hover:bg-[#141413] hover:text-white transition-colors"
                       >
-                        <Navigation className="h-3.5 w-3.5" /> Dẫn đường tới quán
+                        <Navigation className="h-3.5 w-3.5" />
+                        Chỉ đường
                       </button>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>
       </div>
 
-      {/* Lightbox xem ảnh tư liệu phóng to */}
+      {/* Lightbox */}
       {lightboxImage && (
         <div
           onClick={() => setLightboxImage(null)}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-[#141413]/90 p-4"
         >
           <img
             src={lightboxImage}
-            alt="Ảnh tư liệu phóng to"
-            className="max-h-[88vh] max-w-[92vw] rounded-2xl object-contain shadow-2xl"
+            alt="Ảnh tư liệu"
+            className="max-h-[88vh] max-w-[92vw] rounded-xl object-contain"
           />
         </div>
       )}
