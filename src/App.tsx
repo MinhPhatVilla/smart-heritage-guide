@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import {
   CapturedPhoto,
+  HeritageCategory,
   HeritageSite,
   NearbyRestaurant,
   SUPPORTED_LANGUAGES,
@@ -37,15 +38,33 @@ import { PhotoCaptureModal } from './components/PhotoCaptureModal';
 import { JourneyAndRankingView } from './components/JourneyAndRankingView';
 import { AudioGuidePlayer } from './components/AudioGuidePlayer';
 
+const CATEGORY_FILTERS: Array<{
+  id: 'all' | HeritageCategory;
+  label: string;
+}> = [
+  { id: 'all', label: 'Tất cả (18)' },
+  { id: 'monument', label: 'Di tích & Biểu tượng' },
+  { id: 'museum', label: 'Bảo tàng' },
+  { id: 'temple', label: 'Đền Chùa & Hội quán' },
+  { id: 'imperial', label: 'Dinh thự & Lăng miếu' },
+  { id: 'ancient_town', label: 'Chợ cổ & Sinh quyển' },
+];
+
 export function App() {
+  // Mặc định: Trung tâm Quận 1, TP. Hồ Chí Minh và hiển thị toàn bộ 18 di tích TP.HCM
   const [userLocation, setUserLocation] = useState<[number, number]>([
-    21.0313, 105.8412,
+    10.7775, 106.699,
   ]);
-  const [activeCityId, setActiveCityId] = useState<string>('Ha Noi');
-  const [gpsStatus, setGpsStatus] = useState<string>('Trung tâm Hà Nội');
+  const [activeCityId, setActiveCityId] = useState<string>('ALL_HCM');
+  const [gpsStatus, setGpsStatus] = useState<string>(
+    'Trung tâm Quận 1 · TP. Hồ Chí Minh'
+  );
   const [selectedLanguage, setSelectedLanguage] =
     useState<SupportedLanguage>('vi');
-  const [searchRadiusMeters, setSearchRadiusMeters] = useState<number>(15000);
+  const [searchRadiusMeters, setSearchRadiusMeters] = useState<number>(0);
+  const [selectedCategory, setSelectedCategory] = useState<
+    'all' | HeritageCategory
+  >('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [activeView, setActiveView] = useState<'explore' | 'journey'>('explore');
   const [mobileLayout, setMobileLayout] = useState<'split' | 'map'>('split');
@@ -91,13 +110,18 @@ export function App() {
   );
 
   const nearbySitesWithMetrics = rawNearbySites.filter(({ site }) => {
+    if (selectedCategory !== 'all' && site.category !== selectedCategory) {
+      return false;
+    }
     if (!searchQuery.trim()) return true;
     const q = searchQuery.toLowerCase();
     const local = site.translations[selectedLanguage] || site.translations.vi;
     const matchesName =
       local.name.toLowerCase().includes(q) ||
       site.translations.vi.name.toLowerCase().includes(q) ||
-      local.shortSummary.toLowerCase().includes(q);
+      local.shortSummary.toLowerCase().includes(q) ||
+      site.city.toLowerCase().includes(q) ||
+      (site.address && site.address.toLowerCase().includes(q));
     const matchesFood = site.nearbyRestaurants.some(
       (r) =>
         r.name.toLowerCase().includes(q) ||
@@ -125,9 +149,9 @@ export function App() {
         setToastMessage('Đã cập nhật vị trí GPS thực tế của bạn.');
       },
       () => {
-        setGpsStatus('Chưa cấp quyền GPS · Đang dùng vị trí mẫu');
+        setGpsStatus('Đang dùng tâm điểm Quận 1 · TP.HCM');
         setToastMessage(
-          'Không lấy được GPS thực tế. Bạn có thể chọn khu vực hoặc nhấn lên bản đồ.'
+          'Không lấy được GPS thực tế. Bạn có thể chọn Quận/Huyện hoặc nhấn lên bản đồ.'
         );
       },
       { enableHighAccuracy: true, timeout: 6000 }
@@ -139,7 +163,7 @@ export function App() {
     if (!preset) return;
     setActiveCityId(preset.id);
     setUserLocation([preset.lat, preset.lng]);
-    setSearchRadiusMeters(15000);
+    setSearchRadiusMeters(preset.defaultRadius);
     setActiveRoute(null);
     setGpsStatus(preset.label);
   };
@@ -277,14 +301,19 @@ export function App() {
               <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#141413] text-xs font-bold tracking-wider text-white">
                 SHG
               </span>
-              <span className="font-serif-editorial text-lg font-semibold tracking-tight text-[#141413] truncate">
-                Smart Heritage Guide
-              </span>
+              <div className="min-w-0">
+                <span className="font-serif-editorial text-lg font-semibold tracking-tight text-[#141413] truncate block leading-none">
+                  Smart Heritage Guide
+                </span>
+                <span className="text-[11px] text-[#8A877F] hidden sm:block mt-0.5">
+                  Bản đồ Di sản & Du lịch Thông minh TP. Hồ Chí Minh
+                </span>
+              </div>
             </div>
 
             <span className="hidden md:inline-flex items-center gap-1.5 rounded-full border border-[#E6E4DD] bg-white px-2.5 py-1 text-xs text-[#57554F]">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-600" />
-              <span className="truncate max-w-[200px]">{gpsStatus}</span>
+              <span className="truncate max-w-[220px]">{gpsStatus}</span>
             </span>
           </div>
 
@@ -304,7 +333,7 @@ export function App() {
                     : 'text-[#57554F] hover:text-[#141413]'
                 }`}
               >
-                Bản đồ & Di tích
+                Di tích TP.HCM ({HERITAGE_SITES.length})
               </button>
               <button
                 type="button"
@@ -364,14 +393,14 @@ export function App() {
           <div className="mx-auto flex max-w-[1440px] flex-col-reverse lg:flex-row lg:h-[calc(100vh-65px)] lg:overflow-hidden">
             {/* Left Column: Discovery Rail & Controls */}
             <div
-              className={`flex w-full lg:w-[460px] xl:w-[500px] shrink-0 flex-col border-t lg:border-t-0 lg:border-r border-[#E6E4DD] bg-[#FAF9F6] lg:h-full lg:overflow-y-auto ${
+              className={`flex w-full lg:w-[480px] xl:w-[520px] shrink-0 flex-col border-t lg:border-t-0 lg:border-r border-[#E6E4DD] bg-[#FAF9F6] lg:h-full lg:overflow-y-auto ${
                 mobileLayout === 'map' ? 'hidden lg:flex' : 'flex'
               }`}
             >
               {/* Location Filter & Search Header */}
               <div className="space-y-3 border-b border-[#E6E4DD] bg-white p-4">
-                {/* City Presets + Real GPS */}
-                <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5">
+                {/* TP.HCM District / Area Presets + Real GPS */}
+                <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
                   <button
                     type="button"
                     onClick={handleDetectRealGps}
@@ -382,7 +411,7 @@ export function App() {
                     }`}
                   >
                     <LocateFixed className="h-3.5 w-3.5 text-blue-600" />
-                    <span>GPS thực tế</span>
+                    <span>GPS của tôi</span>
                   </button>
 
                   {CITY_PRESETS.map((city) => {
@@ -404,6 +433,27 @@ export function App() {
                   })}
                 </div>
 
+                {/* Category Filter Pills */}
+                <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5">
+                  {CATEGORY_FILTERS.map((cat) => {
+                    const active = selectedCategory === cat.id;
+                    return (
+                      <button
+                        key={cat.id}
+                        type="button"
+                        onClick={() => setSelectedCategory(cat.id)}
+                        className={`shrink-0 rounded-md px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                          active
+                            ? 'bg-[#F3F1EC] text-[#141413] font-semibold border border-[#141413]/20'
+                            : 'text-[#8A877F] hover:text-[#141413]'
+                        }`}
+                      >
+                        {cat.label}
+                      </button>
+                    );
+                  })}
+                </div>
+
                 {/* Search & Radius Bar */}
                 <div className="flex items-center gap-2">
                   <div className="relative flex-1">
@@ -412,7 +462,7 @@ export function App() {
                       type="text"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="Tìm di tích hoặc món ăn đặc sản…"
+                      placeholder="Tìm di tích, quận huyện, hoặc món ăn tại TP.HCM…"
                       className="w-full rounded-lg border border-[#E6E4DD] bg-[#FAF9F6] py-1.5 pr-7 pl-8 text-xs text-[#141413] placeholder:text-[#8A877F] focus:border-[#141413] focus:bg-white focus:outline-hidden"
                     />
                     {searchQuery && (
@@ -435,20 +485,21 @@ export function App() {
                     className="rounded-lg border border-[#E6E4DD] bg-[#FAF9F6] px-2.5 py-1.5 text-xs font-medium text-[#141413] focus:border-[#141413] focus:outline-hidden"
                     aria-label="Bán kính quét"
                   >
-                    <option value={5000}>Trong 5 km</option>
-                    <option value={15000}>Trong 15 km</option>
-                    <option value={0}>Toàn quốc</option>
+                    <option value={0}>Toàn TP.HCM</option>
+                    <option value={3000}>Gần 3 km</option>
+                    <option value={8000}>Gần 8 km</option>
+                    <option value={20000}>Gần 20 km</option>
                   </select>
                 </div>
 
-                {/* Auto Audio Toggle */}
+                {/* Count & Auto Audio Toggle */}
                 <div className="flex flex-wrap items-center justify-between gap-2 pt-0.5 text-xs text-[#57554F]">
                   <span>
-                    Tìm thấy{' '}
+                    Hiển thị{' '}
                     <strong className="font-semibold text-[#141413] tabular-nums">
                       {nearbySitesWithMetrics.length}
                     </strong>{' '}
-                    danh lam thắng cảnh
+                    di sản & điểm tham quan TP.HCM
                   </span>
 
                   <label className="inline-flex cursor-pointer items-center gap-1.5">
@@ -518,20 +569,21 @@ export function App() {
                 {nearbySitesWithMetrics.length === 0 ? (
                   <div className="p-8 text-center space-y-3">
                     <p className="text-sm font-medium text-[#141413]">
-                      Không tìm thấy danh lam thắng cảnh phù hợp
+                      Không tìm thấy địa điểm phù hợp trong phạm vi lọc
                     </p>
                     <p className="text-xs text-[#8A877F]">
-                      Thử mở rộng bán kính tìm kiếm hoặc xóa từ khóa lọc hiện tại.
+                      Hãy chọn "Toàn TP.HCM" để xem tất cả 18 di tích lịch sử và điểm tham quan.
                     </p>
                     <button
                       type="button"
                       onClick={() => {
                         setSearchRadiusMeters(0);
+                        setSelectedCategory('all');
                         setSearchQuery('');
                       }}
                       className="rounded-lg bg-[#141413] px-3.5 py-2 text-xs font-medium text-white"
                     >
-                      Xem toàn bộ di tích
+                      Hiển thị toàn bộ 18 di tích TP.HCM
                     </button>
                   </div>
                 ) : (
@@ -565,24 +617,28 @@ export function App() {
                                 className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
                               />
                               <span className="absolute top-1.5 left-1.5 rounded bg-[#141413]/80 px-1.5 py-0.5 text-[10px] font-semibold text-white tabular-nums">
-                                0{idx + 1}
+                                {idx + 1 < 10 ? `0${idx + 1}` : idx + 1}
                               </span>
                             </button>
 
                             {/* Content */}
                             <div className="min-w-0 flex-1">
-                              <div className="flex items-center justify-between gap-2 text-[11px] text-[#8A877F]">
-                                <span className="truncate">
+                              <div className="flex flex-wrap items-center justify-between gap-1.5 text-[11px] text-[#8A877F]">
+                                <span className="truncate font-medium text-[#57554F]">
                                   {site.city} · {local.historicalEra}
                                 </span>
-                                {visitedRecord && (
+                                {site.nationalSpecialMonument ? (
+                                  <span className="shrink-0 rounded bg-[#B93815]/10 px-1.5 py-0.5 text-[10px] font-semibold text-[#B93815]">
+                                    Di tích Quốc gia Đặc biệt
+                                  </span>
+                                ) : visitedRecord ? (
                                   <span className="shrink-0 font-medium text-emerald-700 tabular-nums">
                                     ✓ Đã đi{' '}
                                     {formatWalkingDuration(
                                       visitedRecord.walkingDurationSeconds
                                     )}
                                   </span>
-                                )}
+                                ) : null}
                               </div>
 
                               <h3
@@ -600,7 +656,7 @@ export function App() {
                                 <span>·</span>
                                 <span>{formatDistance(distanceMeters)}</span>
                                 <span>·</span>
-                                <span>{site.mediaGallery.length} tư liệu</span>
+                                <span>★ {site.rating.toFixed(1)}</span>
                               </div>
 
                               <p className="mt-1.5 line-clamp-2 text-xs leading-relaxed text-[#57554F]">
@@ -610,7 +666,7 @@ export function App() {
                               {bestRestaurant && (
                                 <div className="mt-2 flex items-center justify-between rounded-lg border border-[#E6E4DD] bg-[#FAF9F6] px-2.5 py-1 text-[11px]">
                                   <span className="truncate text-[#57554F]">
-                                    Ẩm thực gần đó:{' '}
+                                    Gần đó:{' '}
                                     <strong className="font-medium text-[#141413]">
                                       {bestRestaurant.name}
                                     </strong>
@@ -624,7 +680,7 @@ export function App() {
                             </div>
                           </div>
 
-                          {/* Clean Action Row */}
+                          {/* Action Row */}
                           <div className="mt-3 flex items-center justify-between gap-2 pt-1">
                             <button
                               type="button"
@@ -662,12 +718,11 @@ export function App() {
               </div>
             </div>
 
-            {/* Right Column: Interactive Map Workspace (Luôn nằm trên cùng ở màn hình nhỏ và bên phải ở màn hình lớn) */}
+            {/* Right Column: Interactive Map Workspace */}
             <div className="w-full flex-1 p-3 sm:p-4 bg-[#FAF9F6]">
-              {/* Nút chuyển nhanh Bản đồ / Danh sách trên màn hình nhỏ */}
               <div className="mb-2 flex items-center justify-between lg:hidden">
                 <span className="text-xs font-semibold text-[#141413]">
-                  Bản đồ Định vị Di tích & Quán ăn
+                  Bản đồ Di tích & Ẩm thực TP. Hồ Chí Minh
                 </span>
                 <button
                   type="button"

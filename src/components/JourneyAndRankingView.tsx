@@ -62,7 +62,7 @@ export const JourneyAndRankingView: React.FC<JourneyAndRankingViewProps> = ({
     if (!el || leafletMapRef.current) return;
 
     const map = L.map(el, {
-      center: [21.0313, 105.8412],
+      center: [10.7775, 106.699],
       zoom: 14,
       zoomControl: true,
     });

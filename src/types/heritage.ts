@@ -50,18 +50,26 @@ export interface NearbyRestaurant {
   imageUrl: string;
 }
 
-export type HeritageCategory = 'imperial' | 'temple' | 'museum' | 'monument' | 'ancient_town';
+export type HeritageCategory =
+  | 'imperial'
+  | 'temple'
+  | 'museum'
+  | 'monument'
+  | 'ancient_town';
 
 export interface HeritageSite {
   id: string;
-  city: 'Ha Noi' | 'Hue' | 'Hoi An' | 'TP.HCM';
+  city: string; // VD: "Quận 1 · TP.HCM", "Quận 5 · Chợ Lớn", "Củ Chi · TP.HCM"
+  district?: string;
   lat: number;
   lng: number;
   category: HeritageCategory;
   unescoRecognized?: boolean;
+  nationalSpecialMonument?: boolean;
   rating: number;
   reviewCount: number;
   ticketPrice: string;
+  address?: string;
   coverImage: string;
   translations: Record<SupportedLanguage, LocalizedContent>;
   mediaGallery: DocumentaryMedia[];
