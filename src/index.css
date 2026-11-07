@@ -1,0 +1,14 @@
+@import "tailwindcss";
+
+/* Tùy chỉnh giao diện bản đồ Leaflet mượt mà */
+.leaflet-container {
+  font-family: inherit;
+  z-index: 1;
+}
+
+.custom-heritage-marker,
+.custom-user-marker,
+.custom-restaurant-marker {
+  background: transparent !important;
+  border: none !important;
+}
