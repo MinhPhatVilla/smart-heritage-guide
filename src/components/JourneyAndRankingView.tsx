@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import L from 'leaflet';
 import {
   Footprints,
@@ -14,6 +14,7 @@ import {
   formatWalkingDuration,
   rankVisitedSitesByWalkingTime,
 } from '../utils/geoUtils';
+import { mountBaseLayer } from '../services/mapTiles';
 
 interface JourneyAndRankingViewProps {
   records: VisitedSiteRecord[];
@@ -35,8 +36,13 @@ export const JourneyAndRankingView: React.FC<JourneyAndRankingViewProps> = ({
 
   const journeyMapRef = useRef<HTMLDivElement | null>(null);
   const leafletMapRef = useRef<L.Map | null>(null);
+  const overlayRef = useRef<L.LayerGroup | null>(null);
 
-  const rankedList = rankVisitedSitesByWalkingTime(records, sortMode);
+  // useMemo để bản đồ không vẽ lại / fitBounds lại ở mỗi lần render
+  const rankedList = useMemo(
+    () => rankVisitedSitesByWalkingTime(records, sortMode),
+    [records, sortMode]
+  );
 
   const totalWalkingSeconds = records.reduce(
     (sum, r) => sum + r.walkingDurationSeconds,
@@ -67,38 +73,36 @@ export const JourneyAndRankingView: React.FC<JourneyAndRankingViewProps> = ({
       zoomControl: true,
     });
 
-    L.tileLayer('https://mt1.google.com/vt/lyrs=m&hl=vi&x={x}&y={y}&z={z}', {
-      attribution: '&copy; Google Maps',
-      maxZoom: 20,
-    }).addTo(map);
+    const unmountBase = mountBaseLayer(map, 'street');
+    overlayRef.current = L.layerGroup().addTo(map);
 
     leafletMapRef.current = map;
 
-    setTimeout(() => {
-      map.invalidateSize();
+    const timer = setTimeout(() => {
+      if (leafletMapRef.current === map) map.invalidateSize();
     }, 100);
 
     const ro = new ResizeObserver(() => {
-      map.invalidateSize();
+      if (leafletMapRef.current === map) map.invalidateSize();
     });
     ro.observe(el);
 
     return () => {
+      clearTimeout(timer);
       ro.disconnect();
+      unmountBase();
       map.remove();
       leafletMapRef.current = null;
+      overlayRef.current = null;
     };
   }, []);
 
   useEffect(() => {
     const map = leafletMapRef.current;
-    if (!map) return;
+    const overlay = overlayRef.current;
+    if (!map || !overlay) return;
 
-    map.eachLayer((layer) => {
-      if (!(layer instanceof L.TileLayer)) {
-        map.removeLayer(layer);
-      }
-    });
+    overlay.clearLayers();
 
     const boundsCoords: [number, number][] = [];
 
@@ -115,7 +119,7 @@ export const JourneyAndRankingView: React.FC<JourneyAndRankingViewProps> = ({
           weight: 4,
           dashArray: '6 5',
           opacity: 0.85,
-        }).addTo(map);
+        }).addTo(overlay);
       }
 
       const icon = L.divIcon({
@@ -128,7 +132,7 @@ export const JourneyAndRankingView: React.FC<JourneyAndRankingViewProps> = ({
         iconAnchor: [95, 14],
       });
 
-      const marker = L.marker([site.lat, site.lng], { icon }).addTo(map);
+      const marker = L.marker([site.lat, site.lng], { icon }).addTo(overlay);
       marker.on('click', () => {
         onSelectSiteById(record.siteId);
       });

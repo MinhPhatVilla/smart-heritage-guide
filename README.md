@@ -29,7 +29,8 @@
 - Lọc và sắp xếp theo **điểm đánh giá (`Rating 4.5⭐ – 4.9⭐`)**, hiển thị số lượng đánh giá, món ăn đặc trưng, mức giá, khoảng cách đi bộ từ di tích và nút **Dẫn đường tới quán**.
 
 ### 5. 🧭 Dẫn đường Đi bộ Trực tiếp (Turn-by-Turn Walking Navigation)
-- Tích hợp bản đồ tương tác **Leaflet + OpenStreetMap + OSRM Walking Route API** miễn phí (không cần API key trả phí).
+- Bản đồ nền **Goong Maps** (bản đồ Việt Nam, render vector bằng MapLibre GL trong Leaflet); chưa có key thì tự dùng **CARTO/OpenStreetMap** miễn phí.
+- Chỉ đường **đi bộ thật** qua máy chủ OSRM của FOSSGIS (`routing.openstreetmap.de`, profile `foot`), dự phòng bằng **Goong Direction API**.
 - Vẽ lộ trình đi bộ thực tế trên đường phố, hiển thị khoảng cách, thời gian đi bộ dự kiến và danh sách các bước rẽ chi tiết.
 - Hỗ trợ **Bấm giờ đi bộ thực tế (Active Walking Timer)** và nút **Mô phỏng bước đi dọc lộ trình (Simulate Walk)** để kiểm thử nhanh quá trình di chuyển tới điểm danh lam thắng cảnh.
 
@@ -57,7 +58,8 @@ smart-heritage-guide/
 │   │   ├── geoUtils.ts                # Tính khoảng cách Haversine, thời gian đi bộ & thuật toán xếp hạng
 │   │   └── geoUtils.test.ts           # Unit tests kiểm증 thuật toán định vị, lọc quán ăn & xếp hạng đi bộ
 │   ├── services/
-│   │   ├── routingService.ts          # Tích hợp OSRM Walking Route API & sinh chỉ dẫn đường đi bộ
+│   │   ├── routingService.ts          # Chỉ đường đi bộ: FOSSGIS OSRM (foot) → Goong Direction → tuyến offline
+│   │   ├── mapTiles.ts                # Bản đồ nền Goong (MapLibre) với cơ chế tự chuyển sang CARTO/OSM
 │   │   ├── speechService.ts           # Engine giọng nói đa ngôn ngữ (Web Speech Synthesis API)
 │   │   └── journeyStorage.ts          # Lưu trữ hành trình, thời gian đi bộ & album ảnh chụp tại di tích
 │   ├── components/
@@ -91,18 +93,29 @@ cd smart-heritage-guide
 npm install
 ```
 
-### 2. Chạy môi trường phát triển (Development Server)
+### 2. Cấu hình bản đồ Goong (không bắt buộc)
+1. Đăng ký tài khoản tại [account.goong.io](https://account.goong.io), tạo **Map Tiles key** và **REST API key**.
+2. Sao chép `.env.example` thành `.env.local` rồi điền key:
+   ```bash
+   VITE_GOONG_MAPTILES_KEY=your_map_tiles_key
+   VITE_GOONG_API_KEY=your_rest_api_key
+   ```
+3. Khởi động lại `npm run dev`. Góc bản đồ sẽ hiện nhãn **GOONG** (chưa có key hoặc key lỗi thì hiện **OSM**).
+
+> Gói free của Goong giới hạn số lượt tải bản đồ mỗi tháng. Để tiết kiệm quota, bản đồ phụ trong cửa sổ chi tiết di tích luôn dùng CARTO; chỉ bản đồ chính và bản đồ hành trình dùng Goong. Biến `VITE_*` được nhúng vào mã chạy trên trình duyệt nên ai cũng xem được key.
+
+### 3. Chạy môi trường phát triển (Development Server)
 ```bash
 npm run dev
 ```
 Sau đó mở trình duyệt tại địa chỉ: `http://localhost:5173`
 
-### 3. Chạy kiểm thử tự động (Run Unit Tests)
+### 4. Chạy kiểm thử tự động (Run Unit Tests)
 ```bash
 npm run test
 ```
 
-### 4. Đóng gói bản Production (Build for Production)
+### 5. Đóng gói bản Production (Build for Production)
 ```bash
 npm run build
 npm run preview
@@ -128,7 +141,7 @@ npm run preview
 
 ## 🛠️ Công nghệ Sử dụng (Tech Stack)
 - **Giao diện & Quản lý trạng thái**: React 19, TypeScript, Tailwind CSS v4, Lucide Icons
-- **Bản đồ & Dẫn đường**: Leaflet, OpenStreetMap, OSRM Foot Routing API
+- **Bản đồ & Dẫn đường**: Leaflet, Goong Maps (MapLibre GL), CARTO/OpenStreetMap, FOSSGIS OSRM (foot), Goong Direction API
 - **Thuyết minh Giọng nói**: Web Speech API (`SpeechSynthesis` & `SpeechSynthesisUtterance`)
 - **Camera & Lưu trữ**: MediaDevices WebRTC API, HTML5 Canvas (đóng dấu tem ảnh di tích), LocalStorage / IndexedDB
 - **Kiểm thử & Đóng gói**: Vite 6, Vitest

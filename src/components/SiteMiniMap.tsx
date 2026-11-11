@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import { HeritageSite, NearbyRestaurant } from '../types/heritage';
+import { mountBaseLayer } from '../services/mapTiles';
 
 interface SiteMiniMapProps {
   site: HeritageSite;
@@ -17,6 +18,7 @@ export const SiteMiniMap: React.FC<SiteMiniMapProps> = ({
 }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<L.Map | null>(null);
+  const overlayRef = useRef<L.LayerGroup | null>(null);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -28,10 +30,9 @@ export const SiteMiniMap: React.FC<SiteMiniMapProps> = ({
       zoomControl: true,
     });
 
-    L.tileLayer('https://mt1.google.com/vt/lyrs=m&hl=vi&x={x}&y={y}&z={z}', {
-      attribution: '&copy; Google Maps',
-      maxZoom: 20,
-    }).addTo(map);
+    // Bản đồ phụ mở thường xuyên => dùng CARTO để tiết kiệm quota Goong (1.000 lượt/tháng gói free)
+    const unmountBase = mountBaseLayer(map, 'street', { preferGoong: false });
+    overlayRef.current = L.layerGroup().addTo(map);
 
     mapRef.current = map;
 
@@ -51,20 +52,19 @@ export const SiteMiniMap: React.FC<SiteMiniMapProps> = ({
     return () => {
       clearTimeout(timer);
       ro.disconnect();
+      unmountBase();
       map.remove();
       mapRef.current = null;
+      overlayRef.current = null;
     };
   }, []);
 
   useEffect(() => {
     const map = mapRef.current;
-    if (!map) return;
+    const overlay = overlayRef.current;
+    if (!map || !overlay) return;
 
-    map.eachLayer((layer) => {
-      if (!(layer instanceof L.TileLayer)) {
-        map.removeLayer(layer);
-      }
-    });
+    overlay.clearLayers();
 
     const siteIcon = L.divIcon({
       className: 'custom-heritage-marker',
@@ -76,7 +76,7 @@ export const SiteMiniMap: React.FC<SiteMiniMapProps> = ({
       iconAnchor: [80, 14],
     });
 
-    L.marker([site.lat, site.lng], { icon: siteIcon }).addTo(map);
+    L.marker([site.lat, site.lng], { icon: siteIcon }).addTo(overlay);
 
     const boundsPoints: [number, number][] = [[site.lat, site.lng]];
 
@@ -93,7 +93,7 @@ export const SiteMiniMap: React.FC<SiteMiniMapProps> = ({
         iconAnchor: [65, 12],
       });
 
-      const marker = L.marker([res.lat, res.lng], { icon: resIcon }).addTo(map);
+      const marker = L.marker([res.lat, res.lng], { icon: resIcon }).addTo(overlay);
       marker.on('click', () => {
         onSelectRestaurant?.(res);
       });
@@ -109,7 +109,7 @@ export const SiteMiniMap: React.FC<SiteMiniMapProps> = ({
           dashArray: '4 4',
           opacity: 0.7,
         }
-      ).addTo(map);
+      ).addTo(overlay);
     });
 
     if (boundsPoints.length > 1) {

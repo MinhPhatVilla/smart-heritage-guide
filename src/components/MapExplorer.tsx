@@ -26,28 +26,12 @@ import {
   formatWalkingDuration,
 } from '../utils/geoUtils';
 
-type MapTileMode = 'roadmap' | 'terrain' | 'satellite';
-
-const TILE_LAYERS: Record<
-  MapTileMode,
-  { label: string; url: string; attribution: string }
-> = {
-  roadmap: {
-    label: 'Đường phố',
-    url: 'https://mt1.google.com/vt/lyrs=m&hl=vi&x={x}&y={y}&z={z}',
-    attribution: '&copy; Google Maps',
-  },
-  terrain: {
-    label: 'Địa hình',
-    url: 'https://mt1.google.com/vt/lyrs=p&hl=vi&x={x}&y={y}&z={z}',
-    attribution: '&copy; Google Maps Terrain',
-  },
-  satellite: {
-    label: 'Vệ tinh',
-    url: 'https://mt1.google.com/vt/lyrs=y&hl=vi&x={x}&y={y}&z={z}',
-    attribution: '&copy; Google Maps Satellite',
-  },
-};
+import {
+  BASE_MAP_STYLES,
+  BaseMapProvider,
+  BaseMapStyle,
+  mountBaseLayer,
+} from '../services/mapTiles';
 
 interface MapExplorerProps {
   userLocation: [number, number];
@@ -95,12 +79,13 @@ export const MapExplorer: React.FC<MapExplorerProps> = ({
 }) => {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
-  const tileLayerRef = useRef<L.TileLayer | null>(null);
   const markersLayerRef = useRef<L.LayerGroup | null>(null);
   const routeLayerRef = useRef<L.LayerGroup | null>(null);
   const prevCenterRef = useRef<[number, number]>(userLocation);
 
-  const [tileMode, setTileMode] = useState<MapTileMode>('roadmap');
+  const [tileMode, setTileMode] = useState<BaseMapStyle>('street');
+  const [mapProvider, setMapProvider] = useState<BaseMapProvider | null>(null);
+  const [mapProviderNote, setMapProviderNote] = useState<string | null>(null);
   const [showRestaurantsOnMap, setShowRestaurantsOnMap] =
     useState<boolean>(true);
 
@@ -116,12 +101,6 @@ export const MapExplorer: React.FC<MapExplorerProps> = ({
 
     L.control.zoom({ position: 'bottomright' }).addTo(map);
 
-    const tileCfg = TILE_LAYERS[tileMode];
-    const baseTile = L.tileLayer(tileCfg.url, {
-      attribution: tileCfg.attribution,
-      maxZoom: 20,
-    }).addTo(map);
-
     const markersGroup = L.layerGroup().addTo(map);
     const routeGroup = L.layerGroup().addTo(map);
 
@@ -130,7 +109,6 @@ export const MapExplorer: React.FC<MapExplorerProps> = ({
     });
 
     mapInstanceRef.current = map;
-    tileLayerRef.current = baseTile;
     markersLayerRef.current = markersGroup;
     routeLayerRef.current = routeGroup;
 
@@ -152,24 +130,21 @@ export const MapExplorer: React.FC<MapExplorerProps> = ({
       resizeObserver.disconnect();
       map.remove();
       mapInstanceRef.current = null;
-      tileLayerRef.current = null;
       markersLayerRef.current = null;
       routeLayerRef.current = null;
     };
   }, []);
 
+  // Bản đồ nền: Goong (nếu có key) hoặc CARTO/OpenStreetMap
   useEffect(() => {
     const map = mapInstanceRef.current;
     if (!map) return;
-
-    if (tileLayerRef.current) {
-      map.removeLayer(tileLayerRef.current);
-    }
-    const cfg = TILE_LAYERS[tileMode];
-    tileLayerRef.current = L.tileLayer(cfg.url, {
-      attribution: cfg.attribution,
-      maxZoom: 20,
-    }).addTo(map);
+    return mountBaseLayer(map, tileMode, {
+      onProviderChange: (provider, reason) => {
+        setMapProvider(provider);
+        setMapProviderNote(reason ?? null);
+      },
+    });
   }, [tileMode]);
 
   useEffect(() => {
@@ -414,7 +389,24 @@ export const MapExplorer: React.FC<MapExplorerProps> = ({
         <div className="flex items-center gap-1.5">
           <div className="inline-flex items-center rounded-xl border border-[#E6E4DD] bg-white/95 p-0.5 shadow-xs backdrop-blur-xs">
             <Layers className="mx-1.5 h-3.5 w-3.5 text-[#8A877F]" />
-            {(['roadmap', 'terrain', 'satellite'] as MapTileMode[]).map(
+            {mapProvider && (
+              <span
+                className={`ml-0.5 mr-1 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
+                  mapProvider === 'goong'
+                    ? 'bg-emerald-50 text-emerald-800'
+                    : 'bg-[#F3F1EC] text-[#8A877F]'
+                }`}
+                title={
+                  mapProviderNote ??
+                  (mapProvider === 'goong'
+                    ? 'Đang dùng bản đồ Goong'
+                    : 'Chưa có Goong key: đang dùng bản đồ CARTO/OpenStreetMap')
+                }
+              >
+                {mapProvider === 'goong' ? 'Goong' : 'OSM'}
+              </span>
+            )}
+            {(Object.keys(BASE_MAP_STYLES) as BaseMapStyle[]).map(
               (mode) => (
                 <button
                   key={mode}
@@ -426,7 +418,7 @@ export const MapExplorer: React.FC<MapExplorerProps> = ({
                       : 'text-[#57554F] hover:text-[#141413]'
                   }`}
                 >
-                  {TILE_LAYERS[mode].label}
+                  {BASE_MAP_STYLES[mode].label}
                 </button>
               )
             )}
