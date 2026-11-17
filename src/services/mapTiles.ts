@@ -1,191 +1,79 @@
-import L from 'leaflet';
-
 /**
- * Quản lý bản đồ nền 100% miễn phí, KHÔNG CẦN API KEY cho đồ án:
- * - Chế độ "Đường phố" (street): Esri World Street Map (Raster sắc nét, không cần key, hoạt động mọi mạng VN)
- *   (Nếu người dùng có cấu hình VITE_GOONG_MAPTILES_KEY thì tự động ưu tiên Goong Vector)
- * - Chế độ "Vector 3D" (light): OpenFreeMap Liberty Vector (MapLibre GL, mã nguồn mở miễn phí 100%, không cần key)
- * - Chế độ "Vệ tinh" (dark): Esri World Imagery Satellite (Ảnh vệ tinh thực tế, không cần key)
+ * Cấu hình Bản đồ Vector 60fps (MapLibre GL + OpenFreeMap / Goong)
+ * 100% miễn phí, sắc nét chuẩn Retina, hỗ trợ tòa nhà 3D, không cần API key!
  */
 
-export type BaseMapStyle = 'street' | 'light' | 'dark';
-export type BaseMapProvider = 'goong' | 'openfreemap' | 'esri';
+export type BaseMapStyle = 'liberty' | 'positron' | 'bright';
 
 const GOONG_MAPTILES_KEY = (import.meta.env.VITE_GOONG_MAPTILES_KEY || '').trim();
 
 export const isGoongMapEnabled = GOONG_MAPTILES_KEY.length > 0;
 
-const GOONG_ATTRIBUTION =
-  '&copy; <a href="https://goong.io" target="_blank" rel="noopener">Goong</a> &copy; OpenStreetMap';
-const OPENFREEMAP_ATTRIBUTION =
-  '&copy; <a href="https://openfreemap.org" target="_blank" rel="noopener">OpenFreeMap</a> &copy; OpenStreetMap';
-const ESRI_STREET_ATTRIBUTION =
-  'Tiles &copy; Esri &mdash; OpenStreetMap, HERE, Garmin, USGS';
-const ESRI_SAT_ATTRIBUTION =
-  'Tiles &copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics';
-
-export const BASE_MAP_STYLES: Record<
+export const VECTOR_MAP_STYLES: Record<
   BaseMapStyle,
   {
     label: string;
+    styleUrl: string;
     goongStyleUrl: string;
-    openFreeMapStyleUrl: string;
-    esriTileUrl: string;
   }
 > = {
-  street: {
-    label: 'Đường phố',
+  liberty: {
+    label: 'Hiện đại 3D',
+    styleUrl: 'https://tiles.openfreemap.org/styles/liberty',
     goongStyleUrl: 'https://tiles.goong.io/assets/goong_map_web.json',
-    openFreeMapStyleUrl: 'https://tiles.openfreemap.org/styles/bright',
-    esriTileUrl:
-      'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
   },
-  light: {
-    label: 'Vector Hiện đại',
+  positron: {
+    label: 'Tối giản',
+    styleUrl: 'https://tiles.openfreemap.org/styles/positron',
     goongStyleUrl: 'https://tiles.goong.io/assets/goong_light_v2.json',
-    openFreeMapStyleUrl: 'https://tiles.openfreemap.org/styles/liberty',
-    esriTileUrl:
-      'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}',
   },
-  dark: {
-    label: 'Vệ tinh',
-    goongStyleUrl: 'https://tiles.goong.io/assets/goong_map_dark.json',
-    openFreeMapStyleUrl: 'https://tiles.openfreemap.org/styles/positron',
-    esriTileUrl:
-      'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+  bright: {
+    label: 'Đường phố',
+    styleUrl: 'https://tiles.openfreemap.org/styles/bright',
+    goongStyleUrl: 'https://tiles.goong.io/assets/ navigation_day.json'.replace(
+      ' ',
+      ''
+    ),
   },
 };
 
-export function withGoongKey(url: string): string {
-  if (!url.includes('goong.io') || /[?&]api_key=/.test(url)) return url;
-  return `${url}${url.includes('?') ? '&' : '?'}api_key=${encodeURIComponent(GOONG_MAPTILES_KEY)}`;
-}
-
-interface MountOptions {
-  preferGoong?: boolean;
-  onProviderChange?: (provider: BaseMapProvider, reason?: string) => void;
+export function resolveMapStyleUrl(style: BaseMapStyle): string {
+  const cfg = VECTOR_MAP_STYLES[style] || VECTOR_MAP_STYLES.liberty;
+  if (isGoongMapEnabled) {
+    return `${cfg.goongStyleUrl}?api_key=${encodeURIComponent(GOONG_MAPTILES_KEY)}`;
+  }
+  return cfg.styleUrl;
 }
 
 /**
- * Gắn bản đồ nền vào Leaflet map — Hoạt động ngay lập tức không cần API key!
+ * Tạo đa giác hình tròn GeoJSON mượt mà (64 cạnh) biểu diễn bán kính quét xung quanh khách hàng
  */
-export function mountBaseLayer(
-  map: L.Map,
-  style: BaseMapStyle,
-  { preferGoong = true, onProviderChange }: MountOptions = {}
-): () => void {
-  let disposed = false;
-  let currentLayer: L.Layer | null = null;
-  let currentAttribution: string | null = null;
+export function createGeoJsonCircle(
+  centerLat: number,
+  centerLng: number,
+  radiusMeters: number,
+  points = 64
+): GeoJSON.Feature<GeoJSON.Polygon> {
+  const coords: [number, number][] = [];
+  const distanceX =
+    radiusMeters / (111320 * Math.cos((centerLat * Math.PI) / 180));
+  const distanceY = radiusMeters / 110574;
 
-  const setAttribution = (text: string) => {
-    if (currentAttribution) {
-      map.attributionControl?.removeAttribution(currentAttribution);
-    }
-    map.attributionControl?.addAttribution(text);
-    currentAttribution = text;
-  };
-
-  const mountEsriRaster = (reason?: string) => {
-    if (disposed) return;
-    if (currentLayer) map.removeLayer(currentLayer);
-    currentLayer = L.tileLayer(BASE_MAP_STYLES[style].esriTileUrl, {
-      maxZoom: 19,
-    }).addTo(map);
-    setAttribution(
-      style === 'dark' ? ESRI_SAT_ATTRIBUTION : ESRI_STREET_ATTRIBUTION
-    );
-    onProviderChange?.('esri', reason);
-  };
-
-  const mountOpenFreeMapVector = async () => {
-    try {
-      const [{ maplibreGL }] = await Promise.all([
-        import('@maplibre/maplibre-gl-leaflet'),
-        import('maplibre-gl/dist/maplibre-gl.css'),
-      ]);
-      if (disposed) return;
-
-      const vectorLayer = maplibreGL({
-        style: BASE_MAP_STYLES[style].openFreeMapStyleUrl,
-      });
-      vectorLayer.addTo(map);
-      currentLayer = vectorLayer;
-      setAttribution(OPENFREEMAP_ATTRIBUTION);
-      onProviderChange?.('openfreemap');
-
-      const glMap = vectorLayer.getMaplibreMap();
-      let fellBack = false;
-      glMap.on('error', () => {
-        if (fellBack || disposed) return;
-        fellBack = true;
-        mountEsriRaster('Chuyển sang Esri Street Map');
-      });
-    } catch {
-      mountEsriRaster();
-    }
-  };
-
-  // 1. Nếu là chế độ "Đường phố" hoặc "Vệ tinh" và chưa có Goong key => Dùng Esri Raster siêu nhanh, ổn định
-  if (!preferGoong || !isGoongMapEnabled) {
-    if (style === 'light') {
-      mountOpenFreeMapVector();
-    } else {
-      mountEsriRaster();
-    }
-  } else {
-    // 2. Nếu người dùng có cấu hình Goong key => thử tải Goong Vector, lỗi thì tự về Esri
-    (async () => {
-      try {
-        const [{ maplibreGL }] = await Promise.all([
-          import('@maplibre/maplibre-gl-leaflet'),
-          import('maplibre-gl/dist/maplibre-gl.css'),
-        ]);
-        if (disposed) return;
-
-        const goongLayer = maplibreGL({
-          style: withGoongKey(BASE_MAP_STYLES[style].goongStyleUrl),
-          transformRequest: (url) => ({ url: withGoongKey(url) }),
-        });
-        goongLayer.addTo(map);
-        currentLayer = goongLayer;
-        setAttribution(GOONG_ATTRIBUTION);
-        onProviderChange?.('goong');
-
-        const glMap = goongLayer.getMaplibreMap();
-        let styleLoaded = false;
-        let fellBack = false;
-        glMap.once('load', () => {
-          styleLoaded = true;
-        });
-        glMap.on('error', (event) => {
-          if (fellBack || disposed) return;
-          const ev = event as unknown as {
-            error?: { status?: number };
-            sourceId?: string;
-          };
-          const status = ev.error?.status;
-          const authError = status === 401 || status === 403;
-          const styleError = !styleLoaded && !ev.sourceId;
-          if (authError || styleError) {
-            fellBack = true;
-            mountEsriRaster('Key Goong chưa kích hoạt, tự động dùng Esri');
-          }
-        });
-      } catch {
-        mountEsriRaster();
-      }
-    })();
+  for (let i = 0; i < points; i++) {
+    const theta = (i / points) * (2 * Math.PI);
+    const x = distanceX * Math.cos(theta);
+    const y = distanceY * Math.sin(theta);
+    coords.push([centerLng + x, centerLat + y]);
   }
+  coords.push(coords[0]);
 
-  return () => {
-    disposed = true;
-    if (currentLayer) map.removeLayer(currentLayer);
-    if (currentAttribution) {
-      map.attributionControl?.removeAttribution(currentAttribution);
-    }
-    currentLayer = null;
-    currentAttribution = null;
+  return {
+    type: 'Feature',
+    properties: {},
+    geometry: {
+      type: 'Polygon',
+      coordinates: [coords],
+    },
   };
 }
 

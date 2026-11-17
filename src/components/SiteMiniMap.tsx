@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
-import L from 'leaflet';
+import maplibregl from 'maplibre-gl';
 import { HeritageSite, NearbyRestaurant } from '../types/heritage';
-import { mountBaseLayer } from '../services/mapTiles';
+import { resolveMapStyleUrl } from '../services/mapTiles';
 
 interface SiteMiniMapProps {
   site: HeritageSite;
@@ -12,118 +12,115 @@ interface SiteMiniMapProps {
 
 export const SiteMiniMap: React.FC<SiteMiniMapProps> = ({
   site,
-  userLocation,
   restaurants,
   onSelectRestaurant,
 }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const mapRef = useRef<L.Map | null>(null);
-  const overlayRef = useRef<L.LayerGroup | null>(null);
+  const mapRef = useRef<maplibregl.Map | null>(null);
+  const markersRef = useRef<maplibregl.Marker[]>([]);
 
   useEffect(() => {
     const el = containerRef.current;
     if (!el || mapRef.current) return;
 
-    const map = L.map(el, {
-      center: [site.lat, site.lng],
-      zoom: 16,
-      zoomControl: true,
+    const map = new maplibregl.Map({
+      container: el,
+      style: resolveMapStyleUrl('liberty'),
+      center: [site.lng, site.lat],
+      zoom: 15.6,
+      pitch: 36,
+      attributionControl: false,
     });
 
-    // Bản đồ phụ mở thường xuyên => dùng CARTO để tiết kiệm quota Goong (1.000 lượt/tháng gói free)
-    const unmountBase = mountBaseLayer(map, 'street', { preferGoong: false });
-    overlayRef.current = L.layerGroup().addTo(map);
+    map.addControl(
+      new maplibregl.NavigationControl({ showCompass: false }),
+      'bottom-right'
+    );
 
     mapRef.current = map;
 
-    const timer = setTimeout(() => {
-      if (mapRef.current === map) {
-        map.invalidateSize();
-      }
-    }, 120);
-
     const ro = new ResizeObserver(() => {
-      if (mapRef.current === map) {
-        map.invalidateSize();
-      }
+      map.resize();
     });
     ro.observe(el);
 
     return () => {
-      clearTimeout(timer);
       ro.disconnect();
-      unmountBase();
       map.remove();
       mapRef.current = null;
-      overlayRef.current = null;
     };
   }, []);
 
   useEffect(() => {
     const map = mapRef.current;
-    const overlay = overlayRef.current;
-    if (!map || !overlay) return;
+    if (!map) return;
 
-    overlay.clearLayers();
+    markersRef.current.forEach((m) => m.remove());
+    markersRef.current = [];
 
-    const siteIcon = L.divIcon({
-      className: 'custom-heritage-marker',
-      html: `<div style="display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border-radius:999px;background:#141413;color:#ffffff;border:2px solid #ffffff;box-shadow:0 4px 12px rgba(0,0,0,0.28);font-weight:700;font-size:11px;white-space:nowrap;">
-        <span style="width:7px;height:7px;border-radius:999px;background:#fbbf24;"></span>
-        <span>${site.translations.vi.name}</span>
-      </div>`,
-      iconSize: [160, 28],
-      iconAnchor: [80, 14],
-    });
+    // Pin Di tích chính
+    const siteEl = document.createElement('div');
+    siteEl.className = 'shg-pin';
+    siteEl.innerHTML = `
+      <div style="display:flex;flex-direction:column;align-items:center;">
+        <div style="display:flex;align-items:center;gap:6px;padding:4px 10px 4px 5px;border-radius:999px;background:#141413;color:#ffffff;border:2px solid #ffffff;box-shadow:0 4px 14px rgba(0,0,0,0.28);font-weight:700;font-size:11px;white-space:nowrap;">
+          <span style="width:7px;height:7px;border-radius:999px;background:#fbbf24;"></span>
+          <span>${site.translations.vi.name}</span>
+        </div>
+        <div style="width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:6px solid #141413;margin-top:-1px;"></div>
+      </div>
+    `;
 
-    L.marker([site.lat, site.lng], { icon: siteIcon }).addTo(overlay);
+    const siteMarker = new maplibregl.Marker({
+      element: siteEl,
+      anchor: 'bottom',
+    })
+      .setLngLat([site.lng, site.lat])
+      .addTo(map);
+    markersRef.current.push(siteMarker);
 
-    const boundsPoints: [number, number][] = [[site.lat, site.lng]];
+    const bounds = new maplibregl.LngLatBounds();
+    bounds.extend([site.lng, site.lat]);
 
     restaurants.forEach((res) => {
-      boundsPoints.push([res.lat, res.lng]);
+      bounds.extend([res.lng, res.lat]);
 
-      const resIcon = L.divIcon({
-        className: 'custom-restaurant-marker',
-        html: `<div style="display:inline-flex;align-items:center;gap:3px;padding:3px 8px;border-radius:999px;background:#B93815;color:#ffffff;border:1.5px solid #ffffff;box-shadow:0 2px 8px rgba(0,0,0,0.22);font-size:10.5px;font-weight:700;white-space:nowrap;">
+      const resEl = document.createElement('div');
+      resEl.className = 'shg-pin';
+      resEl.style.cursor = 'pointer';
+      resEl.innerHTML = `
+        <div style="display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:999px;background:#B93815;color:#ffffff;border:1.5px solid #ffffff;box-shadow:0 4px 10px rgba(0,0,0,0.22);font-size:10.5px;font-weight:700;white-space:nowrap;">
           <span>★ ${res.rating.toFixed(1)}</span>
-          <span>${res.name.length > 16 ? res.name.slice(0, 15) + '…' : res.name}</span>
-        </div>`,
-        iconSize: [130, 24],
-        iconAnchor: [65, 12],
-      });
+          <span>${res.name.length > 18 ? res.name.slice(0, 16) + '…' : res.name}</span>
+        </div>
+      `;
 
-      const marker = L.marker([res.lat, res.lng], { icon: resIcon }).addTo(overlay);
-      marker.on('click', () => {
+      resEl.onclick = () => {
         onSelectRestaurant?.(res);
-      });
+      };
 
-      L.polyline(
-        [
-          [site.lat, site.lng],
-          [res.lat, res.lng],
-        ],
-        {
-          color: '#B93815',
-          weight: 2,
-          dashArray: '4 4',
-          opacity: 0.7,
-        }
-      ).addTo(overlay);
+      const resMarker = new maplibregl.Marker({
+        element: resEl,
+        anchor: 'center',
+      })
+        .setLngLat([res.lng, res.lat])
+        .addTo(map);
+      markersRef.current.push(resMarker);
     });
 
-    if (boundsPoints.length > 1) {
-      map.fitBounds(L.latLngBounds(boundsPoints), {
-        padding: [36, 36],
-        maxZoom: 16,
+    if (restaurants.length > 0) {
+      map.fitBounds(bounds, {
+        padding: 44,
+        maxZoom: 16.2,
+        duration: 600,
       });
     } else {
-      map.setView([site.lat, site.lng], 16);
+      map.setCenter([site.lng, site.lat]);
     }
-  }, [site, userLocation, restaurants]);
+  }, [site, restaurants]);
 
   return (
-    <div className="relative h-60 w-full overflow-hidden rounded-xl border border-[#E6E4DD] bg-[#E5E3DF]">
+    <div className="relative h-64 w-full overflow-hidden rounded-xl border border-[#E6E4DD] bg-[#ECEAE4]">
       <div ref={containerRef} className="absolute inset-0 h-full w-full z-0" />
     </div>
   );

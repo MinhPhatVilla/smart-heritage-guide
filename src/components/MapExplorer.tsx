@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import L from 'leaflet';
+import maplibregl from 'maplibre-gl';
 import {
   Navigation,
   Footprints,
@@ -8,10 +8,12 @@ import {
   X,
   CornerUpRight,
   LocateFixed,
-  Layers,
   Maximize2,
   Utensils,
   ExternalLink,
+  Volume2,
+  Box,
+  Star,
 } from 'lucide-react';
 import {
   HeritageSite,
@@ -26,13 +28,12 @@ import {
   formatDistance,
   formatWalkingDuration,
 } from '../utils/geoUtils';
-
 import {
-  BASE_MAP_STYLES,
-  BaseMapProvider,
   BaseMapStyle,
+  VECTOR_MAP_STYLES,
   buildGoogleMapsWalkingUrl,
-  mountBaseLayer,
+  createGeoJsonCircle,
+  resolveMapStyleUrl,
 } from '../services/mapTiles';
 
 interface MapExplorerProps {
@@ -80,289 +81,430 @@ export const MapExplorer: React.FC<MapExplorerProps> = ({
   onDetectRealGps,
 }) => {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
-  const mapInstanceRef = useRef<L.Map | null>(null);
-  const markersLayerRef = useRef<L.LayerGroup | null>(null);
-  const routeLayerRef = useRef<L.LayerGroup | null>(null);
+  const mapRef = useRef<maplibregl.Map | null>(null);
+  const markersRef = useRef<maplibregl.Marker[]>([]);
+  const userMarkerRef = useRef<maplibregl.Marker | null>(null);
   const prevCenterRef = useRef<[number, number]>(userLocation);
 
-  const [tileMode, setTileMode] = useState<BaseMapStyle>('street');
-  const [mapProvider, setMapProvider] = useState<BaseMapProvider | null>(null);
-  const [mapProviderNote, setMapProviderNote] = useState<string | null>(null);
+  const [mapStyle, setMapStyle] = useState<BaseMapStyle>('liberty');
+  const [is3DView, setIs3DView] = useState<boolean>(true);
   const [showRestaurantsOnMap, setShowRestaurantsOnMap] =
-    useState<boolean>(true);
+    useState<boolean>(false);
+  const [focusedSite, setFocusedSite] = useState<HeritageSite | null>(null);
+  const [focusedRestaurant, setFocusedRestaurant] = useState<{
+    restaurant: NearbyRestaurant;
+    parentSite: HeritageSite;
+  } | null>(null);
 
+  // Đồng bộ GeoJSON đường đi bộ và vòng bán kính lên bản đồ Vector
+  const syncGeoJsonOverlays = (map: maplibregl.Map) => {
+    if (!map.isStyleLoaded()) return;
+
+    // 1. Vòng tròn bán kính quét GPS
+    const radiusSourceId = 'shg-radius-source';
+    const radiusFillId = 'shg-radius-fill';
+    const radiusLineId = 'shg-radius-line';
+
+    const circleGeoJson: GeoJSON.FeatureCollection =
+      searchRadiusMeters > 0 && searchRadiusMeters <= 25000
+        ? {
+            type: 'FeatureCollection',
+            features: [
+              createGeoJsonCircle(
+                userLocation[0],
+                userLocation[1],
+                searchRadiusMeters
+              ),
+            ],
+          }
+        : { type: 'FeatureCollection', features: [] };
+
+    const existingRadiusSource = map.getSource(
+      radiusSourceId
+    ) as maplibregl.GeoJSONSource | undefined;
+
+    if (existingRadiusSource) {
+      existingRadiusSource.setData(circleGeoJson);
+    } else {
+      map.addSource(radiusSourceId, {
+        type: 'geojson',
+        data: circleGeoJson,
+      });
+      map.addLayer({
+        id: radiusFillId,
+        type: 'fill',
+        source: radiusSourceId,
+        paint: {
+          'fill-color': '#2563eb',
+          'fill-opacity': 0.045,
+        },
+      });
+      map.addLayer({
+        id: radiusLineId,
+        type: 'line',
+        source: radiusSourceId,
+        paint: {
+          'line-color': '#2563eb',
+          'line-width': 1.5,
+          'line-dasharray': [4, 4],
+          'line-opacity': 0.45,
+        },
+      });
+    }
+
+    // 2. Đường dẫn đường đi bộ (Walking Route Line)
+    const routeSourceId = 'shg-route-source';
+    const routeCasingId = 'shg-route-casing';
+    const routeMainId = 'shg-route-main';
+
+    const routeGeoJson: GeoJSON.FeatureCollection =
+      activeRoute && activeRoute.coordinates.length > 1
+        ? {
+            type: 'FeatureCollection',
+            features: [
+              {
+                type: 'Feature',
+                properties: {},
+                geometry: {
+                  type: 'LineString',
+                  coordinates: activeRoute.coordinates.map(([lat, lng]) => [
+                    lng,
+                    lat,
+                  ]),
+                },
+              },
+            ],
+          }
+        : { type: 'FeatureCollection', features: [] };
+
+    const existingRouteSource = map.getSource(
+      routeSourceId
+    ) as maplibregl.GeoJSONSource | undefined;
+
+    if (existingRouteSource) {
+      existingRouteSource.setData(routeGeoJson);
+    } else {
+      map.addSource(routeSourceId, {
+        type: 'geojson',
+        data: routeGeoJson,
+      });
+      map.addLayer({
+        id: routeCasingId,
+        type: 'line',
+        source: routeSourceId,
+        layout: {
+          'line-join': 'round',
+          'line-cap': 'round',
+        },
+        paint: {
+          'line-color': '#ffffff',
+          'line-width': 9,
+          'line-opacity': 0.95,
+        },
+      });
+      map.addLayer({
+        id: routeMainId,
+        type: 'line',
+        source: routeSourceId,
+        layout: {
+          'line-join': 'round',
+          'line-cap': 'round',
+        },
+        paint: {
+          'line-color': '#B93815',
+          'line-width': 4.5,
+          'line-dasharray': [2, 1.5],
+          'line-opacity': 0.98,
+        },
+      });
+    }
+  };
+
+  // Khởi tạo bản đồ Vector MapLibre GL
   useEffect(() => {
     const container = mapContainerRef.current;
-    if (!container || mapInstanceRef.current) return;
+    if (!container || mapRef.current) return;
 
-    const map = L.map(container, {
-      center: userLocation,
-      zoom: 15,
-      zoomControl: false,
+    const map = new maplibregl.Map({
+      container,
+      style: resolveMapStyleUrl(mapStyle),
+      center: [userLocation[1], userLocation[0]],
+      zoom: 14.6,
+      pitch: 42,
+      bearing: -8,
+      attributionControl: false,
     });
 
-    L.control.zoom({ position: 'bottomright' }).addTo(map);
+    map.addControl(
+      new maplibregl.NavigationControl({
+        visualizePitch: true,
+        showCompass: true,
+      }),
+      'bottom-right'
+    );
+    map.addControl(
+      new maplibregl.AttributionControl({ compact: true }),
+      'bottom-left'
+    );
 
-    const markersGroup = L.layerGroup().addTo(map);
-    const routeGroup = L.layerGroup().addTo(map);
-
-    map.on('click', (e: L.LeafletMouseEvent) => {
-      onMoveUserLocation(e.latlng.lat, e.latlng.lng);
+    map.on('load', () => {
+      syncGeoJsonOverlays(map);
     });
 
-    mapInstanceRef.current = map;
-    markersLayerRef.current = markersGroup;
-    routeLayerRef.current = routeGroup;
-
-    const timer = setTimeout(() => {
-      if (mapInstanceRef.current === map) {
-        map.invalidateSize();
-      }
-    }, 100);
-
-    const resizeObserver = new ResizeObserver(() => {
-      if (mapInstanceRef.current === map) {
-        map.invalidateSize();
-      }
+    map.on('styledata', () => {
+      syncGeoJsonOverlays(map);
     });
-    resizeObserver.observe(container);
+
+    map.on('click', (e) => {
+      const target = e.originalEvent.target as HTMLElement | null;
+      if (target && target.closest('.shg-pin')) return;
+      onMoveUserLocation(e.lngLat.lat, e.lngLat.lng);
+    });
+
+    mapRef.current = map;
+
+    const ro = new ResizeObserver(() => {
+      map.resize();
+    });
+    ro.observe(container);
 
     return () => {
-      clearTimeout(timer);
-      resizeObserver.disconnect();
+      ro.disconnect();
       map.remove();
-      mapInstanceRef.current = null;
-      markersLayerRef.current = null;
-      routeLayerRef.current = null;
+      mapRef.current = null;
     };
   }, []);
 
-  // Bản đồ nền: Goong (nếu có key) hoặc CARTO/OpenStreetMap
+  // Đổi style Vector (Hiện đại 3D / Tối giản / Đường phố)
   useEffect(() => {
-    const map = mapInstanceRef.current;
+    const map = mapRef.current;
     if (!map) return;
-    return mountBaseLayer(map, tileMode, {
-      onProviderChange: (provider, reason) => {
-        setMapProvider(provider);
-        setMapProviderNote(reason ?? null);
-      },
-    });
-  }, [tileMode]);
+    map.setStyle(resolveMapStyleUrl(mapStyle));
+  }, [mapStyle]);
 
+  // Chuyển góc nhìn 2D / 3D
+  const handleToggle3D = () => {
+    const map = mapRef.current;
+    const next = !is3DView;
+    setIs3DView(next);
+    if (map) {
+      map.easeTo({
+        pitch: next ? 45 : 0,
+        bearing: next ? -10 : 0,
+        duration: 650,
+      });
+    }
+  };
+
+  // Cập nhật chấm xanh GPS của người dùng
   useEffect(() => {
-    const map = mapInstanceRef.current;
-    const layer = markersLayerRef.current;
-    if (!map || !layer) return;
-
-    layer.clearLayers();
+    const map = mapRef.current;
+    if (!map) return;
 
     const latDiff = Math.abs(prevCenterRef.current[0] - userLocation[0]);
     const lngDiff = Math.abs(prevCenterRef.current[1] - userLocation[1]);
-    if (latDiff > 0.012 || lngDiff > 0.012) {
-      map.flyTo(userLocation, 15, { duration: 0.9 });
+    if (latDiff > 0.015 || lngDiff > 0.015) {
+      map.flyTo({
+        center: [userLocation[1], userLocation[0]],
+        zoom: 14.6,
+        duration: 1100,
+      });
     }
     prevCenterRef.current = userLocation;
 
-    if (searchRadiusMeters > 0 && searchRadiusMeters <= 25000) {
-      L.circle(userLocation, {
-        radius: searchRadiusMeters,
-        color: '#2563eb',
-        weight: 1.5,
-        dashArray: '6 6',
-        fillColor: '#2563eb',
-        fillOpacity: 0.05,
-      }).addTo(layer);
+    if (!userMarkerRef.current) {
+      const el = document.createElement('div');
+      el.className = 'shg-pin';
+      el.style.cursor = 'grab';
+      el.innerHTML = `
+        <div class="shg-gps-pulse" style="position:relative;display:flex;align-items:center;justify-content:center;width:22px;height:22px;">
+          <span style="width:16px;height:16px;border-radius:9999px;background:#2563eb;border:3px solid #ffffff;box-shadow:0 3px 10px rgba(37,99,235,0.45);"></span>
+        </div>
+      `;
+
+      const marker = new maplibregl.Marker({
+        element: el,
+        draggable: true,
+      })
+        .setLngLat([userLocation[1], userLocation[0]])
+        .addTo(map);
+
+      marker.on('dragend', () => {
+        const lngLat = marker.getLngLat();
+        onMoveUserLocation(lngLat.lat, lngLat.lng);
+      });
+
+      userMarkerRef.current = marker;
+    } else {
+      userMarkerRef.current.setLngLat([userLocation[1], userLocation[0]]);
     }
 
-    const userIcon = L.divIcon({
-      className: 'custom-user-marker',
-      html: `<div style="position:relative;display:flex;align-items:center;justify-content:center;width:32px;height:32px;">
-        <span style="position:absolute;width:32px;height:32px;border-radius:9999px;background:rgba(37,99,235,0.22);"></span>
-        <span style="position:relative;width:16px;height:16px;border-radius:9999px;background:#2563eb;border:3px solid #ffffff;box-shadow:0 2px 8px rgba(0,0,0,0.35);"></span>
-      </div>`,
-      iconSize: [32, 32],
-      iconAnchor: [16, 16],
-    });
+    syncGeoJsonOverlays(map);
+  }, [userLocation, searchRadiusMeters]);
 
-    const userMarker = L.marker(userLocation, {
-      icon: userIcon,
-      draggable: true,
-    })
-      .bindPopup(
-        `<div style="font-size:12px;line-height:1.45;color:#141413;min-width:180px;">
-          <div style="font-weight:700;color:#2563eb;">📍 Vị trí của bạn</div>
-          <div style="color:#57554f;margin-top:3px;">Tọa độ: ${userLocation[0].toFixed(4)}°N, ${userLocation[1].toFixed(4)}°E</div>
-          <div style="color:#8a877f;font-size:11px;margin-top:4px;">Bạn có thể kéo thả chấm xanh này hoặc chạm vào bất kỳ đâu trên bản đồ để đổi vị trí.</div>
-        </div>`
-      )
-      .addTo(layer);
+  // Vẽ các Pin Danh lam thắng cảnh & Quán ăn hiện đại, gọn đẹp
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
 
-    userMarker.on('dragend', () => {
-      const pos = userMarker.getLatLng();
-      onMoveUserLocation(pos.lat, pos.lng);
-    });
+    markersRef.current.forEach((m) => m.remove());
+    markersRef.current = [];
 
-    sites.forEach((site) => {
+    sites.forEach((site, idx) => {
       const isVisited = visitedRecords.some((r) => r.siteId === site.id);
-      const isSelected = selectedSiteId === site.id;
+      const isSelected =
+        selectedSiteId === site.id || focusedSite?.id === site.id;
       const localName =
         (site.translations[selectedLanguage] || site.translations.vi).name;
-      const distMeters = calculateDistanceMeters(
-        userLocation[0],
-        userLocation[1],
-        site.lat,
-        site.lng
-      );
-      const walkSec = estimateWalkingSeconds(distMeters);
+      const shortLabel =
+        localName.length > 20 ? localName.slice(0, 18) + '…' : localName;
 
-      const bg = isSelected
+      const borderColor = isSelected
+        ? '#B93815'
+        : isVisited
+          ? '#15803d'
+          : '#141413';
+      const badgeColor = isSelected
         ? '#B93815'
         : isVisited
           ? '#15803d'
           : '#141413';
 
-      const siteIcon = L.divIcon({
-        className: 'custom-heritage-marker',
-        html: `<div style="display:inline-flex;align-items:center;gap:6px;padding:6px 11px;border-radius:999px;background:${bg};color:#ffffff;border:2px solid #ffffff;box-shadow:0 4px 14px rgba(20,20,19,0.28);font-weight:600;font-size:11.5px;letter-spacing:-0.01em;white-space:nowrap;cursor:pointer;">
-          <span style="width:7px;height:7px;border-radius:999px;background:${isVisited ? '#86efac' : '#fbbf24'};"></span>
-          <span>${localName.length > 24 ? localName.slice(0, 22) + '…' : localName}</span>
-        </div>`,
-        iconSize: [165, 32],
-        iconAnchor: [82, 16],
-      });
+      const el = document.createElement('div');
+      el.className = 'shg-pin';
+      el.style.cursor = 'pointer';
+      el.style.zIndex = isSelected ? '25' : '10';
 
-      const popupContainer = document.createElement('div');
-      popupContainer.style.minWidth = '220px';
-      popupContainer.style.fontFamily = 'Inter, sans-serif';
-      popupContainer.innerHTML = `
-        <div style="overflow:hidden;border-radius:8px;margin-bottom:8px;height:96px;background:#f3f1ec;">
-          <img src="${site.coverImage}" alt="${localName}" style="width:100%;height:100%;object-fit:cover;" />
-        </div>
-        <div style="font-size:10px;font-weight:600;text-transform:uppercase;color:#8a877f;">${site.city} · ★ ${site.rating.toFixed(1)}</div>
-        <div style="font-size:13px;font-weight:700;color:#141413;margin-top:2px;">${localName}</div>
-        <div style="font-size:11px;color:#57554f;margin-top:4px;">🚶 Cách bạn <strong>${formatDistance(distMeters)}</strong> (~${formatWalkingDuration(walkSec)})</div>
-        <div style="display:flex;gap:6px;margin-top:10px;">
-          <button id="btn-detail-${site.id}" style="flex:1;padding:6px 8px;border-radius:6px;background:#141413;color:#fff;font-size:11px;font-weight:600;border:none;cursor:pointer;">Thuyết minh</button>
-          <button id="btn-route-${site.id}" style="flex:1;padding:6px 8px;border-radius:6px;background:#B93815;color:#fff;font-size:11px;font-weight:600;border:none;cursor:pointer;">Dẫn đường</button>
+      el.innerHTML = `
+        <div style="display:flex;flex-direction:column;align-items:center;user-select:none;">
+          <div style="position:relative;display:flex;align-items:center;gap:6px;padding:3px 9px 3px 4px;border-radius:999px;background:#ffffff;border:2px solid ${borderColor};box-shadow:0 6px 18px rgba(20,20,19,0.18);">
+            <div style="width:24px;height:24px;border-radius:999px;overflow:hidden;flex-shrink:0;background:#f3f1ec;">
+              <img src="${site.coverImage}" alt="" style="width:100%;height:100%;object-fit:cover;" />
+            </div>
+            <span style="font-size:11px;font-weight:700;color:#141413;white-space:nowrap;letter-spacing:-0.01em;">
+              ${shortLabel}
+            </span>
+            <span style="display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 4px;border-radius:999px;background:${badgeColor};color:#ffffff;font-size:9.5px;font-weight:700;">
+              ${isVisited ? '✓' : idx + 1}
+            </span>
+          </div>
+          <div style="width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:6px solid ${borderColor};margin-top:-1px;"></div>
         </div>
       `;
 
-      const marker = L.marker([site.lat, site.lng], { icon: siteIcon })
-        .bindPopup(popupContainer)
-        .addTo(layer);
+      el.onclick = (ev) => {
+        ev.stopPropagation();
+        setFocusedRestaurant(null);
+        setFocusedSite(site);
+        map.flyTo({
+          center: [site.lng, site.lat],
+          zoom: Math.max(map.getZoom(), 15.2),
+          duration: 750,
+        });
+      };
 
-      marker.on('popupopen', () => {
-        const detailBtn = document.getElementById(`btn-detail-${site.id}`);
-        const routeBtn = document.getElementById(`btn-route-${site.id}`);
-        if (detailBtn) {
-          detailBtn.onclick = () => {
-            onSelectSite(site);
-            marker.closePopup();
-          };
-        }
-        if (routeBtn) {
-          routeBtn.onclick = () => {
-            onStartRouteToSite(site);
-            marker.closePopup();
-          };
-        }
-      });
+      const marker = new maplibregl.Marker({
+        element: el,
+        anchor: 'bottom',
+      })
+        .setLngLat([site.lng, site.lat])
+        .addTo(map);
 
+      markersRef.current.push(marker);
+
+      // Pin quán ăn đề xuất (khi bật bộ lọc quán ăn trên bản đồ)
       if (showRestaurantsOnMap) {
         site.nearbyRestaurants.forEach((res) => {
-          const resIcon = L.divIcon({
-            className: 'custom-restaurant-marker',
-            html: `<div title="${res.name}" style="display:inline-flex;align-items:center;gap:3px;padding:3px 7px;border-radius:999px;background:#ffffff;color:#141413;border:1.5px solid #B93815;box-shadow:0 2px 8px rgba(0,0,0,0.16);font-size:10.5px;font-weight:700;white-space:nowrap;">
-              <span style="color:#B93815;">★</span>
+          const resEl = document.createElement('div');
+          resEl.className = 'shg-pin';
+          resEl.style.cursor = 'pointer';
+          resEl.style.zIndex = '8';
+          resEl.innerHTML = `
+            <div style="display:inline-flex;align-items:center;gap:3px;padding:3px 7px;border-radius:999px;background:#141413;color:#ffffff;border:1.5px solid #ffffff;box-shadow:0 4px 10px rgba(0,0,0,0.2);font-size:10px;font-weight:700;white-space:nowrap;">
+              <span style="color:#fbbf24;">★</span>
               <span>${res.rating.toFixed(1)}</span>
-            </div>`,
-            iconSize: [48, 22],
-            iconAnchor: [24, 11],
-          });
-
-          const resPopup = document.createElement('div');
-          resPopup.style.minWidth = '200px';
-          resPopup.style.fontFamily = 'Inter, sans-serif';
-          resPopup.innerHTML = `
-            <div style="font-size:10px;font-weight:600;color:#B93815;text-transform:uppercase;">${res.cuisine}</div>
-            <div style="font-size:13px;font-weight:700;color:#141413;margin-top:2px;">${res.name}</div>
-            <div style="font-size:11px;font-weight:600;color:#141413;margin-top:3px;">★ ${res.rating.toFixed(1)} <span style="font-weight:400;color:#8a877f;">(${res.reviewCount} đánh giá)</span></div>
-            <div style="font-size:11px;color:#57554f;margin-top:4px;">${res.specialtyDishes.slice(0, 2).join(' · ')}</div>
-            <div style="font-size:11px;color:#8a877f;margin-top:2px;">Giá: ${res.priceRange}</div>
-            <button id="btn-res-route-${res.id}" style="width:100%;margin-top:8px;padding:6px 8px;border-radius:6px;background:#141413;color:#fff;font-size:11px;font-weight:600;border:none;cursor:pointer;">Chỉ đường đi bộ tới quán</button>
+            </div>
           `;
 
-          const resMarker = L.marker([res.lat, res.lng], { icon: resIcon })
-            .bindPopup(resPopup)
-            .addTo(layer);
+          resEl.onclick = (ev) => {
+            ev.stopPropagation();
+            setFocusedSite(null);
+            setFocusedRestaurant({ restaurant: res, parentSite: site });
+            map.flyTo({
+              center: [res.lng, res.lat],
+              zoom: Math.max(map.getZoom(), 15.8),
+              duration: 650,
+            });
+          };
 
-          resMarker.on('popupopen', () => {
-            const btn = document.getElementById(`btn-res-route-${res.id}`);
-            if (btn && onStartRouteToRestaurant) {
-              btn.onclick = () => {
-                onStartRouteToRestaurant(res, site);
-                resMarker.closePopup();
-              };
-            }
-          });
+          const resMarker = new maplibregl.Marker({
+            element: resEl,
+            anchor: 'center',
+          })
+            .setLngLat([res.lng, res.lat])
+            .addTo(map);
+
+          markersRef.current.push(resMarker);
         });
       }
     });
   }, [
-    userLocation,
     sites,
     selectedSiteId,
+    focusedSite,
     visitedRecords,
     selectedLanguage,
-    searchRadiusMeters,
     showRestaurantsOnMap,
   ]);
 
+  // Vẽ lộ trình dẫn đường đi bộ và căn khung nhìn vừa vặn
   useEffect(() => {
-    const map = mapInstanceRef.current;
-    const routeLayer = routeLayerRef.current;
-    if (!map || !routeLayer) return;
+    const map = mapRef.current;
+    if (!map) return;
 
-    routeLayer.clearLayers();
-    if (!activeRoute || !activeRoute.coordinates.length) return;
+    syncGeoJsonOverlays(map);
 
-    L.polyline(activeRoute.coordinates, {
-      color: '#ffffff',
-      weight: 9,
-      opacity: 0.92,
-    }).addTo(routeLayer);
-
-    const routeLine = L.polyline(activeRoute.coordinates, {
-      color: '#B93815',
-      weight: 5,
-      dashArray: '10 6',
-      opacity: 0.98,
-    }).addTo(routeLayer);
-
-    map.fitBounds(routeLine.getBounds(), { padding: [56, 56], maxZoom: 16 });
+    if (activeRoute && activeRoute.coordinates.length > 1) {
+      setFocusedSite(null);
+      setFocusedRestaurant(null);
+      const bounds = new maplibregl.LngLatBounds();
+      activeRoute.coordinates.forEach(([lat, lng]) => {
+        bounds.extend([lng, lat]);
+      });
+      map.fitBounds(bounds, {
+        padding: { top: 72, bottom: 180, left: 64, right: 64 },
+        maxZoom: 16.2,
+        duration: 900,
+      });
+    }
   }, [activeRoute]);
 
   const handleFitAllMarkers = () => {
-    const map = mapInstanceRef.current;
+    const map = mapRef.current;
     if (!map || sites.length === 0) return;
-    const bounds = L.latLngBounds([
-      userLocation,
-      ...sites.map((s) => [s.lat, s.lng] as [number, number]),
-    ]);
-    map.fitBounds(bounds, { padding: [48, 48], maxZoom: 15 });
+    const bounds = new maplibregl.LngLatBounds();
+    bounds.extend([userLocation[1], userLocation[0]]);
+    sites.forEach((s) => bounds.extend([s.lng, s.lat]));
+    map.fitBounds(bounds, {
+      padding: 64,
+      maxZoom: 15,
+      duration: 850,
+    });
   };
 
   return (
-    <div className="relative h-[520px] lg:h-[calc(100vh-96px)] min-h-[500px] w-full overflow-hidden rounded-2xl border border-[#E6E4DD] bg-[#E5E3DF] shadow-xs">
+    <div className="relative h-[520px] lg:h-[calc(100vh-96px)] min-h-[500px] w-full overflow-hidden rounded-2xl border border-[#E6E4DD] bg-[#ECEAE4] shadow-xs">
+      {/* Khung bản đồ Vector MapLibre GL */}
       <div
         ref={mapContainerRef}
         className="absolute inset-0 h-full w-full z-0"
       />
 
-      {/* Top Map Controls */}
+      {/* Thanh điều khiển nổi phía trên (Floating Top Controls) */}
       <div className="pointer-events-auto absolute top-3 inset-x-3 z-10 flex flex-wrap items-center justify-between gap-2">
+        {/* Chú giải & Bật/Tắt Quán ăn */}
         <div className="flex flex-wrap items-center gap-1.5">
-          <div className="flex items-center gap-3 rounded-xl border border-[#E6E4DD] bg-white/95 px-3 py-1.5 text-[11px] font-medium text-[#57554F] shadow-xs backdrop-blur-xs">
+          <div className="flex items-center gap-3 rounded-xl border border-[#E6E4DD] bg-white/95 px-3 py-1.5 text-[11px] font-medium text-[#57554F] shadow-xs backdrop-blur-md">
             <span className="inline-flex items-center gap-1.5">
               <span className="h-2.5 w-2.5 rounded-full bg-blue-600" /> Bạn
             </span>
@@ -377,58 +519,55 @@ export const MapExplorer: React.FC<MapExplorerProps> = ({
           <button
             type="button"
             onClick={() => setShowRestaurantsOnMap((prev) => !prev)}
-            className={`inline-flex items-center gap-1.5 rounded-xl border px-2.5 py-1.5 text-[11px] font-medium shadow-xs backdrop-blur-xs transition-colors ${
+            className={`inline-flex items-center gap-1.5 rounded-xl border px-2.5 py-1.5 text-[11px] font-medium shadow-xs backdrop-blur-md transition-colors ${
               showRestaurantsOnMap
                 ? 'border-[#141413] bg-[#141413] text-white'
                 : 'border-[#E6E4DD] bg-white/95 text-[#57554F] hover:text-[#141413]'
             }`}
           >
             <Utensils className="h-3 w-3" />
-            <span>Quán ăn đề xuất</span>
+            <span>Hiện quán ăn</span>
           </button>
         </div>
 
+        {/* Bộ chọn giao diện Vector 3D & Định vị */}
         <div className="flex items-center gap-1.5">
-          <div className="inline-flex items-center rounded-xl border border-[#E6E4DD] bg-white/95 p-0.5 shadow-xs backdrop-blur-xs">
-            <Layers className="mx-1.5 h-3.5 w-3.5 text-[#8A877F]" />
-            {mapProvider && (
-              <span
-                className="ml-0.5 mr-1 rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-800"
-                title={
-                  mapProviderNote ??
-                  'Bản đồ miễn phí hoạt động trực tiếp không cần API key'
-                }
+          <div className="inline-flex items-center rounded-xl border border-[#E6E4DD] bg-white/95 p-0.5 shadow-xs backdrop-blur-md">
+            {(Object.keys(VECTOR_MAP_STYLES) as BaseMapStyle[]).map((mode) => (
+              <button
+                key={mode}
+                type="button"
+                onClick={() => setMapStyle(mode)}
+                className={`rounded-lg px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                  mapStyle === mode
+                    ? 'bg-[#141413] text-white'
+                    : 'text-[#57554F] hover:text-[#141413]'
+                }`}
               >
-                {mapProvider === 'goong'
-                  ? 'Goong'
-                  : mapProvider === 'openfreemap'
-                    ? 'Vector'
-                    : 'Free'}
-              </span>
-            )}
-            {(Object.keys(BASE_MAP_STYLES) as BaseMapStyle[]).map(
-              (mode) => (
-                <button
-                  key={mode}
-                  type="button"
-                  onClick={() => setTileMode(mode)}
-                  className={`rounded-lg px-2.5 py-1 text-[11px] font-medium transition-colors ${
-                    tileMode === mode
-                      ? 'bg-[#141413] text-white'
-                      : 'text-[#57554F] hover:text-[#141413]'
-                  }`}
-                >
-                  {BASE_MAP_STYLES[mode].label}
-                </button>
-              )
-            )}
+                {VECTOR_MAP_STYLES[mode].label}
+              </button>
+            ))}
           </div>
 
           <button
             type="button"
+            onClick={handleToggle3D}
+            className={`inline-flex items-center gap-1 rounded-xl border px-2.5 py-1.5 text-[11px] font-semibold shadow-xs backdrop-blur-md transition-colors ${
+              is3DView
+                ? 'border-[#141413] bg-[#141413] text-white'
+                : 'border-[#E6E4DD] bg-white/95 text-[#141413]'
+            }`}
+            title="Chuyển góc nhìn tòa nhà 3D / 2D"
+          >
+            <Box className="h-3.5 w-3.5" />
+            <span>3D</span>
+          </button>
+
+          <button
+            type="button"
             onClick={handleFitAllMarkers}
-            className="inline-flex items-center gap-1 rounded-xl border border-[#E6E4DD] bg-white/95 px-2.5 py-1.5 text-[11px] font-medium text-[#141413] shadow-xs backdrop-blur-xs hover:bg-white"
-            title="Thu phóng toàn bộ điểm trên bản đồ"
+            className="inline-flex items-center gap-1 rounded-xl border border-[#E6E4DD] bg-white/95 px-2.5 py-1.5 text-[11px] font-medium text-[#141413] shadow-xs backdrop-blur-md hover:bg-white"
+            title="Thu phóng toàn cảnh"
           >
             <Maximize2 className="h-3.5 w-3.5" />
           </button>
@@ -437,16 +576,143 @@ export const MapExplorer: React.FC<MapExplorerProps> = ({
             <button
               type="button"
               onClick={onDetectRealGps}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-[#E6E4DD] bg-white/95 px-2.5 py-1.5 text-[11px] font-medium text-[#141413] shadow-xs backdrop-blur-xs hover:bg-white"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-[#E6E4DD] bg-white/95 px-2.5 py-1.5 text-[11px] font-medium text-[#141413] shadow-xs backdrop-blur-md hover:bg-white"
               title="Định vị GPS thực tế"
             >
               <LocateFixed className="h-3.5 w-3.5 text-blue-600" />
-              <span className="hidden sm:inline">GPS của tôi</span>
+              <span className="hidden sm:inline">GPS</span>
             </button>
           )}
         </div>
       </div>
 
+      {/* Thẻ Xem nhanh Di tích Nổi trên Bản đồ (Floating Heritage Card) */}
+      {focusedSite && !activeRoute && (
+        <div className="pointer-events-auto absolute bottom-4 left-4 right-4 sm:right-auto sm:w-88 z-10 rounded-2xl border border-[#E6E4DD] bg-white/98 p-3.5 shadow-xl backdrop-blur-md">
+          <div className="flex gap-3">
+            <img
+              src={focusedSite.coverImage}
+              alt={focusedSite.translations.vi.name}
+              className="h-20 w-20 shrink-0 rounded-xl object-cover border border-[#E6E4DD]"
+            />
+            <div className="min-w-0 flex-1">
+              <div className="flex items-start justify-between gap-1">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-[#8A877F]">
+                  {focusedSite.city}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setFocusedSite(null)}
+                  className="rounded p-0.5 text-[#8A877F] hover:text-[#141413]"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+              <h4 className="font-serif-editorial text-sm font-semibold text-[#141413] line-clamp-1">
+                {
+                  (
+                    focusedSite.translations[selectedLanguage] ||
+                    focusedSite.translations.vi
+                  ).name
+                }
+              </h4>
+              <div className="mt-1 flex items-center gap-2 text-xs text-[#57554F] tabular-nums">
+                <span className="inline-flex items-center gap-1 font-medium text-[#141413]">
+                  <Footprints className="h-3 w-3 text-[#B93815]" />
+                  {formatWalkingDuration(
+                    estimateWalkingSeconds(
+                      calculateDistanceMeters(
+                        userLocation[0],
+                        userLocation[1],
+                        focusedSite.lat,
+                        focusedSite.lng
+                      )
+                    )
+                  )}
+                </span>
+                <span>·</span>
+                <span>
+                  {formatDistance(
+                    calculateDistanceMeters(
+                      userLocation[0],
+                      userLocation[1],
+                      focusedSite.lat,
+                      focusedSite.lng
+                    )
+                  )}
+                </span>
+              </div>
+              <div className="mt-2.5 flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => onSelectSite(focusedSite)}
+                  className="inline-flex flex-1 items-center justify-center gap-1 rounded-lg bg-[#141413] px-2.5 py-1.5 text-[11px] font-medium text-white hover:bg-[#2C2B29]"
+                >
+                  <Volume2 className="h-3 w-3" />
+                  <span>Thuyết minh</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onStartRouteToSite(focusedSite)}
+                  className="inline-flex flex-1 items-center justify-center gap-1 rounded-lg bg-[#B93815] px-2.5 py-1.5 text-[11px] font-medium text-white hover:bg-[#9E2F11]"
+                >
+                  <Navigation className="h-3 w-3" />
+                  <span>Dẫn đường</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Thẻ Xem nhanh Quán ăn Nổi trên Bản đồ */}
+      {focusedRestaurant && !activeRoute && (
+        <div className="pointer-events-auto absolute bottom-4 left-4 right-4 sm:right-auto sm:w-84 z-10 rounded-2xl border border-[#E6E4DD] bg-white/98 p-3.5 shadow-xl backdrop-blur-md">
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-[#B93815]">
+                {focusedRestaurant.restaurant.cuisine}
+              </span>
+              <h4 className="text-sm font-semibold text-[#141413]">
+                {focusedRestaurant.restaurant.name}
+              </h4>
+            </div>
+            <button
+              type="button"
+              onClick={() => setFocusedRestaurant(null)}
+              className="rounded p-0.5 text-[#8A877F] hover:text-[#141413]"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+          <div className="mt-1 flex items-center gap-2 text-xs text-[#57554F]">
+            <span className="inline-flex items-center gap-0.5 font-semibold text-[#141413]">
+              <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+              {focusedRestaurant.restaurant.rating.toFixed(1)}
+            </span>
+            <span>·</span>
+            <span>{focusedRestaurant.restaurant.priceRange}</span>
+          </div>
+          <p className="mt-1 text-xs text-[#57554F] line-clamp-1">
+            {focusedRestaurant.restaurant.specialtyDishes.join(' · ')}
+          </p>
+          <button
+            type="button"
+            onClick={() =>
+              onStartRouteToRestaurant?.(
+                focusedRestaurant.restaurant,
+                focusedRestaurant.parentSite
+              )
+            }
+            className="mt-2.5 inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-[#141413] px-3 py-1.5 text-xs font-medium text-white hover:bg-[#2C2B29]"
+          >
+            <Navigation className="h-3.5 w-3.5" />
+            <span>Chỉ đường đi bộ tới quán</span>
+          </button>
+        </div>
+      )}
+
+      {/* Trạng thái đang tính đường */}
       {isRoutingLoading && (
         <div className="pointer-events-none absolute inset-x-4 bottom-4 z-10 flex items-center justify-center">
           <div className="rounded-xl border border-[#E6E4DD] bg-white/95 px-4 py-2.5 text-xs font-medium text-[#141413] shadow-md">
@@ -455,6 +721,7 @@ export const MapExplorer: React.FC<MapExplorerProps> = ({
         </div>
       )}
 
+      {/* Thanh Dẫn đường Đi bộ Trực tiếp */}
       {activeRoute && !isRoutingLoading && (
         <div className="pointer-events-auto absolute bottom-3 inset-x-3 z-10 rounded-xl border border-[#E6E4DD] bg-white/98 p-4 shadow-lg backdrop-blur-md">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#E6E4DD] pb-3">
@@ -492,7 +759,7 @@ export const MapExplorer: React.FC<MapExplorerProps> = ({
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1.5 rounded-lg border border-[#E6E4DD] bg-white px-3 py-1.5 text-xs font-medium text-[#141413] hover:bg-[#F3F1EC]"
-                title="Mở dẫn đường đi bộ trên ứng dụng Google Maps chính thức (100% miễn phí)"
+                title="Mở dẫn đường đi bộ trên ứng dụng Google Maps chính thức"
               >
                 <ExternalLink className="h-3 w-3 text-blue-600" />
                 <span>Mở Google Maps</span>
