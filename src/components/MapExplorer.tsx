@@ -11,6 +11,7 @@ import {
   Layers,
   Maximize2,
   Utensils,
+  ExternalLink,
 } from 'lucide-react';
 import {
   HeritageSite,
@@ -30,6 +31,7 @@ import {
   BASE_MAP_STYLES,
   BaseMapProvider,
   BaseMapStyle,
+  buildGoogleMapsWalkingUrl,
   mountBaseLayer,
 } from '../services/mapTiles';
 
@@ -391,19 +393,17 @@ export const MapExplorer: React.FC<MapExplorerProps> = ({
             <Layers className="mx-1.5 h-3.5 w-3.5 text-[#8A877F]" />
             {mapProvider && (
               <span
-                className={`ml-0.5 mr-1 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
-                  mapProvider === 'goong'
-                    ? 'bg-emerald-50 text-emerald-800'
-                    : 'bg-[#F3F1EC] text-[#8A877F]'
-                }`}
+                className="ml-0.5 mr-1 rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-800"
                 title={
                   mapProviderNote ??
-                  (mapProvider === 'goong'
-                    ? 'Đang dùng bản đồ Goong'
-                    : 'Chưa có Goong key: đang dùng bản đồ CARTO/OpenStreetMap')
+                  'Bản đồ miễn phí hoạt động trực tiếp không cần API key'
                 }
               >
-                {mapProvider === 'goong' ? 'Goong' : 'OSM'}
+                {mapProvider === 'goong'
+                  ? 'Goong'
+                  : mapProvider === 'openfreemap'
+                    ? 'Vector'
+                    : 'Free'}
               </span>
             )}
             {(Object.keys(BASE_MAP_STYLES) as BaseMapStyle[]).map(
@@ -484,6 +484,20 @@ export const MapExplorer: React.FC<MapExplorerProps> = ({
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
+              <a
+                href={buildGoogleMapsWalkingUrl(
+                  userLocation,
+                  activeRoute.destination
+                )}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-[#E6E4DD] bg-white px-3 py-1.5 text-xs font-medium text-[#141413] hover:bg-[#F3F1EC]"
+                title="Mở dẫn đường đi bộ trên ứng dụng Google Maps chính thức (100% miễn phí)"
+              >
+                <ExternalLink className="h-3 w-3 text-blue-600" />
+                <span>Mở Google Maps</span>
+              </a>
+
               <button
                 type="button"
                 disabled={isSimulatingWalk}
