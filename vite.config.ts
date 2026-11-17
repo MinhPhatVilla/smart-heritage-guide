@@ -4,6 +4,9 @@ import tailwindcss from '@tailwindcss/vite';
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  optimizeDeps: {
+    exclude: ['maplibre-gl', '@maplibre/maplibre-gl-leaflet'],
+  },
   server: {
     port: 5173,
     open: false,

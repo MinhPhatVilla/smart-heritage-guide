@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import * as maplibregl from 'maplibre-gl';
+import L from 'leaflet';
 import {
   Footprints,
   Camera,
@@ -14,7 +14,7 @@ import {
   formatWalkingDuration,
   rankVisitedSitesByWalkingTime,
 } from '../utils/geoUtils';
-import { resolveMapStyleUrl } from '../services/mapTiles';
+import { createTileLayer } from '../services/mapTiles';
 
 interface JourneyAndRankingViewProps {
   records: VisitedSiteRecord[];
@@ -35,8 +35,8 @@ export const JourneyAndRankingView: React.FC<JourneyAndRankingViewProps> = ({
   const [previewPhotoUrl, setPreviewPhotoUrl] = useState<string | null>(null);
 
   const journeyMapRef = useRef<HTMLDivElement | null>(null);
-  const mapRef = useRef<maplibregl.Map | null>(null);
-  const markersRef = useRef<maplibregl.Marker[]>([]);
+  const leafletMapRef = useRef<L.Map | null>(null);
+  const overlayRef = useRef<L.LayerGroup | null>(null);
 
   // useMemo để bản đồ không vẽ lại / fitBounds lại ở mỗi lần render
   const rankedList = useMemo(
@@ -62,88 +62,83 @@ export const JourneyAndRankingView: React.FC<JourneyAndRankingViewProps> = ({
     (s) => !records.some((r) => r.siteId === s.id)
   );
 
-  // Bản đồ Vector 3D tổng hợp dấu chân hành trình & các lộ trình đã đi bộ
   useEffect(() => {
     const el = journeyMapRef.current;
-    if (!el || mapRef.current) return;
+    if (!el || leafletMapRef.current) return;
 
-    const map = new maplibregl.Map({
-      container: el,
-      style: resolveMapStyleUrl('liberty'),
-      center: [106.699, 10.7775],
+    const map = L.map(el, {
+      center: [10.7775, 106.699],
       zoom: 14,
-      pitch: 36,
-      attributionControl: false,
+      zoomControl: true,
     });
 
-    map.addControl(
-      new maplibregl.NavigationControl({ showCompass: false }),
-      'bottom-right'
-    );
+    createTileLayer('vn_clean').addTo(map);
+    overlayRef.current = L.layerGroup().addTo(map);
+    leafletMapRef.current = map;
 
-    mapRef.current = map;
+    const timer = setTimeout(() => {
+      if (leafletMapRef.current === map) map.invalidateSize();
+    }, 100);
 
     const ro = new ResizeObserver(() => {
-      map.resize();
+      if (leafletMapRef.current === map) map.invalidateSize();
     });
     ro.observe(el);
 
     return () => {
+      clearTimeout(timer);
       ro.disconnect();
       map.remove();
-      mapRef.current = null;
+      leafletMapRef.current = null;
+      overlayRef.current = null;
     };
   }, []);
 
   useEffect(() => {
-    const map = mapRef.current;
-    if (!map) return;
+    const map = leafletMapRef.current;
+    const overlay = overlayRef.current;
+    if (!map || !overlay) return;
 
-    markersRef.current.forEach((m) => m.remove());
-    markersRef.current = [];
+    overlay.clearLayers();
 
-    const bounds = new maplibregl.LngLatBounds();
-    let hasPoints = false;
+    const boundsCoords: [number, number][] = [];
 
     rankedList.forEach(({ rank, record }) => {
       const site = allSites.find((s) => s.id === record.siteId);
       if (!site) return;
 
-      hasPoints = true;
-      bounds.extend([site.lng, site.lat]);
+      boundsCoords.push([site.lat, site.lng]);
 
-      const el = document.createElement('div');
-      el.className = 'shg-pin';
-      el.style.cursor = 'pointer';
-      el.innerHTML = `
-        <div style="display:flex;flex-direction:column;align-items:center;">
-          <div style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px 4px 5px;border-radius:999px;background:#ffffff;color:#141413;border:2px solid #141413;box-shadow:0 6px 16px rgba(0,0,0,0.22);font-weight:700;font-size:11px;white-space:nowrap;">
-            <span style="background:#B93815;color:#fff;padding:1px 6px;border-radius:999px;font-size:10px;">#${rank}</span>
-            <span>${record.siteName.length > 22 ? record.siteName.slice(0, 20) + '…' : record.siteName}</span>
-            <span style="color:#15803d;font-size:10px;">${formatWalkingDuration(record.walkingDurationSeconds)}</span>
-          </div>
-          <div style="width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:6px solid #141413;margin-top:-1px;"></div>
-        </div>
-      `;
+      if (record.routeCoordinates && record.routeCoordinates.length > 1) {
+        L.polyline(record.routeCoordinates, {
+          color: '#B93815',
+          weight: 4,
+          dashArray: '6 5',
+          opacity: 0.85,
+        }).addTo(overlay);
+      }
 
-      el.onclick = () => {
+      const icon = L.divIcon({
+        className: 'custom-heritage-marker',
+        html: `<div class="shg-pin-badge" style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px 4px 5px;border-radius:999px;background:#ffffff;color:#141413;border:2px solid #141413;box-shadow:0 6px 16px rgba(0,0,0,0.22);font-weight:700;font-size:11px;white-space:nowrap;cursor:pointer;">
+          <span style="background:#B93815;color:#fff;padding:1px 6px;border-radius:999px;font-size:10px;">#${rank}</span>
+          <span>${record.siteName.length > 22 ? record.siteName.slice(0, 20) + '…' : record.siteName}</span>
+          <span style="color:#15803d;font-size:10px;">${formatWalkingDuration(record.walkingDurationSeconds)}</span>
+        </div>`,
+        iconSize: [210, 28],
+        iconAnchor: [105, 14],
+      });
+
+      const marker = L.marker([site.lat, site.lng], { icon }).addTo(overlay);
+      marker.on('click', () => {
         onSelectSiteById(record.siteId);
-      };
-
-      const marker = new maplibregl.Marker({
-        element: el,
-        anchor: 'bottom',
-      })
-        .setLngLat([site.lng, site.lat])
-        .addTo(map);
-      markersRef.current.push(marker);
+      });
     });
 
-    if (hasPoints) {
-      map.fitBounds(bounds, {
-        padding: 56,
+    if (boundsCoords.length > 0) {
+      map.fitBounds(L.latLngBounds(boundsCoords), {
+        padding: [48, 48],
         maxZoom: 15,
-        duration: 600,
       });
     }
   }, [rankedList, allSites]);

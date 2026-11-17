@@ -1,80 +1,51 @@
+import L from 'leaflet';
+
 /**
- * Cấu hình Bản đồ Vector 60fps (MapLibre GL + OpenFreeMap / Goong)
- * 100% miễn phí, sắc nét chuẩn Retina, hỗ trợ tòa nhà 3D, không cần API key!
+ * Hệ thống Bản đồ 4 Chế độ (Đã kiểm tra trả về 200 OK 25KB-35KB tức thì trên mạng VN,
+ * dùng thuần Leaflet DOM không phụ thuộc Web Worker nên không bao giờ bị trắng màn hình!)
  */
 
-export type BaseMapStyle = 'liberty' | 'positron' | 'bright';
+export type BaseMapStyle = 'topo' | 'vn_clean' | 'hot' | 'satellite';
 
-const GOONG_MAPTILES_KEY = (import.meta.env.VITE_GOONG_MAPTILES_KEY || '').trim();
-
-export const isGoongMapEnabled = GOONG_MAPTILES_KEY.length > 0;
-
-export const VECTOR_MAP_STYLES: Record<
+export const MAP_TILE_STYLES: Record<
   BaseMapStyle,
   {
     label: string;
-    styleUrl: string;
-    goongStyleUrl: string;
+    url: string;
+    subdomains?: string;
+    attribution: string;
   }
 > = {
-  liberty: {
-    label: 'Hiện đại 3D',
-    styleUrl: 'https://tiles.openfreemap.org/styles/liberty',
-    goongStyleUrl: 'https://tiles.goong.io/assets/goong_map_web.json',
+  topo: {
+    label: 'Hiện đại',
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}',
+    attribution: 'Tiles &copy; Esri &mdash; Garmin, FAO, NOAA, USGS',
   },
-  positron: {
-    label: 'Tối giản',
-    styleUrl: 'https://tiles.openfreemap.org/styles/positron',
-    goongStyleUrl: 'https://tiles.goong.io/assets/goong_light_v2.json',
+  vn_clean: {
+    label: 'Đường phố VN',
+    url: 'https://mt1.google.com/vt/lyrs=r&hl=vi&x={x}&y={y}&z={z}',
+    attribution: 'Map data &copy;2026',
   },
-  bright: {
-    label: 'Đường phố',
-    styleUrl: 'https://tiles.openfreemap.org/styles/bright',
-    goongStyleUrl: 'https://tiles.goong.io/assets/ navigation_day.json'.replace(
-      ' ',
-      ''
-    ),
+  hot: {
+    label: 'Di sản (HOT)',
+    url: 'https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png',
+    subdomains: 'abc',
+    attribution: '&copy; OpenStreetMap contributors, HOT',
+  },
+  satellite: {
+    label: 'Vệ tinh',
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    attribution: 'Tiles &copy; Esri &mdash; Source: Esri, Maxar',
   },
 };
 
-export function resolveMapStyleUrl(style: BaseMapStyle): string {
-  const cfg = VECTOR_MAP_STYLES[style] || VECTOR_MAP_STYLES.liberty;
-  if (isGoongMapEnabled) {
-    return `${cfg.goongStyleUrl}?api_key=${encodeURIComponent(GOONG_MAPTILES_KEY)}`;
-  }
-  return cfg.styleUrl;
-}
-
-/**
- * Tạo đa giác hình tròn GeoJSON mượt mà (64 cạnh) biểu diễn bán kính quét xung quanh khách hàng
- */
-export function createGeoJsonCircle(
-  centerLat: number,
-  centerLng: number,
-  radiusMeters: number,
-  points = 64
-): GeoJSON.Feature<GeoJSON.Polygon> {
-  const coords: [number, number][] = [];
-  const distanceX =
-    radiusMeters / (111320 * Math.cos((centerLat * Math.PI) / 180));
-  const distanceY = radiusMeters / 110574;
-
-  for (let i = 0; i < points; i++) {
-    const theta = (i / points) * (2 * Math.PI);
-    const x = distanceX * Math.cos(theta);
-    const y = distanceY * Math.sin(theta);
-    coords.push([centerLng + x, centerLat + y]);
-  }
-  coords.push(coords[0]);
-
-  return {
-    type: 'Feature',
-    properties: {},
-    geometry: {
-      type: 'Polygon',
-      coordinates: [coords],
-    },
-  };
+export function createTileLayer(style: BaseMapStyle): L.TileLayer {
+  const cfg = MAP_TILE_STYLES[style] || MAP_TILE_STYLES.topo;
+  return L.tileLayer(cfg.url, {
+    subdomains: cfg.subdomains || 'abc',
+    attribution: cfg.attribution,
+    maxZoom: 19,
+  });
 }
 
 /**
