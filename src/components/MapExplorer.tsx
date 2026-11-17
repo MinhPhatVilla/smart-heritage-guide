@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import maplibregl from 'maplibre-gl';
+import * as maplibregl from 'maplibre-gl';
 import {
   Navigation,
   Footprints,
@@ -255,7 +255,7 @@ export const MapExplorer: React.FC<MapExplorerProps> = ({
       syncGeoJsonOverlays(map);
     });
 
-    map.on('click', (e) => {
+    map.on('click', (e: maplibregl.MapMouseEvent) => {
       const target = e.originalEvent.target as HTMLElement | null;
       if (target && target.closest('.shg-pin')) return;
       onMoveUserLocation(e.lngLat.lat, e.lngLat.lng);

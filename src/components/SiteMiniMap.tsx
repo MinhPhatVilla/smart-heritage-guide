@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import maplibregl from 'maplibre-gl';
+import * as maplibregl from 'maplibre-gl';
 import { HeritageSite, NearbyRestaurant } from '../types/heritage';
 import { resolveMapStyleUrl } from '../services/mapTiles';
 
