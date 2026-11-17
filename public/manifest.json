@@ -1,0 +1,10 @@
+{
+  "name": "Smart Heritage Guide - Hướng dẫn viên Di sản Thông minh",
+  "short_name": "HeritageGuide",
+  "description": "Ứng dụng hướng dẫn viên du lịch thông minh định vị GPS, thuyết minh giọng nói đa ngôn ngữ, tư liệu lịch sử, đề xuất ẩm thực và xếp hạng hành trình đi bộ.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#fafaf9",
+  "theme_color": "#991b1b",
+  "orientation": "portrait-primary"
+}
