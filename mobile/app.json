@@ -1,0 +1,55 @@
+{
+  "expo": {
+    "name": "Smart Heritage Guide",
+    "slug": "smart-heritage-guide-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "vn.ptit.smartheritageguide",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Smart Heritage Guide cần quyền truy cập vị trí GPS để xác định di tích gần bạn, tự động kích hoạt thuyết minh khi lại gần (< 150m) và dẫn đường đi bộ.",
+        "NSCameraUsageDescription": "Smart Heritage Guide cần quyền sử dụng máy ảnh để chụp ảnh lưu niệm có đóng dấu tọa độ di sản.",
+        "NSPhotoLibraryUsageDescription": "Smart Heritage Guide cần quyền truy cập thư viện ảnh để chọn và lưu ảnh hành trình di sản của bạn.",
+        "NSPhotoLibraryAddUsageDescription": "Smart Heritage Guide cần quyền lưu ảnh chụp di sản vào thư viện thiết bị."
+      }
+    },
+    "android": {
+      "package": "vn.ptit.smartheritageguide",
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "CAMERA",
+        "READ_MEDIA_IMAGES",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE"
+      ]
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single"
+    },
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Cho phép Smart Heritage Guide sử dụng vị trí GPS của bạn để tìm di tích gần nhất và dẫn đường đi bộ."
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Cho phép Smart Heritage Guide sử dụng máy ảnh để chụp ảnh lưu niệm tại di tích."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Cho phép Smart Heritage Guide truy cập thư viện ảnh để đính kèm ảnh vào nhật ký hành trình."
+        }
+      ]
+    ]
+  }
+}
