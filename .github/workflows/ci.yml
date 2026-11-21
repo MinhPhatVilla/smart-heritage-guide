@@ -1,0 +1,95 @@
+name: Smart Heritage Guide CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  standards-and-security:
+    name: Standards, Typography & Secret Guard
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Block tracked secrets, databases, and build artifacts
+        run: |
+          FORBIDDEN=$(git ls-files | grep -E '(^|/)(\.env$|\.env\.local$|local_dev\.db|node_modules/|\.venv/|dist/)' || true)
+          if [ -n "$FORBIDDEN" ]; then
+            echo "::error::Forbidden secret/artifact files tracked in Git:"
+            echo "$FORBIDDEN"
+            exit 1
+          fi
+
+      - name: Enforce unified Times New Roman font rule (no Georgia fallback)
+        run: |
+          if grep -rn "Georgia" mobile/src/ mobile/index.ts mobile/App.tsx; then
+            echo "::error::Found 'Georgia' font usage. All mobile UI must use 'Times New Roman' only to prevent Vietnamese diacritic glitches."
+            exit 1
+          fi
+          grep -q "Times New Roman" mobile/src/theme.ts
+          grep -q "Times New Roman" mobile/index.ts
+
+  backend-ci:
+    name: Backend FastAPI & AI Suite (Python 3.12)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run pytest suite (AI, Anti-Fake, Routing, Auth & Smoke Tests)
+        run: pytest -v
+
+      - name: Verify OpenAPI schema generation
+        run: |
+          python -c "from app.main import app; schema = app.openapi(); assert len(schema['paths']) >= 18, 'Missing API paths'; print('OpenAPI paths verified:', len(schema['paths']))"
+
+  mobile-ci:
+    name: Mobile Expo TypeScript, Unit Tests & Bundle
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: mobile/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run strict TypeScript check (tsc --noEmit)
+        run: npm run typecheck
+
+      - name: Run Vitest unit tests
+        run: npm run test
+
+      - name: Verify Expo Web production bundle export
+        run: npm run export:web

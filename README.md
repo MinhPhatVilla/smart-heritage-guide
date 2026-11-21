@@ -6,10 +6,14 @@ Hệ thống hướng dẫn viên di sản thông minh TP.HCM (20 di tích lịc
 
 ```text
 smart-heritage-guide/
-├── mobile/    # Ứng dụng di động React Native (Expo SDK 58 + TypeScript)
-├── backend/   # Máy chủ FastAPI + Supabase (PostgreSQL/PostGIS/pgvector/Auth/Storage) + Gemini AI
-└── docs/      # Tài liệu thiết kế kiến trúc hệ thống (.docx)
+├── .github/workflows/ci.yml   # GitHub Actions CI kiểm tra tự động (Standards, Backend, Mobile)
+├── mobile/                    # Ứng dụng di động React Native (Expo SDK 58 + TypeScript)
+├── backend/                   # Máy chủ FastAPI + Supabase (PostgreSQL/PostGIS/pgvector/Auth/Storage) + Gemini AI
+├── docs/                      # Tài liệu thiết kế kiến trúc hệ thống (.docx)
+└── CONTRIBUTING.md            # Bộ quy tắc kiến trúc, font chữ, bảo mật & làm việc nhóm (GitHub Flow)
 ```
+
+> 📌 **Dành cho thành viên trong nhóm:** Vui lòng đọc kỹ [CONTRIBUTING.md](./CONTRIBUTING.md) trước khi tạo nhánh mới hoặc mở Pull Request.
 
 ## Tính năng nổi bật
 
