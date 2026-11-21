@@ -145,7 +145,7 @@ function buildExplorerLeafletHtml(
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
-    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; font-family: "Times New Roman", Times, serif; }
     html, body, #map {
       margin: 0;
       padding: 0;
@@ -153,9 +153,9 @@ function buildExplorerLeafletHtml(
       height: 100%;
       background: #EFEDE6;
       overflow: hidden;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-family: "Times New Roman", Times, serif;
     }
-    .leaflet-container { background: #EFEDE6; }
+    .leaflet-container { background: #EFEDE6; font-family: "Times New Roman", Times, serif !important; }
     .leaflet-control-attribution {
       font-size: 9px !important;
       background: rgba(255, 255, 255, 0.78) !important;

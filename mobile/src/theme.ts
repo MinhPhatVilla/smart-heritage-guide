@@ -63,44 +63,50 @@ export const RADII = {
   pill: 999,
 } as const;
 
-export const SERIF_FONT = Platform.select({
-  ios: 'Georgia',
+export const APP_FONT = Platform.select({
+  ios: 'Times New Roman',
   android: 'serif',
-  web: 'Georgia, "Times New Roman", serif',
+  web: '"Times New Roman", Times, serif',
   default: 'serif',
 });
 
+export const SERIF_FONT = APP_FONT;
+
 export const TYPOGRAPHY: Record<string, TextStyle> = {
   brandTitle: {
-    fontFamily: SERIF_FONT,
+    fontFamily: APP_FONT,
     fontSize: 17,
     fontWeight: '700',
-    letterSpacing: -0.3,
+    letterSpacing: -0.2,
     color: COLORS.ink,
   },
   editorialTitle: {
-    fontFamily: SERIF_FONT,
+    fontFamily: APP_FONT,
     fontSize: 16,
     fontWeight: '700',
     lineHeight: 22,
     color: COLORS.ink,
   },
   sectionHeading: {
+    fontFamily: APP_FONT,
     fontSize: 13,
     fontWeight: '600',
     color: COLORS.ink,
   },
   body: {
+    fontFamily: APP_FONT,
     fontSize: 13,
     lineHeight: 19,
     color: COLORS.inkSecondary,
   },
   caption: {
+    fontFamily: APP_FONT,
     fontSize: 11,
     lineHeight: 15,
     color: COLORS.inkMuted,
   },
   badge: {
+    fontFamily: APP_FONT,
     fontSize: 10,
     fontWeight: '700',
     letterSpacing: 0.2,
