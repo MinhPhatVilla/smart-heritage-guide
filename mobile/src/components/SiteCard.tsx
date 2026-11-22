@@ -39,7 +39,6 @@ export interface SiteCardProps {
 export const SiteCard: React.FC<SiteCardProps> = memo(
   ({
     site,
-    index,
     distanceMeters,
     estimatedWalkingSeconds,
     selectedLanguage,
@@ -54,179 +53,154 @@ export const SiteCard: React.FC<SiteCardProps> = memo(
       site.nearbyRestaurants.length > 0
         ? [...site.nearbyRestaurants].sort((a, b) => b.rating - a.rating)[0]
         : null;
-    const badgeNum = index + 1 < 10 ? `0${index + 1}` : `${index + 1}`;
+
+    const statusTag = visitedRecord
+      ? `Đã đi · ${formatWalkingDuration(visitedRecord.walkingDurationSeconds)}`
+      : site.nationalSpecialMonument
+        ? 'Di tích Quốc gia Đặc biệt'
+        : site.unescoRecognized
+          ? 'Di sản UNESCO'
+          : null;
 
     return (
-      <View
-        style={[
-          styles.card,
-          isActiveRouteTarget && styles.cardActive,
-        ]}
+      <TouchableOpacity
+        activeOpacity={0.92}
+        onPress={() => onOpenDetail(site)}
+        style={[styles.card, isActiveRouteTarget && styles.cardActive]}
+        accessibilityRole="button"
+        accessibilityLabel={`Xem chi tiết ${local.name}`}
       >
-        {/* Top Row: Thumbnail + Metadata */}
-        <View style={styles.topRow}>
-          <TouchableOpacity
-            activeOpacity={0.85}
-            onPress={() => onOpenDetail(site)}
-            style={styles.thumbWrap}
-            accessibilityRole="button"
-            accessibilityLabel={`Xem chi tiết ${local.name}`}
-          >
-            <Image
-              source={{ uri: site.coverImage }}
-              style={styles.thumbImage}
-              resizeMode="cover"
-            />
-            <View style={styles.indexBadge}>
-              <Text style={styles.indexBadgeText}>{badgeNum}</Text>
-            </View>
-            {visitedRecord && (
-              <View style={styles.visitedThumbBadge}>
-                <Check size={10} color={COLORS.white} strokeWidth={3} />
-              </View>
-            )}
-          </TouchableOpacity>
+        {/* Clean Editorial Cover Photo */}
+        <View style={styles.heroWrap}>
+          <Image
+            source={{ uri: site.coverImage }}
+            style={styles.heroImage}
+            resizeMode="cover"
+          />
 
-          <View style={styles.contentCol}>
-            {/* District + Era & Status Tag */}
-            <View style={styles.metaTopRow}>
-              <Text style={styles.districtText} numberOfLines={1}>
-                {site.city} · {local.historicalEra}
-              </Text>
-            </View>
-
-            {/* Status badges row */}
-            {(site.nationalSpecialMonument || site.unescoRecognized || visitedRecord) && (
-              <View style={styles.badgeRow}>
-                {site.nationalSpecialMonument && (
-                  <View style={styles.specialBadge}>
-                    <Text style={styles.specialBadgeText}>
-                      Di tích Quốc gia Đặc biệt
-                    </Text>
-                  </View>
-                )}
-                {!site.nationalSpecialMonument && site.unescoRecognized && (
-                  <View style={styles.specialBadge}>
-                    <Text style={styles.specialBadgeText}>UNESCO</Text>
-                  </View>
-                )}
+          {/* Top Overlay: At most 1 status pill (left) + 1 rating pill (right) */}
+          <View style={styles.heroTopOverlay}>
+            {statusTag ? (
+              <View
+                style={[
+                  styles.statusPill,
+                  visitedRecord && styles.statusPillVisited,
+                ]}
+              >
                 {visitedRecord && (
-                  <View style={styles.visitedPill}>
-                    <Check size={10} color={COLORS.visited} strokeWidth={2.5} />
-                    <Text style={styles.visitedPillText}>
-                      Đã đi {formatWalkingDuration(visitedRecord.walkingDurationSeconds)}
-                    </Text>
-                  </View>
+                  <Check size={11} color={COLORS.white} strokeWidth={3} />
                 )}
-              </View>
-            )}
-
-            {/* Title */}
-            <TouchableOpacity
-              activeOpacity={0.75}
-              onPress={() => onOpenDetail(site)}
-            >
-              <Text style={styles.title} numberOfLines={2}>
-                {local.name}
-              </Text>
-            </TouchableOpacity>
-
-            {/* Metrics Row: Walking time · Distance · Rating */}
-            <View style={styles.metricsRow}>
-              <View style={styles.metricItem}>
-                <Footprints size={13} color={COLORS.accent} />
-                <Text style={styles.metricHighlight}>
-                  {formatWalkingDuration(estimatedWalkingSeconds)}
+                <Text style={styles.statusPillText} numberOfLines={1}>
+                  {statusTag}
                 </Text>
               </View>
-              <Text style={styles.dot}>·</Text>
-              <Text style={styles.metricText}>
-                {formatDistance(distanceMeters)}
+            ) : (
+              <View />
+            )}
+
+            <View style={styles.ratingPill}>
+              <Star
+                size={11}
+                color={COLORS.amberStar}
+                fill={COLORS.amberStar}
+              />
+              <Text style={styles.ratingPillText}>
+                {site.rating.toFixed(1)}
               </Text>
-              <Text style={styles.dot}>·</Text>
-              <View style={styles.metricItem}>
-                <Star
-                  size={12}
-                  color={COLORS.amberStar}
-                  fill={COLORS.amberStar}
-                />
-                <Text style={styles.ratingText}>{site.rating.toFixed(1)}</Text>
-              </View>
             </View>
           </View>
         </View>
 
-        {/* Short Summary Snippet */}
-        <Text style={styles.summary} numberOfLines={2}>
-          {local.shortSummary}
-        </Text>
-
-        {/* Top Nearby Restaurant Recommendation */}
-        {bestRestaurant && (
-          <TouchableOpacity
-            activeOpacity={0.8}
-            onPress={() => onOpenDetail(site)}
-            style={styles.foodBanner}
-          >
-            <View style={styles.foodLeft}>
-              <Utensils size={12} color={COLORS.inkMuted} />
-              <Text style={styles.foodLabel} numberOfLines={1}>
-                Gần đó:{' '}
-                <Text style={styles.foodName}>{bestRestaurant.name}</Text>
-              </Text>
-            </View>
-            <View style={styles.foodRatingWrap}>
-              <Star
-                size={11}
-                color={COLORS.amber}
-                fill={COLORS.amberStar}
-              />
-              <Text style={styles.foodRating}>
-                {bestRestaurant.rating.toFixed(1)}
-              </Text>
-            </View>
-          </TouchableOpacity>
-        )}
-
-        {/* Action Buttons Row */}
-        <View style={styles.actionsRow}>
-          <TouchableOpacity
-            activeOpacity={0.85}
-            onPress={() => onOpenDetail(site)}
-            style={styles.primaryBtn}
-            accessibilityRole="button"
-          >
-            <Volume2 size={14} color={COLORS.white} />
-            <Text style={styles.primaryBtnText} numberOfLines={1}>
-              Thuyết minh & Tư liệu
+        {/* Card Body: Generous whitespace, clear reading order */}
+        <View style={styles.body}>
+          {/* Line 1: Orientation (District · Walking time · Distance) */}
+          <View style={styles.metaRow}>
+            <Text style={styles.cityText} numberOfLines={1}>
+              {site.city}
             </Text>
-          </TouchableOpacity>
+            <Text style={styles.dot}>·</Text>
+            <View style={styles.walkInline}>
+              <Footprints size={12} color={COLORS.accent} />
+              <Text style={styles.walkText}>
+                {formatWalkingDuration(estimatedWalkingSeconds)}
+              </Text>
+            </View>
+            <Text style={styles.dot}>·</Text>
+            <Text style={styles.distanceText}>
+              {formatDistance(distanceMeters)}
+            </Text>
+          </View>
 
-          <TouchableOpacity
-            activeOpacity={0.8}
-            onPress={() => onStartNavigation(site)}
-            style={[
-              styles.secondaryBtn,
-              isActiveRouteTarget && styles.secondaryBtnActive,
-            ]}
-            accessibilityRole="button"
-          >
-            <Navigation size={14} color={COLORS.accent} />
-            <Text style={styles.secondaryBtnText}>Dẫn đường</Text>
-          </TouchableOpacity>
+          {/* Line 2: Editorial Title */}
+          <Text style={styles.title} numberOfLines={2}>
+            {local.name}
+          </Text>
 
-          <TouchableOpacity
-            activeOpacity={0.8}
-            onPress={() => onOpenPhotoCapture(site)}
-            style={styles.cameraBtn}
-            accessibilityRole="button"
-            accessibilityLabel="Lưu ảnh tại di tích"
-          >
-            <Camera size={14} color={COLORS.inkSecondary} />
-            <Text style={styles.cameraBtnText}>Lưu ảnh</Text>
-          </TouchableOpacity>
+          {/* Line 3: Concise 1-line summary */}
+          <Text style={styles.summary} numberOfLines={2}>
+            {local.shortSummary}
+          </Text>
+
+          {/* Subtle inline food hint (no heavy box border) */}
+          {bestRestaurant && (
+            <View style={styles.foodLine}>
+              <Utensils size={12} color={COLORS.inkMuted} />
+              <Text style={styles.foodText} numberOfLines={1}>
+                Quán ngon gần đó:{' '}
+                <Text style={styles.foodName}>{bestRestaurant.name}</Text> (
+                {bestRestaurant.rating.toFixed(1)}★)
+              </Text>
+            </View>
+          )}
+
+          {/* Clean Action Bar: 1 Primary CTA + 2 Compact Icon Buttons */}
+          <View style={styles.actionRow}>
+            <TouchableOpacity
+              activeOpacity={0.85}
+              onPress={() => onOpenDetail(site)}
+              style={styles.primaryBtn}
+              accessibilityRole="button"
+            >
+              <Volume2 size={14} color={COLORS.white} />
+              <Text style={styles.primaryBtnText}>Thuyết minh & Tư liệu</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={() => onStartNavigation(site)}
+              style={[
+                styles.iconActionBtn,
+                isActiveRouteTarget && styles.iconActionBtnActive,
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel={`Dẫn đường tới ${local.name}`}
+            >
+              <Navigation
+                size={15}
+                color={isActiveRouteTarget ? COLORS.white : COLORS.accent}
+              />
+              <Text
+                style={[
+                  styles.iconActionLabel,
+                  isActiveRouteTarget && styles.iconActionLabelActive,
+                ]}
+              >
+                Đi tới
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={() => onOpenPhotoCapture(site)}
+              style={styles.iconOnlyBtn}
+              accessibilityRole="button"
+              accessibilityLabel={`Chụp ảnh tại ${local.name}`}
+            >
+              <Camera size={16} color={COLORS.inkSecondary} />
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
+      </TouchableOpacity>
     );
   }
 );
@@ -236,266 +210,202 @@ SiteCard.displayName = 'SiteCard';
 const styles = StyleSheet.create({
   card: {
     backgroundColor: COLORS.surface,
-    borderRadius: RADII.xl,
+    borderRadius: 18,
     borderWidth: 1,
     borderColor: COLORS.border,
-    padding: SPACING.md + 2,
     marginHorizontal: SPACING.lg,
-    marginBottom: SPACING.md,
+    marginBottom: SPACING.lg,
+    overflow: 'hidden',
     ...SHADOWS.card,
   },
   cardActive: {
     borderColor: COLORS.accent,
     borderWidth: 1.5,
   },
-  topRow: {
-    flexDirection: 'row',
-    gap: SPACING.md,
-  },
-  thumbWrap: {
-    width: 88,
-    height: 88,
-    borderRadius: RADII.lg,
-    overflow: 'hidden',
+  heroWrap: {
+    width: '100%',
+    height: 172,
     backgroundColor: COLORS.surfaceMuted,
-    borderWidth: 1,
-    borderColor: COLORS.border,
     position: 'relative',
   },
-  thumbImage: {
+  heroImage: {
     width: '100%',
     height: '100%',
   },
-  indexBadge: {
+  heroTopOverlay: {
     position: 'absolute',
-    top: 6,
-    left: 6,
-    backgroundColor: COLORS.overlayDark,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: RADII.xs,
-  },
-  indexBadgeText: {
-    color: COLORS.white,
-    fontSize: 10,
-    fontWeight: '700',
-    fontVariant: ['tabular-nums'],
-  },
-  visitedThumbBadge: {
-    position: 'absolute',
-    bottom: 6,
-    right: 6,
-    width: 18,
-    height: 18,
-    borderRadius: RADII.pill,
-    backgroundColor: COLORS.visitedDot,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1.5,
-    borderColor: COLORS.white,
-  },
-  contentCol: {
-    flex: 1,
-    minWidth: 0,
-  },
-  metaTopRow: {
+    top: 12,
+    left: 12,
+    right: 12,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    gap: 8,
   },
-  districtText: {
-    fontSize: 11,
-    fontWeight: '500',
-    color: COLORS.inkSecondary,
-    flex: 1,
-  },
-  badgeRow: {
+  statusPill: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     alignItems: 'center',
-    gap: 5,
-    marginTop: 4,
+    gap: 4,
+    backgroundColor: 'rgba(20, 20, 19, 0.78)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: RADII.pill,
+    maxWidth: '72%',
   },
-  specialBadge: {
-    backgroundColor: COLORS.accentSoft,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: RADII.xs,
+  statusPillVisited: {
+    backgroundColor: 'rgba(4, 120, 87, 0.90)',
   },
-  specialBadgeText: {
-    fontSize: 10,
+  statusPillText: {
+    fontFamily: SERIF_FONT,
+    color: COLORS.white,
+    fontSize: 11,
     fontWeight: '700',
-    color: COLORS.accent,
   },
-  visitedPill: {
+  ratingPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.94)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: RADII.pill,
+  },
+  ratingPillText: {
+    fontFamily: SERIF_FONT,
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: COLORS.ink,
+    fontVariant: ['tabular-nums'],
+  },
+  body: {
+    padding: 15,
+  },
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 5,
+  },
+  cityText: {
+    fontFamily: SERIF_FONT,
+    fontSize: 12,
+    fontWeight: '600',
+    color: COLORS.inkMuted,
+  },
+  dot: {
+    fontFamily: SERIF_FONT,
+    fontSize: 12,
+    color: COLORS.borderStrong,
+  },
+  walkInline: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
-    backgroundColor: COLORS.visitedBg,
-    borderWidth: 1,
-    borderColor: COLORS.visitedBorder,
-    paddingHorizontal: 6,
-    paddingVertical: 1.5,
-    borderRadius: RADII.xs,
   },
-  visitedPillText: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: COLORS.visited,
+  walkText: {
+    fontFamily: SERIF_FONT,
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.ink,
+    fontVariant: ['tabular-nums'],
+  },
+  distanceText: {
+    fontFamily: SERIF_FONT,
+    fontSize: 12,
+    color: COLORS.inkSecondary,
     fontVariant: ['tabular-nums'],
   },
   title: {
     fontFamily: SERIF_FONT,
-    fontSize: 15.5,
+    fontSize: 18,
     fontWeight: '700',
-    lineHeight: 21,
+    lineHeight: 24,
     color: COLORS.ink,
-    marginTop: 4,
-  },
-  metricsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: 6,
-    marginTop: 6,
-  },
-  metricItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-  },
-  metricHighlight: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: COLORS.ink,
-    fontVariant: ['tabular-nums'],
-  },
-  metricText: {
-    fontSize: 12,
-    color: COLORS.inkSecondary,
-    fontVariant: ['tabular-nums'],
-  },
-  ratingText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: COLORS.amber,
-    fontVariant: ['tabular-nums'],
-  },
-  dot: {
-    fontSize: 12,
-    color: COLORS.inkMuted,
+    marginTop: 5,
   },
   summary: {
-    fontSize: 12.5,
-    lineHeight: 18,
+    fontFamily: SERIF_FONT,
+    fontSize: 13.5,
+    lineHeight: 19,
     color: COLORS.inkSecondary,
-    marginTop: SPACING.sm + 2,
+    marginTop: 6,
   },
-  foodBanner: {
-    marginTop: SPACING.sm + 2,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: SPACING.sm,
-    backgroundColor: COLORS.bg,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: RADII.md,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-  },
-  foodLeft: {
+  foodLine: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    flex: 1,
-    minWidth: 0,
+    marginTop: 10,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.surfaceMuted,
   },
-  foodLabel: {
-    fontSize: 11.5,
-    color: COLORS.inkSecondary,
+  foodText: {
+    fontFamily: SERIF_FONT,
+    fontSize: 12,
+    color: COLORS.inkMuted,
     flex: 1,
   },
   foodName: {
-    fontWeight: '600',
-    color: COLORS.ink,
-  },
-  foodRatingWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-    backgroundColor: COLORS.amberBg,
-    borderWidth: 1,
-    borderColor: COLORS.amberBorder,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: RADII.sm,
-  },
-  foodRating: {
-    fontSize: 11,
     fontWeight: '700',
-    color: COLORS.amber,
-    fontVariant: ['tabular-nums'],
+    color: COLORS.inkSecondary,
   },
-  actionsRow: {
-    marginTop: SPACING.md,
+  actionRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 7,
+    gap: 8,
+    marginTop: 13,
   },
   primaryBtn: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
+    gap: 7,
     backgroundColor: COLORS.ink,
-    paddingVertical: 9,
-    paddingHorizontal: 10,
-    borderRadius: RADII.md,
+    height: 40,
+    borderRadius: RADII.lg,
+    paddingHorizontal: 12,
   },
   primaryBtnText: {
+    fontFamily: SERIF_FONT,
     color: COLORS.white,
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: 13,
+    fontWeight: '700',
   },
-  secondaryBtn: {
+  iconActionBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 5,
-    backgroundColor: COLORS.surface,
+    backgroundColor: COLORS.bg,
     borderWidth: 1,
     borderColor: COLORS.border,
-    paddingVertical: 9,
-    paddingHorizontal: 11,
-    borderRadius: RADII.md,
+    height: 40,
+    paddingHorizontal: 13,
+    borderRadius: RADII.lg,
   },
-  secondaryBtnActive: {
+  iconActionBtnActive: {
+    backgroundColor: COLORS.accent,
     borderColor: COLORS.accent,
-    backgroundColor: COLORS.accentSoft,
   },
-  secondaryBtnText: {
+  iconActionLabel: {
+    fontFamily: SERIF_FONT,
+    fontSize: 12.5,
+    fontWeight: '700',
     color: COLORS.ink,
-    fontSize: 12,
-    fontWeight: '600',
   },
-  cameraBtn: {
-    flexDirection: 'row',
+  iconActionLabelActive: {
+    color: COLORS.white,
+  },
+  iconOnlyBtn: {
+    width: 40,
+    height: 40,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 4,
-    backgroundColor: COLORS.surface,
+    backgroundColor: COLORS.bg,
     borderWidth: 1,
     borderColor: COLORS.border,
-    paddingVertical: 9,
-    paddingHorizontal: 10,
-    borderRadius: RADII.md,
-  },
-  cameraBtnText: {
-    color: COLORS.inkSecondary,
-    fontSize: 12,
-    fontWeight: '600',
+    borderRadius: RADII.lg,
   },
 });
 

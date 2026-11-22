@@ -337,30 +337,49 @@ function buildExplorerLeafletHtml(
                 ? '#047857'
                 : '#141413';
             var badgeBg = borderColor;
-            var shortLabel = site.label.length > 18 ? site.label.slice(0, 16) + '…' : site.label;
             var badgeText = site.isVisited ? '✓' : String(site.index);
+            var siteIcon;
 
-            var iconHtml = '<div class="shg-pin-badge" style="display:inline-flex;flex-direction:column;align-items:center;user-select:none;cursor:pointer;">'
-              + '<div style="display:inline-flex;align-items:center;gap:5px;padding:3px 8px 3px 3px;border-radius:999px;background:#FFFFFF;border:2px solid ' + borderColor + ';box-shadow:0 6px 16px rgba(20,20,19,0.22);">'
-              + '<div style="width:22px;height:22px;border-radius:999px;overflow:hidden;flex-shrink:0;background:#F3F1EC;">'
-              + '<img src="' + escapeHtml(site.coverImage) + '" alt="" style="width:22px;height:22px;object-fit:cover;display:block;" />'
-              + '</div>'
-              + '<span style="font-size:11px;font-weight:700;color:#141413;white-space:nowrap;letter-spacing:-0.01em;">'
-              + escapeHtml(shortLabel)
-              + '</span>'
-              + '<span style="display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 4px;border-radius:999px;background:' + badgeBg + ';color:#FFFFFF;font-size:9.5px;font-weight:700;">'
-              + badgeText
-              + '</span>'
-              + '</div>'
-              + '<div style="width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:6px solid ' + borderColor + ';margin-top:-1px;"></div>'
-              + '</div>';
+            if (site.isSelected) {
+              var shortLabel = site.label.length > 18 ? site.label.slice(0, 16) + '…' : site.label;
+              var selectedHtml = '<div class="shg-pin-badge" style="display:inline-flex;flex-direction:column;align-items:center;user-select:none;cursor:pointer;">'
+                + '<div style="display:inline-flex;align-items:center;gap:6px;padding:3px 9px 3px 3px;border-radius:999px;background:#FFFFFF;border:2px solid #B93815;box-shadow:0 8px 20px rgba(20,20,19,0.26);">'
+                + '<div style="width:24px;height:24px;border-radius:999px;overflow:hidden;flex-shrink:0;background:#F3F1EC;">'
+                + '<img src="' + escapeHtml(site.coverImage) + '" alt="" style="width:24px;height:24px;object-fit:cover;display:block;" />'
+                + '</div>'
+                + '<span style="font-size:11.5px;font-weight:700;color:#141413;white-space:nowrap;letter-spacing:-0.01em;">'
+                + escapeHtml(shortLabel)
+                + '</span>'
+                + '<span style="display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 4px;border-radius:999px;background:#B93815;color:#FFFFFF;font-size:9.5px;font-weight:700;">'
+                + badgeText
+                + '</span>'
+                + '</div>'
+                + '<div style="width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:6px solid #B93815;margin-top:-1px;"></div>'
+                + '</div>';
 
-            var siteIcon = L.divIcon({
-              className: 'custom-heritage-marker',
-              html: iconHtml,
-              iconSize: [184, 36],
-              iconAnchor: [92, 36]
-            });
+              siteIcon = L.divIcon({
+                className: 'custom-heritage-marker',
+                html: selectedHtml,
+                iconSize: [188, 40],
+                iconAnchor: [94, 40]
+              });
+            } else {
+              var compactHtml = '<div class="shg-pin-badge" style="position:relative;width:36px;height:36px;border-radius:999px;background:#FFFFFF;border:2.5px solid ' + (site.isVisited ? '#047857' : '#FFFFFF') + ';box-shadow:0 4px 12px rgba(20,20,19,0.26);cursor:pointer;user-select:none;">'
+                + '<div style="width:100%;height:100%;border-radius:999px;overflow:hidden;background:#F3F1EC;">'
+                + '<img src="' + escapeHtml(site.coverImage) + '" alt="" style="width:100%;height:100%;object-fit:cover;display:block;" />'
+                + '</div>'
+                + '<span style="position:absolute;top:-4px;right:-4px;display:inline-flex;align-items:center;justify-content:center;min-width:16px;height:16px;padding:0 3px;border-radius:999px;background:' + badgeBg + ';color:#FFFFFF;border:1.5px solid #FFFFFF;font-size:9px;font-weight:700;line-height:1;">'
+                + badgeText
+                + '</span>'
+                + '</div>';
+
+              siteIcon = L.divIcon({
+                className: 'custom-heritage-marker',
+                html: compactHtml,
+                iconSize: [36, 36],
+                iconAnchor: [18, 18]
+              });
+            }
 
             var marker = L.marker([site.lat, site.lng], {
               icon: siteIcon,
@@ -566,6 +585,7 @@ export const MapExplorer: React.FC<MapExplorerProps> = ({
   );
   const [showRestaurantsOnMap, setShowRestaurantsOnMap] =
     useState<boolean>(false);
+  const [showStyleMenu, setShowStyleMenu] = useState<boolean>(false);
   const [focusedSite, setFocusedSite] = useState<HeritageSite | null>(null);
   const [focusedRestaurant, setFocusedRestaurant] = useState<{
     restaurant: NearbyRestaurant;
@@ -739,6 +759,7 @@ export const MapExplorer: React.FC<MapExplorerProps> = ({
           break;
         }
         case 'MAP_CLICK':
+          setShowStyleMenu(false);
           setFocusedSite(null);
           setFocusedRestaurant(null);
           onMoveUserLocation(msg.lat, msg.lng);
@@ -858,88 +879,75 @@ export const MapExplorer: React.FC<MapExplorerProps> = ({
         )}
       </View>
 
-      {/* Top Controls Overlay */}
-      <View style={styles.topOverlay} pointerEvents="box-none">
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.topBarContent}
-          style={styles.topBarScroll}
-        >
-          {/* Map Style Switcher */}
-          <View style={styles.styleSwitcherGroup}>
-            <View style={styles.layersIconWrap}>
-              <Layers size={13} color={COLORS.inkMuted} />
-            </View>
+      {/* Minimal Top-Right Floating Controls (Layers + Food) */}
+      <View style={styles.topRightControls} pointerEvents="box-none">
+        <View style={styles.topRightIconColumn}>
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={() => setShowStyleMenu((prev) => !prev)}
+            style={[
+              styles.roundControlBtn,
+              showStyleMenu && styles.roundControlBtnActive,
+            ]}
+            accessibilityLabel="Chọn nền bản đồ"
+          >
+            <Layers
+              size={18}
+              color={showStyleMenu ? COLORS.white : COLORS.ink}
+            />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={() => setShowRestaurantsOnMap((prev) => !prev)}
+            style={[
+              styles.roundControlBtn,
+              showRestaurantsOnMap && styles.roundControlBtnActive,
+            ]}
+            accessibilityLabel="Hiện hoặc ẩn quán ăn quanh di tích"
+          >
+            <Utensils
+              size={17}
+              color={showRestaurantsOnMap ? COLORS.white : COLORS.ink}
+            />
+          </TouchableOpacity>
+        </View>
+
+        {showStyleMenu && (
+          <View style={styles.stylePopover}>
+            <Text style={styles.stylePopoverTitle}>Nền bản đồ</Text>
             {availableStyles.map((tile) => {
               const active = mapStyle === tile.id;
               return (
                 <TouchableOpacity
                   key={tile.id}
                   activeOpacity={0.8}
-                  onPress={() => setMapStyle(tile.id)}
+                  onPress={() => {
+                    setMapStyle(tile.id);
+                    setShowStyleMenu(false);
+                  }}
                   style={[
-                    styles.styleChip,
-                    active && styles.styleChipActive,
+                    styles.styleOptionRow,
+                    active && styles.styleOptionRowActive,
                   ]}
                 >
                   <Text
                     style={[
-                      styles.styleChipText,
-                      active && styles.styleChipTextActive,
+                      styles.styleOptionText,
+                      active && styles.styleOptionTextActive,
                     ]}
                   >
                     {tile.label}
                   </Text>
+                  {active && <Check size={14} color={COLORS.accent} />}
                 </TouchableOpacity>
               );
             })}
           </View>
-
-          {/* Toggle Nearby Food on Map */}
-          <TouchableOpacity
-            activeOpacity={0.85}
-            onPress={() => setShowRestaurantsOnMap((prev) => !prev)}
-            style={[
-              styles.foodToggleBtn,
-              showRestaurantsOnMap && styles.foodToggleBtnActive,
-            ]}
-          >
-            <Utensils
-              size={13}
-              color={showRestaurantsOnMap ? COLORS.white : COLORS.inkSecondary}
-            />
-            <Text
-              style={[
-                styles.foodToggleText,
-                showRestaurantsOnMap && styles.foodToggleTextActive,
-              ]}
-            >
-              Hiện quán ăn
-            </Text>
-          </TouchableOpacity>
-        </ScrollView>
-
-        {/* Compact Legend Row */}
-        <View style={styles.legendRow} pointerEvents="box-none">
-          <View style={styles.legendPill}>
-            <View style={styles.legendItem}>
-              <View style={[styles.legendDot, { backgroundColor: COLORS.gpsBlue }]} />
-              <Text style={styles.legendText}>Bạn</Text>
-            </View>
-            <View style={styles.legendItem}>
-              <View style={[styles.legendDot, { backgroundColor: COLORS.ink }]} />
-              <Text style={styles.legendText}>Di tích</Text>
-            </View>
-            <View style={styles.legendItem}>
-              <View style={[styles.legendDot, { backgroundColor: COLORS.visited }]} />
-              <Text style={styles.legendText}>Đã đi</Text>
-            </View>
-          </View>
-        </View>
+        )}
       </View>
 
-      {/* Floating Right Controls (Fit All + My GPS) */}
+      {/* Floating Bottom-Right Icon Controls (Fit All + My GPS) */}
       <View
         style={[
           styles.rightControls,
@@ -952,23 +960,19 @@ export const MapExplorer: React.FC<MapExplorerProps> = ({
         <TouchableOpacity
           activeOpacity={0.85}
           onPress={handleFitAllMarkers}
-          style={styles.fabButton}
-          accessibilityLabel="Toàn cảnh"
+          style={styles.roundControlBtn}
+          accessibilityLabel="Xem toàn cảnh các di tích"
         >
-          <Maximize2 size={17} color={COLORS.ink} />
-          <Text style={styles.fabLabel}>Toàn cảnh</Text>
+          <Maximize2 size={18} color={COLORS.ink} />
         </TouchableOpacity>
 
         <TouchableOpacity
           activeOpacity={0.85}
           onPress={handleCenterOnGps}
-          style={styles.fabButton}
-          accessibilityLabel="GPS của tôi"
+          style={styles.roundControlBtn}
+          accessibilityLabel="Về vị trí GPS của tôi"
         >
-          <LocateFixed size={17} color={COLORS.gpsBlue} />
-          <Text style={[styles.fabLabel, { color: COLORS.gpsBlue }]}>
-            GPS
-          </Text>
+          <LocateFixed size={19} color={COLORS.gpsBlue} />
         </TouchableOpacity>
       </View>
 
@@ -1279,108 +1283,71 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#EFEDE6',
   },
-  topOverlay: {
+  topRightControls: {
     position: 'absolute',
-    top: SPACING.sm,
-    left: 0,
-    right: 0,
-    zIndex: 10,
-  },
-  topBarScroll: {
-    flexGrow: 0,
-  },
-  topBarContent: {
-    paddingHorizontal: SPACING.md,
+    top: SPACING.md,
+    right: SPACING.md,
+    zIndex: 15,
+    alignItems: 'flex-end',
     gap: SPACING.sm,
-    alignItems: 'center',
   },
-  styleSwitcherGroup: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  topRightIconColumn: {
+    gap: SPACING.sm,
+    alignItems: 'flex-end',
+  },
+  roundControlBtn: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     backgroundColor: 'rgba(255, 255, 255, 0.96)',
-    borderRadius: RADII.lg,
     borderWidth: 1,
     borderColor: COLORS.border,
-    padding: 3,
-    ...SHADOWS.card,
-  },
-  layersIconWrap: {
-    paddingHorizontal: 6,
+    alignItems: 'center',
     justifyContent: 'center',
-    alignItems: 'center',
+    ...SHADOWS.floating,
   },
-  styleChip: {
-    paddingHorizontal: 9,
-    paddingVertical: 5,
-    borderRadius: RADII.md - 2,
-  },
-  styleChipActive: {
-    backgroundColor: COLORS.ink,
-  },
-  styleChipText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: COLORS.inkSecondary,
-  },
-  styleChipTextActive: {
-    color: COLORS.white,
-  },
-  foodToggleBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    backgroundColor: 'rgba(255, 255, 255, 0.96)',
-    borderRadius: RADII.lg,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-    ...SHADOWS.card,
-  },
-  foodToggleBtnActive: {
+  roundControlBtnActive: {
     backgroundColor: COLORS.ink,
     borderColor: COLORS.ink,
   },
-  foodToggleText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: COLORS.inkSecondary,
-  },
-  foodToggleTextActive: {
-    color: COLORS.white,
-  },
-  legendRow: {
-    marginTop: 6,
-    paddingHorizontal: SPACING.md,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  legendPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    backgroundColor: 'rgba(255, 255, 255, 0.92)',
-    borderRadius: RADII.pill,
+  stylePopover: {
+    width: 156,
+    backgroundColor: 'rgba(255, 255, 255, 0.98)',
+    borderRadius: RADII.lg,
     borderWidth: 1,
     borderColor: COLORS.border,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    ...SHADOWS.card,
+    padding: SPACING.xs + 2,
+    gap: 2,
+    ...SHADOWS.floating,
   },
-  legendItem: {
+  stylePopoverTitle: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+    color: COLORS.inkMuted,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: 4,
+  },
+  styleOptionRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    justifyContent: 'space-between',
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: 8,
+    borderRadius: RADII.md,
   },
-  legendDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+  styleOptionRowActive: {
+    backgroundColor: COLORS.accentSoft,
   },
-  legendText: {
-    fontSize: 10.5,
+  styleOptionText: {
+    fontSize: 12.5,
     fontWeight: '600',
     color: COLORS.inkSecondary,
+  },
+  styleOptionTextActive: {
+    color: COLORS.accent,
+    fontWeight: '700',
   },
   rightControls: {
     position: 'absolute',
@@ -1392,23 +1359,6 @@ const styles = StyleSheet.create({
   },
   rightControlsRaised: {
     bottom: 215,
-  },
-  fabButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    backgroundColor: 'rgba(255, 255, 255, 0.96)',
-    borderRadius: RADII.lg,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    paddingHorizontal: 10,
-    paddingVertical: 9,
-    ...SHADOWS.floating,
-  },
-  fabLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: COLORS.ink,
   },
   loadingWrap: {
     position: 'absolute',

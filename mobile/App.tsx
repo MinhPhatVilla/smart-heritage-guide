@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   FlatList,
+  Modal,
   Platform,
   ScrollView,
   StyleSheet,
@@ -18,13 +19,16 @@ import {
 } from 'react-native-safe-area-context';
 import {
   Check,
+  ChevronDown,
   Compass,
+  Globe,
   LocateFixed,
   Map as MapIcon,
   MessageSquareText,
   Navigation,
   Route,
   Search,
+  SlidersHorizontal,
   Sparkles,
   Trophy,
   User,
@@ -97,12 +101,12 @@ const CATEGORY_FILTERS: Array<{
   id: 'all' | HeritageCategory;
   label: string;
 }> = [
-  { id: 'all', label: `Tất cả (${HERITAGE_SITES.length})` },
-  { id: 'monument', label: 'Di tích & Biểu tượng' },
+  { id: 'all', label: 'Tất cả' },
+  { id: 'monument', label: 'Di tích' },
   { id: 'museum', label: 'Bảo tàng' },
-  { id: 'temple', label: 'Đền Chùa & Hội quán' },
-  { id: 'imperial', label: 'Dinh thự & Lăng miếu' },
-  { id: 'ancient_town', label: 'Chợ cổ & Sinh quyển' },
+  { id: 'temple', label: 'Đền Chùa' },
+  { id: 'imperial', label: 'Dinh thự' },
+  { id: 'ancient_town', label: 'Chợ & Sinh quyển' },
 ];
 
 function triggerHaptic(type: 'light' | 'success' | 'selection'): void {
@@ -123,14 +127,11 @@ function triggerHaptic(type: 'light' | 'success' | 'selection'): void {
 function SmartHeritageAppContent() {
   const insets = useSafeAreaInsets();
 
-  // Default: District 1 Center, Ho Chi Minh City (all 20 heritage sites)
   const [userLocation, setUserLocation] = useState<[number, number]>([
     10.7775, 106.699,
   ]);
   const [activeCityId, setActiveCityId] = useState<string>('ALL_HCM');
-  const [gpsStatus, setGpsStatus] = useState<string>(
-    'Trung tâm Quận 1 · TP.HCM'
-  );
+  const [gpsStatus, setGpsStatus] = useState<string>('Trung tâm Quận 1');
   const [isLocatingGps, setIsLocatingGps] = useState<boolean>(false);
 
   const [selectedLanguage, setSelectedLanguage] =
@@ -141,6 +142,10 @@ function SmartHeritageAppContent() {
   >('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [activeTab, setActiveTab] = useState<MainTab>('explore');
+
+  // Compact bottom sheets (replaces cluttered stacked toolbars)
+  const [filterSheetVisible, setFilterSheetVisible] = useState<boolean>(false);
+  const [langSheetVisible, setLangSheetVisible] = useState<boolean>(false);
 
   const [selectedSite, setSelectedSite] = useState<HeritageSite | null>(null);
   const [quickAudioSite, setQuickAudioSite] = useState<HeritageSite | null>(
@@ -162,7 +167,6 @@ function SmartHeritageAppContent() {
     INITIAL_SAMPLE_JOURNEYS
   );
 
-  // Backend Auth & Smart AI modals state (Offline-first Guest by default)
   const [authState, setAuthState] = useState<AuthSessionState>({
     isAuthenticated: false,
     isGuest: true,
@@ -180,7 +184,6 @@ function SmartHeritageAppContent() {
   const lastAutoTriggeredSiteIdRef = useRef<string | null>(null);
   const usedSimulatedWalkRef = useRef<boolean>(false);
 
-  // Load persisted journeys & optional auth session from AsyncStorage on mount
   useEffect(() => {
     let mounted = true;
     void loadJourneys().then((loaded) => {
@@ -215,7 +218,6 @@ function SmartHeritageAppContent() {
     };
   }, []);
 
-  // Clean up walk simulation, GPS watch, and TTS on unmount
   useEffect(() => {
     return () => {
       if (walkTimerRef.current) {
@@ -230,7 +232,6 @@ function SmartHeritageAppContent() {
     };
   }, []);
 
-  // Active walking navigation timer
   useEffect(() => {
     if (!activeRoute) return;
     const interval = setInterval(() => {
@@ -239,7 +240,6 @@ function SmartHeritageAppContent() {
     return () => clearInterval(interval);
   }, [activeRoute]);
 
-  // Toast auto-dismiss
   useEffect(() => {
     if (!toastMessage) return;
     const timeout = setTimeout(() => setToastMessage(null), 3800);
@@ -261,7 +261,6 @@ function SmartHeritageAppContent() {
     }
   }, []);
 
-  // Compute distance & walking time metrics for all sites
   const rawNearbySites = useMemo(
     () =>
       getNearbySitesWithMetrics(
@@ -273,7 +272,6 @@ function SmartHeritageAppContent() {
     [userLocation, searchRadiusMeters]
   );
 
-  // Full unfiltered list (for modal distance lookups regardless of radius filter)
   const allSitesWithMetrics = useMemo(
     () =>
       getNearbySitesWithMetrics(
@@ -309,7 +307,6 @@ function SmartHeritageAppContent() {
 
   const closestSiteItem = allSitesWithMetrics[0];
 
-  // Automatic proximity < 150m audio guide trigger
   useEffect(() => {
     if (!closestSiteItem) return;
 
@@ -340,12 +337,11 @@ function SmartHeritageAppContent() {
     return map;
   }, [visitedRecords]);
 
-  // Real GPS detection + live watch via expo-location
   const handleDetectRealGps = useCallback(async () => {
     stopWalkSimulation();
     stopGpsWatch();
     setIsLocatingGps(true);
-    setGpsStatus('Đang xác định GPS…');
+    setGpsStatus('Đang định vị…');
 
     const result = await getCurrentLocation({ timeoutMs: 8000 });
     setIsLocatingGps(false);
@@ -356,10 +352,9 @@ function SmartHeritageAppContent() {
       setSearchRadiusMeters(0);
       setActiveCityId('GPS');
       setGpsStatus(formatCoordinatesLabel(lat, lng));
-      setToastMessage('Đã cập nhật vị trí GPS thực tế của bạn.');
+      setToastMessage('Đã cập nhật vị trí GPS thực tế.');
       triggerHaptic('light');
 
-      // Start background foreground watch for live walking updates
       const handle = await watchLocation({
         distanceIntervalMeters: 15,
         timeIntervalMs: 5000,
@@ -370,10 +365,10 @@ function SmartHeritageAppContent() {
       });
       gpsWatchRef.current = handle;
     } else {
-      setGpsStatus('Tâm điểm Quận 1 · TP.HCM');
+      setGpsStatus('Trung tâm Quận 1');
       setToastMessage(
         result.error ||
-          'Không lấy được GPS thực tế. Hãy chọn khu vực TP.HCM hoặc chạm bản đồ.'
+          'Chưa lấy được GPS thực tế. Bạn có thể chọn khu vực trong Bộ lọc.'
       );
     }
   }, [stopGpsWatch, stopWalkSimulation]);
@@ -539,7 +534,6 @@ function SmartHeritageAppContent() {
       ];
       const wasSimulated = usedSimulatedWalkRef.current;
 
-      // 1. Lưu cục bộ AsyncStorage trước (Offline-first 100%)
       const updated = await upsertSiteVisitRecord(visitedRecords, {
         siteId: photoCaptureSite.id,
         siteName: photoCaptureSite.translations.vi.name,
@@ -559,7 +553,6 @@ function SmartHeritageAppContent() {
       setPhotoCaptureSite(null);
       triggerHaptic('success');
 
-      // 2. Nếu đã đăng nhập, đồng bộ lên Backend (Anti-Fake + Badges + Storage)
       if (!authState.isAuthenticated) {
         setToastMessage(
           `Đã lưu ảnh & xếp hạng hành trình tại ${photoCaptureSite.translations.vi.name}.`
@@ -743,16 +736,8 @@ function SmartHeritageAppContent() {
     setQuickAudioSite(null);
   }, []);
 
-  const handleCycleRadius = useCallback(() => {
-    const idx = RADIUS_OPTIONS.findIndex((o) => o.value === searchRadiusMeters);
-    const next = RADIUS_OPTIONS[(idx + 1) % RADIUS_OPTIONS.length];
-    setSearchRadiusMeters(next.value);
-    triggerHaptic('selection');
-  }, [searchRadiusMeters]);
-
-  const currentRadiusLabel =
-    RADIUS_OPTIONS.find((o) => o.value === searchRadiusMeters)?.label ||
-    `${Math.round(searchRadiusMeters / 1000)} km`;
+  const activeFilterCount =
+    (activeCityId !== 'ALL_HCM' ? 1 : 0) + (searchRadiusMeters > 0 ? 1 : 0);
 
   const selectedSiteMetrics = useMemo(() => {
     if (!selectedSite) return null;
@@ -808,173 +793,243 @@ function SmartHeritageAppContent() {
   const isNearbyBannerVisible =
     !quickAudioSite &&
     !!closestSiteItem &&
-    closestSiteItem.distanceMeters <= 350;
+    closestSiteItem.distanceMeters <= 300;
+
+  const activeCityLabel =
+    activeCityId === 'GPS'
+      ? 'GPS thực tế'
+      : CITY_PRESETS.find((c) => c.id === activeCityId)?.label || gpsStatus;
+
+  // Scrollable list header: AI Tools + Optional Proximity Banner + Count
+  const exploreListHeader = (
+    <View style={styles.listHeaderWrap}>
+      {/* Clean AI Companion Strip (scrolls smoothly out of view when browsing) */}
+      <View style={styles.aiStripRow}>
+        <TouchableOpacity
+          activeOpacity={0.85}
+          onPress={() => {
+            setSmartTourVisible(true);
+            triggerHaptic('light');
+          }}
+          style={styles.aiCardPrimary}
+        >
+          <View style={styles.aiIconCircleDark}>
+            <Route size={15} color={COLORS.white} />
+          </View>
+          <View style={styles.aiTextCol}>
+            <Text style={styles.aiCardTitle}>Lập Tour Đi bộ AI</Text>
+            <Text style={styles.aiCardSub} numberOfLines={1}>
+              Tối ưu 2-Opt & quán ăn
+            </Text>
+          </View>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          activeOpacity={0.85}
+          onPress={handleOpenGlobalAiChat}
+          style={styles.aiCardSecondary}
+        >
+          <View style={styles.aiIconCircleAccent}>
+            <MessageSquareText size={15} color={COLORS.accent} />
+          </View>
+          <View style={styles.aiTextCol}>
+            <Text style={styles.aiCardTitle}>Hỏi AI Di sản</Text>
+            <Text style={styles.aiCardSub} numberOfLines={1}>
+              RAG 5 ngôn ngữ
+            </Text>
+          </View>
+        </TouchableOpacity>
+      </View>
+
+      {/* Compact Proximity Banner (only shown when actually near a monument) */}
+      {isNearbyBannerVisible && closestSiteItem && (
+        <View
+          style={[
+            styles.proximityCard,
+            isWithinProximity && styles.proximityCardHot,
+          ]}
+        >
+          <View style={styles.proximityTextCol}>
+            <Text style={styles.proximityEyebrow}>
+              {isWithinProximity
+                ? `Trong phạm vi < 150m · ${formatDistance(
+                    closestSiteItem.distanceMeters
+                  )}`
+                : `Ngay gần bạn · ${formatDistance(
+                    closestSiteItem.distanceMeters
+                  )}`}
+            </Text>
+            <Text style={styles.proximityTitle} numberOfLines={1}>
+              {(
+                closestSiteItem.site.translations[selectedLanguage] ||
+                closestSiteItem.site.translations.vi
+              ).name}
+            </Text>
+          </View>
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={() => setQuickAudioSite(closestSiteItem.site)}
+            style={styles.proximityPlayBtn}
+          >
+            <Volume2 size={14} color={COLORS.white} />
+            <Text style={styles.proximityPlayText}>Nghe</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Subtle Section Meta Line */}
+      <View style={styles.sectionMetaRow}>
+        <Text style={styles.sectionMetaText}>
+          {nearbySitesWithMetrics.length} điểm di sản · {activeCityLabel}
+        </Text>
+        {activeFilterCount > 0 && (
+          <TouchableOpacity
+            onPress={() => {
+              setActiveCityId('ALL_HCM');
+              setSearchRadiusMeters(0);
+              setSelectedCategory('all');
+              setSearchQuery('');
+              setGpsStatus('Trung tâm Quận 1');
+            }}
+          >
+            <Text style={styles.clearFilterText}>Đặt lại lọc</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+    </View>
+  );
 
   return (
     <View style={styles.root}>
       <StatusBar style="dark" />
 
-      {/* Compact Mobile Top Header */}
+      {/* Ultra-Clean 1-Line Mobile Header */}
       <View
-        style={[
-          styles.header,
-          { paddingTop: Math.max(insets.top, 8) + 4 },
-        ]}
+        style={[styles.header, { paddingTop: Math.max(insets.top, 8) + 4 }]}
       >
-        <View style={styles.headerTopRow}>
-          {/* Brand + Live GPS Pill */}
-          <View style={styles.brandGroup}>
-            <View style={styles.shgBadge}>
-              <Text style={styles.shgBadgeText}>SHG</Text>
-            </View>
-            <View style={styles.brandTextCol}>
-              <Text style={styles.brandTitle} numberOfLines={1}>
-                Smart Heritage Guide
+        <View style={styles.headerRow}>
+          <TouchableOpacity
+            activeOpacity={0.75}
+            onPress={() => setFilterSheetVisible(true)}
+            style={styles.brandCol}
+          >
+            <Text style={styles.brandTitle} numberOfLines={1}>
+              Smart Heritage
+            </Text>
+            <View style={styles.locationSubtitleRow}>
+              <View
+                style={[
+                  styles.gpsDot,
+                  isLocatingGps && styles.gpsDotLocating,
+                ]}
+              />
+              <Text style={styles.locationSubtitle} numberOfLines={1}>
+                {gpsStatus}
               </Text>
-              <TouchableOpacity
-                activeOpacity={0.75}
-                onPress={handleDetectRealGps}
-                style={styles.gpsPillInline}
-              >
-                <View
-                  style={[
-                    styles.gpsDot,
-                    isLocatingGps && styles.gpsDotLocating,
-                  ]}
-                />
-                <Text style={styles.gpsPillText} numberOfLines={1}>
-                  {gpsStatus}
-                </Text>
-              </TouchableOpacity>
+              <ChevronDown size={12} color={COLORS.inkMuted} />
             </View>
-          </View>
+          </TouchableOpacity>
 
-          {/* Compact Language Switcher + Account/Guest Badge */}
-          <View style={styles.headerRightGroup}>
-            <View style={styles.langSwitcher}>
-              {SUPPORTED_LANGUAGES.map((lang) => {
-                const active = selectedLanguage === lang.code;
-                return (
-                  <TouchableOpacity
-                    key={lang.code}
-                    activeOpacity={0.75}
-                    onPress={() => {
-                      setSelectedLanguage(lang.code);
-                      triggerHaptic('selection');
-                    }}
-                    style={[styles.langBtn, active && styles.langBtnActive]}
-                    accessibilityLabel={lang.nativeLabel}
-                  >
-                    <Text
-                      style={[
-                        styles.langBtnText,
-                        active && styles.langBtnTextActive,
-                      ]}
-                    >
-                      {lang.code.toUpperCase()}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
+          <View style={styles.headerActions}>
+            {/* Compact Language Pill (opens clean 5-language sheet instead of cramming 5 buttons) */}
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={() => {
+                setLangSheetVisible(true);
+                triggerHaptic('selection');
+              }}
+              style={styles.langPillBtn}
+              accessibilityLabel="Chọn ngôn ngữ thuyết minh"
+            >
+              <Globe size={13} color={COLORS.inkSecondary} />
+              <Text style={styles.langPillText}>
+                {selectedLanguage.toUpperCase()}
+              </Text>
+            </TouchableOpacity>
 
+            {/* Clean Circular Account Avatar Button */}
             <TouchableOpacity
               activeOpacity={0.8}
               onPress={() => setAuthModalVisible(true)}
               style={[
-                styles.accountPill,
-                authState.isAuthenticated && styles.accountPillSignedIn,
+                styles.avatarBtn,
+                authState.isAuthenticated && styles.avatarBtnSignedIn,
               ]}
               accessibilityLabel="Tài khoản và đồng bộ Cloud"
             >
               <User
-                size={12}
+                size={15}
                 color={
-                  authState.isAuthenticated ? COLORS.visited : COLORS.inkSecondary
+                  authState.isAuthenticated
+                    ? COLORS.visited
+                    : COLORS.inkSecondary
                 }
               />
-              <Text
-                style={[
-                  styles.accountPillText,
-                  authState.isAuthenticated && styles.accountPillTextSignedIn,
-                ]}
-                numberOfLines={1}
-              >
-                {authState.isAuthenticated && authState.profile
-                  ? authState.profile.display_name.split(' ')[0]
-                  : 'Khách'}
-              </Text>
+              {authState.isAuthenticated && <View style={styles.onlineDot} />}
             </TouchableOpacity>
           </View>
         </View>
       </View>
 
-      {/* Main Content Area (3 Tabs) */}
+      {/* Main Content Area */}
       <View style={styles.mainBody}>
         {activeTab === 'explore' && (
           <View style={styles.tabContainer}>
-            {/* Filter Controls Panel (kept outside FlatList to prevent keyboard dismissal) */}
-            <View style={styles.controlsPanel}>
-              {/* Area / District Presets + Real GPS */}
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.chipRow}
-              >
+            {/* Minimalist Sticky Search + Single Category Bar */}
+            <View style={styles.stickySearchArea}>
+              <View style={styles.searchFilterRow}>
+                <View style={styles.searchPill}>
+                  <Search size={15} color={COLORS.inkMuted} />
+                  <TextInput
+                    value={searchQuery}
+                    onChangeText={setSearchQuery}
+                    placeholder="Tìm di tích, quận, món đặc sản…"
+                    placeholderTextColor={COLORS.inkMuted}
+                    style={styles.searchInput}
+                    returnKeyType="search"
+                  />
+                  {searchQuery.length > 0 && (
+                    <TouchableOpacity
+                      onPress={() => setSearchQuery('')}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      accessibilityLabel="Xóa tìm kiếm"
+                    >
+                      <X size={15} color={COLORS.inkMuted} />
+                    </TouchableOpacity>
+                  )}
+                </View>
+
                 <TouchableOpacity
                   activeOpacity={0.8}
-                  onPress={handleDetectRealGps}
+                  onPress={() => {
+                    setFilterSheetVisible(true);
+                    triggerHaptic('selection');
+                  }}
                   style={[
-                    styles.areaChip,
-                    activeCityId === 'GPS' && styles.areaChipActive,
+                    styles.filterIconBtn,
+                    activeFilterCount > 0 && styles.filterIconBtnActive,
                   ]}
+                  accessibilityLabel="Mở bộ lọc khu vực và bán kính"
                 >
-                  <LocateFixed
-                    size={13}
-                    color={
-                      activeCityId === 'GPS' ? COLORS.white : COLORS.gpsBlue
-                    }
+                  <SlidersHorizontal
+                    size={16}
+                    color={activeFilterCount > 0 ? COLORS.white : COLORS.ink}
                   />
-                  <Text
-                    style={[
-                      styles.areaChipText,
-                      activeCityId === 'GPS' && styles.areaChipTextActive,
-                    ]}
-                  >
-                    GPS của tôi
-                  </Text>
-                </TouchableOpacity>
-
-                {CITY_PRESETS.map((city) => {
-                  const active = activeCityId === city.id;
-                  return (
-                    <TouchableOpacity
-                      key={city.id}
-                      activeOpacity={0.8}
-                      onPress={() => handleSelectCityPreset(city.id)}
-                      style={[
-                        styles.areaChip,
-                        active && styles.areaChipActive,
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          styles.areaChipText,
-                          active && styles.areaChipTextActive,
-                        ]}
-                      >
-                        {city.label}
+                  {activeFilterCount > 0 && (
+                    <View style={styles.filterCountBadge}>
+                      <Text style={styles.filterCountText}>
+                        {activeFilterCount}
                       </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </ScrollView>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              </View>
 
-              {/* Category Chips */}
+              {/* Single Clean Underline Category Tab Bar */}
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.categoryRow}
+                contentContainerStyle={styles.categoryBar}
               >
                 {CATEGORY_FILTERS.map((cat) => {
                   const active = selectedCategory === cat.id;
@@ -987,14 +1042,14 @@ function SmartHeritageAppContent() {
                         triggerHaptic('selection');
                       }}
                       style={[
-                        styles.categoryChip,
-                        active && styles.categoryChipActive,
+                        styles.catTab,
+                        active && styles.catTabActive,
                       ]}
                     >
                       <Text
                         style={[
-                          styles.categoryChipText,
-                          active && styles.categoryChipTextActive,
+                          styles.catTabText,
+                          active && styles.catTabTextActive,
                         ]}
                       >
                         {cat.label}
@@ -1003,100 +1058,16 @@ function SmartHeritageAppContent() {
                   );
                 })}
               </ScrollView>
-
-              {/* Search Input + Radius Picker */}
-              <View style={styles.searchRadiusRow}>
-                <View style={styles.searchBox}>
-                  <Search size={14} color={COLORS.inkMuted} />
-                  <TextInput
-                    value={searchQuery}
-                    onChangeText={setSearchQuery}
-                    placeholder="Tìm di tích, quận huyện, món ăn…"
-                    placeholderTextColor={COLORS.inkMuted}
-                    style={styles.searchInput}
-                    returnKeyType="search"
-                  />
-                  {searchQuery.length > 0 && (
-                    <TouchableOpacity
-                      onPress={() => setSearchQuery('')}
-                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                      accessibilityLabel="Xóa tìm kiếm"
-                    >
-                      <X size={14} color={COLORS.inkMuted} />
-                    </TouchableOpacity>
-                  )}
-                </View>
-
-                <TouchableOpacity
-                  activeOpacity={0.8}
-                  onPress={handleCycleRadius}
-                  style={styles.radiusBtn}
-                  accessibilityLabel="Đổi bán kính tìm kiếm"
-                >
-                  <Text style={styles.radiusBtnText}>{currentRadiusLabel}</Text>
-                </TouchableOpacity>
-              </View>
-
-              {/* Smart AI Quick Actions: Tour AI (2-Opt) & Hỏi AI (RAG) */}
-              <View style={styles.aiQuickRow}>
-                <TouchableOpacity
-                  activeOpacity={0.85}
-                  onPress={() => {
-                    setSmartTourVisible(true);
-                    triggerHaptic('light');
-                  }}
-                  style={styles.aiTourBtn}
-                >
-                  <Route size={14} color={COLORS.white} />
-                  <Text style={styles.aiTourBtnText}>Tour AI (2-Opt)</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  activeOpacity={0.85}
-                  onPress={handleOpenGlobalAiChat}
-                  style={styles.aiChatBtn}
-                >
-                  <MessageSquareText size={14} color={COLORS.accent} />
-                  <Text style={styles.aiChatBtnText}>Hỏi AI Di sản</Text>
-                </TouchableOpacity>
-              </View>
-
-              {/* Result Count + Auto-Audio Proximity Toggle */}
-              <View style={styles.metaFooterRow}>
-                <Text style={styles.countText}>
-                  Hiển thị{' '}
-                  <Text style={styles.countStrong}>
-                    {nearbySitesWithMetrics.length}
-                  </Text>{' '}
-                  di tích TP.HCM
-                </Text>
-
-                <View style={styles.autoAudioRow}>
-                  <Text style={styles.autoAudioLabel}>
-                    Tự đọc (&lt;150m)
-                  </Text>
-                  <Switch
-                    value={autoAudioGuide}
-                    onValueChange={setAutoAudioGuide}
-                    trackColor={{
-                      false: COLORS.borderStrong,
-                      true: COLORS.ink,
-                    }}
-                    thumbColor={COLORS.white}
-                    style={styles.compactSwitch}
-                  />
-                </View>
-              </View>
             </View>
 
-            {/* Quick Audio Player (Triggered by Proximity < 150m or User Tap) */}
+            {/* Quick Audio Player (when active) */}
             {quickAudioSite && (
               <View style={styles.quickAudioCard}>
                 <View style={styles.quickAudioHeader}>
                   <View style={styles.quickAudioTitleWrap}>
                     <Sparkles size={13} color={COLORS.accent} />
                     <Text style={styles.quickAudioEyebrow}>
-                      ĐANG PHÁT THUYẾT MINH TỰ ĐỘNG
+                      ĐANG PHÁT THUYẾT MINH
                     </Text>
                   </View>
                   <TouchableOpacity
@@ -1116,58 +1087,23 @@ function SmartHeritageAppContent() {
               </View>
             )}
 
-            {/* Proximity < 150m (or <= 350m nearby) Alert Banner */}
-            {isNearbyBannerVisible && closestSiteItem && (
-              <View
-                style={[
-                  styles.proximityBanner,
-                  isWithinProximity && styles.proximityBannerHot,
-                ]}
-              >
-                <View style={styles.proximityTextCol}>
-                  <Text style={styles.proximityLabel}>
-                    {isWithinProximity
-                      ? `Trong vùng thuyết minh < 150m · Cách bạn ${formatDistance(
-                          closestSiteItem.distanceMeters
-                        )}`
-                      : `Rất gần bạn · Cách ${formatDistance(
-                          closestSiteItem.distanceMeters
-                        )}`}
-                  </Text>
-                  <Text style={styles.proximitySiteName} numberOfLines={1}>
-                    {(
-                      closestSiteItem.site.translations[selectedLanguage] ||
-                      closestSiteItem.site.translations.vi
-                    ).name}
-                  </Text>
-                </View>
-                <TouchableOpacity
-                  activeOpacity={0.85}
-                  onPress={() => setQuickAudioSite(closestSiteItem.site)}
-                  style={styles.proximityBtn}
-                >
-                  <Volume2 size={14} color={COLORS.white} />
-                  <Text style={styles.proximityBtnText}>Nghe ngay</Text>
-                </TouchableOpacity>
-              </View>
-            )}
-
-            {/* Heritage Sites FlatList */}
+            {/* Heritage Sites List */}
             <FlatList
               data={nearbySitesWithMetrics}
               keyExtractor={(item) => item.site.id}
               renderItem={renderSiteItem}
+              ListHeaderComponent={exploreListHeader}
               contentContainerStyle={styles.listContent}
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
               ListEmptyComponent={
                 <View style={styles.emptyBox}>
                   <Text style={styles.emptyTitle}>
-                    Không tìm thấy địa điểm phù hợp trong phạm vi lọc
+                    Không tìm thấy địa điểm phù hợp
                   </Text>
                   <Text style={styles.emptySubtitle}>
-                    Chọn "Toàn TP.HCM" để xem đầy đủ {HERITAGE_SITES.length} di
-                    tích lịch sử và điểm tham quan.
+                    Hãy đặt lại bộ lọc để xem toàn bộ {HERITAGE_SITES.length} di
+                    tích lịch sử TP.HCM.
                   </Text>
                   <TouchableOpacity
                     activeOpacity={0.85}
@@ -1176,11 +1112,12 @@ function SmartHeritageAppContent() {
                       setSelectedCategory('all');
                       setSearchQuery('');
                       setActiveCityId('ALL_HCM');
+                      setGpsStatus('Trung tâm Quận 1');
                     }}
                     style={styles.emptyResetBtn}
                   >
                     <Text style={styles.emptyResetBtnText}>
-                      Hiển thị toàn bộ {HERITAGE_SITES.length} di tích TP.HCM
+                      Xem tất cả {HERITAGE_SITES.length} di tích
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -1191,7 +1128,6 @@ function SmartHeritageAppContent() {
 
         {activeTab === 'map' && (
           <View style={styles.mapTabContainer}>
-            {/* Floating Quick Audio overlay when triggered during map walk */}
             {quickAudioSite && (
               <View style={styles.mapQuickAudioOverlay}>
                 <View style={styles.quickAudioHeader}>
@@ -1268,13 +1204,13 @@ function SmartHeritageAppContent() {
         )}
       </View>
 
-      {/* Toast Notification Banner */}
+      {/* Toast Notification */}
       {toastMessage && (
         <View
           pointerEvents="none"
           style={[
             styles.toastWrap,
-            { bottom: Math.max(insets.bottom, 8) + 68 },
+            { bottom: Math.max(insets.bottom, 8) + 66 },
           ]}
         >
           <View style={styles.toastPill}>
@@ -1286,7 +1222,7 @@ function SmartHeritageAppContent() {
         </View>
       )}
 
-      {/* Bottom Tab Bar (3 Clear Native Tabs) */}
+      {/* Clean Bottom Tab Bar (3 Primary Tabs) */}
       <View
         style={[
           styles.tabBar,
@@ -1303,19 +1239,11 @@ function SmartHeritageAppContent() {
           accessibilityRole="tab"
           accessibilityState={{ selected: activeTab === 'explore' }}
         >
-          <View
-            style={[
-              styles.tabIconWrap,
-              activeTab === 'explore' && styles.tabIconWrapActive,
-            ]}
-          >
-            <Compass
-              size={20}
-              color={
-                activeTab === 'explore' ? COLORS.ink : COLORS.inkMuted
-              }
-            />
-          </View>
+          <Compass
+            size={21}
+            strokeWidth={activeTab === 'explore' ? 2.2 : 1.7}
+            color={activeTab === 'explore' ? COLORS.ink : COLORS.inkMuted}
+          />
           <Text
             style={[
               styles.tabLabel,
@@ -1336,22 +1264,17 @@ function SmartHeritageAppContent() {
           accessibilityRole="tab"
           accessibilityState={{ selected: activeTab === 'map' }}
         >
-          <View
-            style={[
-              styles.tabIconWrap,
-              activeTab === 'map' && styles.tabIconWrapActive,
-            ]}
-          >
+          <View style={styles.tabIconBox}>
             {activeRoute ? (
               <Navigation
-                size={20}
-                color={
-                  activeTab === 'map' ? COLORS.accent : COLORS.accent
-                }
+                size={21}
+                strokeWidth={2.2}
+                color={COLORS.accent}
               />
             ) : (
               <MapIcon
-                size={20}
+                size={21}
+                strokeWidth={activeTab === 'map' ? 2.2 : 1.7}
                 color={activeTab === 'map' ? COLORS.ink : COLORS.inkMuted}
               />
             )}
@@ -1377,17 +1300,11 @@ function SmartHeritageAppContent() {
           accessibilityRole="tab"
           accessibilityState={{ selected: activeTab === 'journey' }}
         >
-          <View
-            style={[
-              styles.tabIconWrap,
-              activeTab === 'journey' && styles.tabIconWrapActive,
-            ]}
-          >
+          <View style={styles.tabIconBox}>
             <Trophy
-              size={20}
-              color={
-                activeTab === 'journey' ? COLORS.ink : COLORS.inkMuted
-              }
+              size={21}
+              strokeWidth={activeTab === 'journey' ? 2.2 : 1.7}
+              color={activeTab === 'journey' ? COLORS.ink : COLORS.inkMuted}
             />
             {visitedRecords.length > 0 && (
               <View style={styles.journeyBadge}>
@@ -1407,6 +1324,215 @@ function SmartHeritageAppContent() {
           </Text>
         </TouchableOpacity>
       </View>
+
+      {/* Filter & Location Bottom Sheet */}
+      <Modal
+        visible={filterSheetVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setFilterSheetVisible(false)}
+      >
+        <TouchableOpacity
+          activeOpacity={1}
+          onPress={() => setFilterSheetVisible(false)}
+          style={styles.sheetBackdrop}
+        >
+          <TouchableOpacity
+            activeOpacity={1}
+            onPress={() => {}}
+            style={[
+              styles.sheetCard,
+              { paddingBottom: Math.max(insets.bottom, 16) + 8 },
+            ]}
+          >
+            <View style={styles.sheetHandle} />
+            <View style={styles.sheetHeader}>
+              <Text style={styles.sheetTitle}>Khu vực & Bộ lọc</Text>
+              <TouchableOpacity
+                onPress={() => setFilterSheetVisible(false)}
+                style={styles.sheetCloseBtn}
+              >
+                <X size={18} color={COLORS.inkSecondary} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              style={styles.sheetScroll}
+            >
+              {/* Real GPS Button */}
+              <TouchableOpacity
+                activeOpacity={0.85}
+                onPress={() => {
+                  void handleDetectRealGps();
+                  setFilterSheetVisible(false);
+                }}
+                style={styles.sheetGpsBtn}
+              >
+                <LocateFixed size={16} color={COLORS.gpsBlue} />
+                <Text style={styles.sheetGpsBtnText}>
+                  Dùng vị trí GPS thực tế của tôi
+                </Text>
+              </TouchableOpacity>
+
+              {/* District Presets */}
+              <Text style={styles.sheetSectionLabel}>Khu vực tại TP.HCM</Text>
+              <View style={styles.sheetWrapGrid}>
+                {CITY_PRESETS.map((city) => {
+                  const active = activeCityId === city.id;
+                  return (
+                    <TouchableOpacity
+                      key={city.id}
+                      activeOpacity={0.8}
+                      onPress={() => handleSelectCityPreset(city.id)}
+                      style={[
+                        styles.sheetChip,
+                        active && styles.sheetChipActive,
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.sheetChipText,
+                          active && styles.sheetChipTextActive,
+                        ]}
+                      >
+                        {city.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              {/* Radius Options */}
+              <Text style={styles.sheetSectionLabel}>Bán kính tìm kiếm</Text>
+              <View style={styles.sheetWrapGrid}>
+                {RADIUS_OPTIONS.map((opt) => {
+                  const active = searchRadiusMeters === opt.value;
+                  return (
+                    <TouchableOpacity
+                      key={opt.value}
+                      activeOpacity={0.8}
+                      onPress={() => {
+                        setSearchRadiusMeters(opt.value);
+                        triggerHaptic('selection');
+                      }}
+                      style={[
+                        styles.sheetChip,
+                        active && styles.sheetChipActive,
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.sheetChipText,
+                          active && styles.sheetChipTextActive,
+                        ]}
+                      >
+                        {opt.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              {/* Auto Proximity Audio Switch */}
+              <View style={styles.sheetSwitchRow}>
+                <View style={styles.sheetSwitchTextCol}>
+                  <Text style={styles.sheetSwitchTitle}>
+                    Tự động thuyết minh khi đến gần
+                  </Text>
+                  <Text style={styles.sheetSwitchSub}>
+                    Tự mở giọng đọc khi vào vùng bán kính &lt; 150m
+                  </Text>
+                </View>
+                <Switch
+                  value={autoAudioGuide}
+                  onValueChange={setAutoAudioGuide}
+                  trackColor={{
+                    false: COLORS.borderStrong,
+                    true: COLORS.ink,
+                  }}
+                  thumbColor={COLORS.white}
+                />
+              </View>
+            </ScrollView>
+
+            <TouchableOpacity
+              activeOpacity={0.85}
+              onPress={() => setFilterSheetVisible(false)}
+              style={styles.sheetApplyBtn}
+            >
+              <Text style={styles.sheetApplyText}>
+                Xem {nearbySitesWithMetrics.length} di tích phù hợp
+              </Text>
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Language Picker Bottom Sheet */}
+      <Modal
+        visible={langSheetVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setLangSheetVisible(false)}
+      >
+        <TouchableOpacity
+          activeOpacity={1}
+          onPress={() => setLangSheetVisible(false)}
+          style={styles.sheetBackdrop}
+        >
+          <TouchableOpacity
+            activeOpacity={1}
+            onPress={() => {}}
+            style={[
+              styles.sheetCard,
+              { paddingBottom: Math.max(insets.bottom, 16) + 8 },
+            ]}
+          >
+            <View style={styles.sheetHandle} />
+            <View style={styles.sheetHeader}>
+              <Text style={styles.sheetTitle}>Ngôn ngữ thuyết minh</Text>
+              <TouchableOpacity
+                onPress={() => setLangSheetVisible(false)}
+                style={styles.sheetCloseBtn}
+              >
+                <X size={18} color={COLORS.inkSecondary} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.langList}>
+              {SUPPORTED_LANGUAGES.map((lang) => {
+                const active = selectedLanguage === lang.code;
+                return (
+                  <TouchableOpacity
+                    key={lang.code}
+                    activeOpacity={0.8}
+                    onPress={() => {
+                      setSelectedLanguage(lang.code);
+                      setLangSheetVisible(false);
+                      triggerHaptic('selection');
+                    }}
+                    style={[
+                      styles.langOptionRow,
+                      active && styles.langOptionRowActive,
+                    ]}
+                  >
+                    <View style={styles.langOptionLeft}>
+                      <Text style={styles.langCodeTag}>
+                        {lang.code.toUpperCase()}
+                      </Text>
+                      <Text style={styles.langNativeLabel}>
+                        {lang.nativeLabel}
+                      </Text>
+                    </View>
+                    {active && <Check size={16} color={COLORS.accent} />}
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
 
       {/* Heritage Detail Modal */}
       {selectedSite && (
@@ -1511,54 +1637,31 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: COLORS.bg,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-    paddingHorizontal: SPACING.md,
-    paddingBottom: SPACING.sm + 2,
+    paddingHorizontal: SPACING.lg,
+    paddingBottom: 10,
   },
-  headerTopRow: {
+  headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: SPACING.sm,
+    gap: SPACING.md,
   },
-  brandGroup: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.sm,
-    flex: 1,
-    minWidth: 0,
-  },
-  shgBadge: {
-    width: 34,
-    height: 34,
-    borderRadius: RADII.md,
-    backgroundColor: COLORS.ink,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  shgBadgeText: {
-    color: COLORS.white,
-    fontSize: 11,
-    fontWeight: '800',
-    letterSpacing: 0.7,
-  },
-  brandTextCol: {
+  brandCol: {
     flex: 1,
     minWidth: 0,
   },
   brandTitle: {
     fontFamily: SERIF_FONT,
-    fontSize: 15.5,
+    fontSize: 20,
     fontWeight: '700',
     color: COLORS.ink,
-    letterSpacing: -0.2,
+    letterSpacing: -0.3,
   },
-  gpsPillInline: {
+  locationSubtitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    marginTop: 1,
+    marginTop: 2,
   },
   gpsDot: {
     width: 6,
@@ -1569,36 +1672,59 @@ const styles = StyleSheet.create({
   gpsDotLocating: {
     backgroundColor: COLORS.amberStar,
   },
-  gpsPillText: {
-    fontSize: 11,
+  locationSubtitle: {
+    fontFamily: SERIF_FONT,
+    fontSize: 12,
     color: COLORS.inkSecondary,
-    flex: 1,
+    flexShrink: 1,
   },
-  langSwitcher: {
+  headerActions: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 8,
+  },
+  langPillBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    height: 36,
+    paddingHorizontal: 11,
+    borderRadius: RADII.pill,
     backgroundColor: COLORS.surface,
     borderWidth: 1,
     borderColor: COLORS.border,
-    borderRadius: RADII.md,
-    padding: 2,
-    gap: 1,
   },
-  langBtn: {
-    paddingHorizontal: 6,
-    paddingVertical: 4,
-    borderRadius: RADII.sm,
-  },
-  langBtnActive: {
-    backgroundColor: COLORS.ink,
-  },
-  langBtnText: {
-    fontSize: 10,
+  langPillText: {
+    fontFamily: SERIF_FONT,
+    fontSize: 12,
     fontWeight: '700',
-    color: COLORS.inkSecondary,
+    color: COLORS.ink,
   },
-  langBtnTextActive: {
-    color: COLORS.white,
+  avatarBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: RADII.pill,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  avatarBtnSignedIn: {
+    backgroundColor: COLORS.visitedBg,
+    borderColor: COLORS.visitedBorder,
+  },
+  onlineDot: {
+    position: 'absolute',
+    top: 2,
+    right: 2,
+    width: 8,
+    height: 8,
+    borderRadius: RADII.pill,
+    backgroundColor: COLORS.visitedDot,
+    borderWidth: 1.5,
+    borderColor: COLORS.surface,
   },
   mainBody: {
     flex: 1,
@@ -1612,134 +1738,226 @@ const styles = StyleSheet.create({
     position: 'relative',
     backgroundColor: COLORS.bg,
   },
-  controlsPanel: {
-    backgroundColor: COLORS.surface,
+  stickySearchArea: {
+    backgroundColor: COLORS.bg,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
-    paddingTop: SPACING.sm + 2,
-    paddingBottom: SPACING.sm,
-    gap: SPACING.sm,
+    paddingTop: 2,
   },
-  chipRow: {
-    paddingHorizontal: SPACING.lg,
-    gap: 6,
-    alignItems: 'center',
-  },
-  areaChip: {
+  searchFilterRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
-    backgroundColor: COLORS.bg,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: RADII.md,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-  },
-  areaChipActive: {
-    backgroundColor: COLORS.ink,
-    borderColor: COLORS.ink,
-  },
-  areaChipText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: COLORS.inkSecondary,
-  },
-  areaChipTextActive: {
-    color: COLORS.white,
-  },
-  categoryRow: {
+    gap: 10,
     paddingHorizontal: SPACING.lg,
-    gap: 6,
-    alignItems: 'center',
+    paddingBottom: 10,
   },
-  categoryChip: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: RADII.sm,
-    borderWidth: 1,
-    borderColor: 'transparent',
-  },
-  categoryChipActive: {
-    backgroundColor: COLORS.surfaceMuted,
-    borderColor: COLORS.borderStrong,
-  },
-  categoryChipText: {
-    fontSize: 11.5,
-    fontWeight: '500',
-    color: COLORS.inkMuted,
-  },
-  categoryChipTextActive: {
-    color: COLORS.ink,
-    fontWeight: '700',
-  },
-  searchRadiusRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.sm,
-    paddingHorizontal: SPACING.lg,
-  },
-  searchBox: {
+  searchPill: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    backgroundColor: COLORS.bg,
+    gap: 9,
+    backgroundColor: COLORS.surface,
     borderWidth: 1,
     borderColor: COLORS.border,
-    borderRadius: RADII.md,
-    paddingHorizontal: 10,
-    height: 36,
+    borderRadius: RADII.pill,
+    paddingHorizontal: 14,
+    height: 42,
+    ...SHADOWS.card,
   },
   searchInput: {
     flex: 1,
-    fontSize: 12.5,
+    fontFamily: SERIF_FONT,
+    fontSize: 13.5,
     color: COLORS.ink,
     paddingVertical: 0,
   },
-  radiusBtn: {
-    height: 36,
-    paddingHorizontal: 11,
-    borderRadius: RADII.md,
-    backgroundColor: COLORS.bg,
+  filterIconBtn: {
+    width: 42,
+    height: 42,
+    borderRadius: RADII.pill,
+    backgroundColor: COLORS.surface,
     borderWidth: 1,
     borderColor: COLORS.border,
     alignItems: 'center',
     justifyContent: 'center',
+    position: 'relative',
+    ...SHADOWS.card,
   },
-  radiusBtnText: {
-    fontSize: 11.5,
-    fontWeight: '600',
+  filterIconBtnActive: {
+    backgroundColor: COLORS.ink,
+    borderColor: COLORS.ink,
+  },
+  filterCountBadge: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    width: 17,
+    height: 17,
+    borderRadius: RADII.pill,
+    backgroundColor: COLORS.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: COLORS.bg,
+  },
+  filterCountText: {
+    fontFamily: SERIF_FONT,
+    color: COLORS.white,
+    fontSize: 9.5,
+    fontWeight: '700',
+  },
+  categoryBar: {
+    paddingHorizontal: SPACING.lg,
+    gap: 18,
+  },
+  catTab: {
+    paddingVertical: 9,
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+  },
+  catTabActive: {
+    borderBottomColor: COLORS.ink,
+  },
+  catTabText: {
+    fontFamily: SERIF_FONT,
+    fontSize: 13,
+    fontWeight: '500',
+    color: COLORS.inkMuted,
+  },
+  catTabTextActive: {
+    color: COLORS.ink,
+    fontWeight: '700',
+  },
+  listHeaderWrap: {
+    paddingHorizontal: SPACING.lg,
+    paddingTop: SPACING.md,
+    paddingBottom: SPACING.sm,
+    gap: SPACING.md,
+  },
+  aiStripRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  aiCardPrimary: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 14,
+    padding: 11,
+    ...SHADOWS.card,
+  },
+  aiCardSecondary: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 14,
+    padding: 11,
+    ...SHADOWS.card,
+  },
+  aiIconCircleDark: {
+    width: 32,
+    height: 32,
+    borderRadius: RADII.md,
+    backgroundColor: COLORS.ink,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  aiIconCircleAccent: {
+    width: 32,
+    height: 32,
+    borderRadius: RADII.md,
+    backgroundColor: COLORS.accentSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  aiTextCol: {
+    flex: 1,
+    minWidth: 0,
+  },
+  aiCardTitle: {
+    fontFamily: SERIF_FONT,
+    fontSize: 13,
+    fontWeight: '700',
     color: COLORS.ink,
   },
-  metaFooterRow: {
+  aiCardSub: {
+    fontFamily: SERIF_FONT,
+    fontSize: 11,
+    color: COLORS.inkMuted,
+    marginTop: 1,
+  },
+  proximityCard: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: SPACING.lg,
-    paddingTop: 2,
+    gap: SPACING.md,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 11,
   },
-  countText: {
-    fontSize: 12,
-    color: COLORS.inkSecondary,
+  proximityCardHot: {
+    backgroundColor: COLORS.amberBg,
+    borderColor: COLORS.amberBorder,
   },
-  countStrong: {
+  proximityTextCol: {
+    flex: 1,
+    minWidth: 0,
+  },
+  proximityEyebrow: {
+    fontFamily: SERIF_FONT,
+    fontSize: 11,
+    fontWeight: '700',
+    color: COLORS.accent,
+  },
+  proximityTitle: {
+    fontFamily: SERIF_FONT,
+    fontSize: 14,
     fontWeight: '700',
     color: COLORS.ink,
-    fontVariant: ['tabular-nums'],
+    marginTop: 2,
   },
-  autoAudioRow: {
+  proximityPlayBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 5,
+    backgroundColor: COLORS.ink,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: RADII.pill,
   },
-  autoAudioLabel: {
-    fontSize: 11.5,
-    fontWeight: '500',
-    color: COLORS.inkSecondary,
+  proximityPlayText: {
+    fontFamily: SERIF_FONT,
+    color: COLORS.white,
+    fontSize: 12,
+    fontWeight: '700',
   },
-  compactSwitch: {
-    transform: [{ scaleX: 0.8 }, { scaleY: 0.8 }],
+  sectionMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: 2,
+  },
+  sectionMetaText: {
+    fontFamily: SERIF_FONT,
+    fontSize: 12,
+    color: COLORS.inkMuted,
+  },
+  clearFilterText: {
+    fontFamily: SERIF_FONT,
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.accent,
   },
   quickAudioCard: {
     backgroundColor: COLORS.surface,
@@ -1773,6 +1991,7 @@ const styles = StyleSheet.create({
     gap: 5,
   },
   quickAudioEyebrow: {
+    fontFamily: SERIF_FONT,
     fontSize: 10.5,
     fontWeight: '700',
     letterSpacing: 0.5,
@@ -1783,57 +2002,13 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
   },
   quickAudioCloseText: {
+    fontFamily: SERIF_FONT,
     fontSize: 12,
     fontWeight: '600',
     color: COLORS.inkMuted,
   },
-  proximityBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: SPACING.md,
-    backgroundColor: COLORS.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-    paddingHorizontal: SPACING.lg,
-    paddingVertical: SPACING.md,
-  },
-  proximityBannerHot: {
-    backgroundColor: COLORS.amberBg,
-    borderBottomColor: COLORS.amberBorder,
-  },
-  proximityTextCol: {
-    flex: 1,
-    minWidth: 0,
-  },
-  proximityLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: COLORS.accent,
-  },
-  proximitySiteName: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: COLORS.ink,
-    marginTop: 2,
-  },
-  proximityBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    backgroundColor: COLORS.ink,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: RADII.md,
-  },
-  proximityBtnText: {
-    color: COLORS.white,
-    fontSize: 12,
-    fontWeight: '600',
-  },
   listContent: {
-    paddingTop: SPACING.md,
-    paddingBottom: SPACING.xxl,
+    paddingBottom: SPACING.xxl + 8,
   },
   emptyBox: {
     padding: SPACING.xxl,
@@ -1841,28 +2016,31 @@ const styles = StyleSheet.create({
     gap: SPACING.sm,
   },
   emptyTitle: {
-    fontSize: 14.5,
+    fontFamily: SERIF_FONT,
+    fontSize: 16,
     fontWeight: '700',
     color: COLORS.ink,
     textAlign: 'center',
   },
   emptySubtitle: {
-    fontSize: 12.5,
+    fontFamily: SERIF_FONT,
+    fontSize: 13,
     color: COLORS.inkMuted,
     textAlign: 'center',
-    lineHeight: 18,
+    lineHeight: 19,
   },
   emptyResetBtn: {
     marginTop: SPACING.sm,
     backgroundColor: COLORS.ink,
-    paddingHorizontal: 16,
+    paddingHorizontal: 18,
     paddingVertical: 10,
-    borderRadius: RADII.md,
+    borderRadius: RADII.pill,
   },
   emptyResetBtnText: {
+    fontFamily: SERIF_FONT,
     color: COLORS.white,
-    fontSize: 12.5,
-    fontWeight: '600',
+    fontSize: 13,
+    fontWeight: '700',
   },
   toastWrap: {
     position: 'absolute',
@@ -1876,15 +2054,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
     backgroundColor: COLORS.ink,
-    borderRadius: RADII.lg,
-    paddingHorizontal: 14,
+    borderRadius: RADII.pill,
+    paddingHorizontal: 16,
     paddingVertical: 10,
     maxWidth: 420,
     ...SHADOWS.floating,
   },
   toastText: {
+    fontFamily: SERIF_FONT,
     color: COLORS.white,
-    fontSize: 12,
+    fontSize: 12.5,
     fontWeight: '500',
     flexShrink: 1,
   },
@@ -1893,25 +2072,19 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surface,
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
-    paddingTop: SPACING.sm,
-    ...SHADOWS.bar,
+    paddingTop: 10,
   },
   tabItem: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 3,
+    gap: 4,
   },
-  tabIconWrap: {
+  tabIconBox: {
     position: 'relative',
-    paddingHorizontal: 16,
-    paddingVertical: 4,
-    borderRadius: RADII.pill,
-  },
-  tabIconWrapActive: {
-    backgroundColor: COLORS.surfaceMuted,
   },
   tabLabel: {
+    fontFamily: SERIF_FONT,
     fontSize: 11,
     fontWeight: '500',
     color: COLORS.inkMuted,
@@ -1922,8 +2095,8 @@ const styles = StyleSheet.create({
   },
   routeActiveDot: {
     position: 'absolute',
-    top: 2,
-    right: 11,
+    top: -2,
+    right: -4,
     width: 8,
     height: 8,
     borderRadius: RADII.pill,
@@ -1933,12 +2106,12 @@ const styles = StyleSheet.create({
   },
   journeyBadge: {
     position: 'absolute',
-    top: 0,
-    right: 6,
-    minWidth: 17,
-    height: 17,
+    top: -5,
+    right: -10,
+    minWidth: 16,
+    height: 16,
     borderRadius: RADII.pill,
-    backgroundColor: COLORS.visited,
+    backgroundColor: COLORS.ink,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 4,
@@ -1946,78 +2119,182 @@ const styles = StyleSheet.create({
     borderColor: COLORS.surface,
   },
   journeyBadgeText: {
+    fontFamily: SERIF_FONT,
     color: COLORS.white,
-    fontSize: 9.5,
-    fontWeight: '800',
+    fontSize: 9,
+    fontWeight: '700',
     fontVariant: ['tabular-nums'],
   },
-  headerRightGroup: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  accountPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: COLORS.surface,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: RADII.md,
-    paddingHorizontal: 8,
-    paddingVertical: 5,
-    maxWidth: 82,
-  },
-  accountPillSignedIn: {
-    backgroundColor: COLORS.visitedBg,
-    borderColor: COLORS.visitedBorder,
-  },
-  accountPillText: {
-    fontSize: 10.5,
-    fontWeight: '700',
-    color: COLORS.inkSecondary,
-    flexShrink: 1,
-  },
-  accountPillTextSignedIn: {
-    color: COLORS.visited,
-  },
-  aiQuickRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.sm,
-    paddingHorizontal: SPACING.lg,
-  },
-  aiTourBtn: {
+  // Bottom Sheet Styles
+  sheetBackdrop: {
     flex: 1,
+    backgroundColor: COLORS.overlayScrim,
+    justifyContent: 'flex-end',
+  },
+  sheetCard: {
+    backgroundColor: COLORS.surface,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: SPACING.xl,
+    paddingTop: 10,
+    maxHeight: '82%',
+  },
+  sheetHandle: {
+    width: 38,
+    height: 4,
+    borderRadius: RADII.pill,
+    backgroundColor: COLORS.borderStrong,
+    alignSelf: 'center',
+    marginBottom: 14,
+  },
+  sheetHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 14,
+  },
+  sheetTitle: {
+    fontFamily: SERIF_FONT,
+    fontSize: 18,
+    fontWeight: '700',
+    color: COLORS.ink,
+  },
+  sheetCloseBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: RADII.pill,
+    backgroundColor: COLORS.surfaceMuted,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sheetScroll: {
+    maxHeight: 420,
+  },
+  sheetGpsBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
-    backgroundColor: COLORS.accent,
-    paddingVertical: 8,
-    borderRadius: RADII.md,
+    gap: 8,
+    backgroundColor: COLORS.gpsBlueSoft,
+    borderRadius: RADII.lg,
+    paddingVertical: 12,
+    marginBottom: 16,
   },
-  aiTourBtnText: {
-    color: COLORS.white,
+  sheetGpsBtnText: {
+    fontFamily: SERIF_FONT,
+    fontSize: 13.5,
+    fontWeight: '700',
+    color: COLORS.gpsBlue,
+  },
+  sheetSectionLabel: {
+    fontFamily: SERIF_FONT,
     fontSize: 12,
     fontWeight: '700',
+    color: COLORS.inkMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 10,
+    marginTop: 4,
   },
-  aiChatBtn: {
-    flex: 1,
+  sheetWrapGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 16,
+  },
+  sheetChip: {
+    paddingHorizontal: 13,
+    paddingVertical: 8,
+    borderRadius: RADII.pill,
+    backgroundColor: COLORS.bg,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  sheetChipActive: {
+    backgroundColor: COLORS.ink,
+    borderColor: COLORS.ink,
+  },
+  sheetChipText: {
+    fontFamily: SERIF_FONT,
+    fontSize: 12.5,
+    fontWeight: '600',
+    color: COLORS.inkSecondary,
+  },
+  sheetChipTextActive: {
+    color: COLORS.white,
+  },
+  sheetSwitchRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+    paddingVertical: 12,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+    marginBottom: 8,
+  },
+  sheetSwitchTextCol: {
+    flex: 1,
+  },
+  sheetSwitchTitle: {
+    fontFamily: SERIF_FONT,
+    fontSize: 14,
+    fontWeight: '700',
+    color: COLORS.ink,
+  },
+  sheetSwitchSub: {
+    fontFamily: SERIF_FONT,
+    fontSize: 12,
+    color: COLORS.inkMuted,
+    marginTop: 2,
+  },
+  sheetApplyBtn: {
+    backgroundColor: COLORS.ink,
+    borderRadius: RADII.lg,
+    paddingVertical: 13,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  sheetApplyText: {
+    fontFamily: SERIF_FONT,
+    color: COLORS.white,
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  langList: {
     gap: 6,
+  },
+  langOptionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: RADII.lg,
+    backgroundColor: COLORS.bg,
+  },
+  langOptionRowActive: {
     backgroundColor: COLORS.accentSoft,
     borderWidth: 1,
     borderColor: COLORS.accentBorder,
-    paddingVertical: 8,
-    borderRadius: RADII.md,
   },
-  aiChatBtnText: {
-    color: COLORS.accent,
+  langOptionLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  langCodeTag: {
+    fontFamily: SERIF_FONT,
     fontSize: 12,
     fontWeight: '700',
+    color: COLORS.inkMuted,
+    width: 26,
+  },
+  langNativeLabel: {
+    fontFamily: SERIF_FONT,
+    fontSize: 15,
+    fontWeight: '600',
+    color: COLORS.ink,
   },
 });
 

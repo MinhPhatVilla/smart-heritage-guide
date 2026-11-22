@@ -85,11 +85,8 @@ interface AlbumPhotoItem {
 
 const DEFAULT_HCMC_CENTER: [number, number] = [10.7775, 106.699];
 
-function getRankMedal(rank: number): string | null {
-  if (rank === 1) return '🥇';
-  if (rank === 2) return '🥈';
-  if (rank === 3) return '🥉';
-  return null;
+function formatRankLabel(rank: number): string {
+  return `#${rank}`;
 }
 
 export const JourneyAndRankingView: React.FC<JourneyAndRankingViewProps> = ({
@@ -279,40 +276,50 @@ export const JourneyAndRankingView: React.FC<JourneyAndRankingViewProps> = ({
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Header Title */}
+        {/* Compact Editorial Header */}
         <View style={styles.pageHeader}>
-          <Text style={styles.eyebrow}>NHẬT KÝ BỘ HÀNH & XẾP HẠNG</Text>
-          <Text style={styles.pageTitle}>Hành trình Di sản TP.HCM</Text>
+          <Text style={styles.pageTitle}>Hành trình Di sản</Text>
+          <Text style={styles.pageSubtitle}>
+            Nhật ký bộ hành, xếp hạng & bộ sưu tập kỷ niệm
+          </Text>
         </View>
 
-        {/* Summary KPI Strip */}
-        <View style={styles.kpiGrid}>
-          <View style={styles.kpiCard}>
-            <Text style={styles.kpiLabel}>Di sản đã đi</Text>
+        {/* Unified Single-Bar Summary KPI Strip */}
+        <View style={styles.kpiStrip}>
+          <View style={[styles.kpiCell, styles.kpiCellBorder]}>
             <Text style={styles.kpiValue}>
               {records.length}
               <Text style={styles.kpiSubValue}>/{allSites.length}</Text>
             </Text>
+            <Text style={styles.kpiLabel} numberOfLines={1}>
+              Di sản
+            </Text>
           </View>
-          <View style={styles.kpiCard}>
-            <Text style={styles.kpiLabel}>Tổng đi bộ</Text>
+          <View style={[styles.kpiCell, styles.kpiCellBorder]}>
             <Text style={styles.kpiValue} numberOfLines={1}>
               {formatWalkingDuration(totalWalkingSeconds)}
             </Text>
-          </View>
-          <View style={styles.kpiCard}>
-            <Text style={styles.kpiLabel}>Quãng đường</Text>
-            <Text style={styles.kpiValue}>
-              {formatDistance(totalDistanceMeters)}
+            <Text style={styles.kpiLabel} numberOfLines={1}>
+              Đi bộ
             </Text>
           </View>
-          <View style={styles.kpiCard}>
-            <Text style={styles.kpiLabel}>Ảnh kỷ niệm</Text>
+          <View style={[styles.kpiCell, styles.kpiCellBorder]}>
+            <Text style={styles.kpiValue} numberOfLines={1}>
+              {formatDistance(totalDistanceMeters)}
+            </Text>
+            <Text style={styles.kpiLabel} numberOfLines={1}>
+              Quãng đường
+            </Text>
+          </View>
+          <View style={styles.kpiCell}>
             <Text style={styles.kpiValue}>{totalPhotos}</Text>
+            <Text style={styles.kpiLabel} numberOfLines={1}>
+              Ảnh
+            </Text>
           </View>
         </View>
 
-        {/* 4 Sub-Tabs */}
+        {/* 4 Segmented Sub-Tabs */}
         <View style={styles.subTabsBar}>
           <TouchableOpacity
             onPress={() => setActiveSubTab('ranking')}
@@ -325,7 +332,7 @@ export const JourneyAndRankingView: React.FC<JourneyAndRankingViewProps> = ({
             <Trophy
               size={13}
               color={
-                activeSubTab === 'ranking' ? COLORS.white : COLORS.inkSecondary
+                activeSubTab === 'ranking' ? COLORS.ink : COLORS.inkMuted
               }
             />
             <Text
@@ -350,9 +357,7 @@ export const JourneyAndRankingView: React.FC<JourneyAndRankingViewProps> = ({
             <Users
               size={13}
               color={
-                activeSubTab === 'community'
-                  ? COLORS.white
-                  : COLORS.inkSecondary
+                activeSubTab === 'community' ? COLORS.ink : COLORS.inkMuted
               }
             />
             <Text
@@ -376,9 +381,7 @@ export const JourneyAndRankingView: React.FC<JourneyAndRankingViewProps> = ({
           >
             <BookOpen
               size={13}
-              color={
-                activeSubTab === 'log' ? COLORS.white : COLORS.inkSecondary
-              }
+              color={activeSubTab === 'log' ? COLORS.ink : COLORS.inkMuted}
             />
             <Text
               style={[
@@ -401,9 +404,7 @@ export const JourneyAndRankingView: React.FC<JourneyAndRankingViewProps> = ({
           >
             <Images
               size={13}
-              color={
-                activeSubTab === 'album' ? COLORS.white : COLORS.inkSecondary
-              }
+              color={activeSubTab === 'album' ? COLORS.ink : COLORS.inkMuted}
             />
             <Text
               style={[
@@ -517,7 +518,6 @@ export const JourneyAndRankingView: React.FC<JourneyAndRankingViewProps> = ({
                 <View style={styles.listGap}>
                   {rankedActualList.map(
                     ({ rank, record, badgeTitle, effortScore }) => {
-                      const medal = getRankMedal(rank);
                       const widthPercent = Math.max(
                         12,
                         Math.min(
@@ -542,16 +542,21 @@ export const JourneyAndRankingView: React.FC<JourneyAndRankingViewProps> = ({
                             <View
                               style={[
                                 styles.rankBadge,
-                                rank <= 3 && styles.rankBadgeMedal,
+                                rank === 1 && styles.rankBadgeFirst,
+                                rank > 1 && rank <= 3 && styles.rankBadgeTopThree,
                               ]}
                             >
-                              {medal ? (
-                                <Text style={styles.medalEmoji}>{medal}</Text>
-                              ) : (
-                                <Text style={styles.rankNumber}>
-                                  #{rank < 10 ? `0${rank}` : rank}
-                                </Text>
-                              )}
+                              <Text
+                                style={[
+                                  styles.rankNumber,
+                                  rank === 1 && styles.rankNumberFirst,
+                                  rank > 1 &&
+                                    rank <= 3 &&
+                                    styles.rankNumberTopThree,
+                                ]}
+                              >
+                                {formatRankLabel(rank)}
+                              </Text>
                             </View>
 
                             <View style={styles.rankMain}>
@@ -667,7 +672,6 @@ export const JourneyAndRankingView: React.FC<JourneyAndRankingViewProps> = ({
                     distanceMeters,
                     estimatedWalkingSeconds,
                   }) => {
-                    const medal = getRankMedal(rank);
                     const local =
                       site.translations[selectedLanguage] ||
                       site.translations.vi;
@@ -688,16 +692,21 @@ export const JourneyAndRankingView: React.FC<JourneyAndRankingViewProps> = ({
                           <View
                             style={[
                               styles.rankBadge,
-                              rank <= 3 && styles.rankBadgeMedal,
+                              rank === 1 && styles.rankBadgeFirst,
+                              rank > 1 && rank <= 3 && styles.rankBadgeTopThree,
                             ]}
                           >
-                            {medal ? (
-                              <Text style={styles.medalEmoji}>{medal}</Text>
-                            ) : (
-                              <Text style={styles.rankNumber}>
-                                #{rank < 10 ? `0${rank}` : rank}
-                              </Text>
-                            )}
+                            <Text
+                              style={[
+                                styles.rankNumber,
+                                rank === 1 && styles.rankNumberFirst,
+                                rank > 1 &&
+                                  rank <= 3 &&
+                                  styles.rankNumberTopThree,
+                              ]}
+                            >
+                              {formatRankLabel(rank)}
+                            </Text>
                           </View>
 
                           <View style={styles.rankMain}>
@@ -997,7 +1006,6 @@ export const JourneyAndRankingView: React.FC<JourneyAndRankingViewProps> = ({
             ) : (
               <View style={styles.listGap}>
                 {globalEntries.map((entry) => {
-                  const medal = getRankMedal(entry.rank);
                   const isMe = authState?.profile?.id === entry.user_id;
                   return (
                     <View
@@ -1010,14 +1018,23 @@ export const JourneyAndRankingView: React.FC<JourneyAndRankingViewProps> = ({
                       <View
                         style={[
                           styles.rankBadge,
-                          entry.rank <= 3 && styles.rankBadgeMedal,
+                          entry.rank === 1 && styles.rankBadgeFirst,
+                          entry.rank > 1 &&
+                            entry.rank <= 3 &&
+                            styles.rankBadgeTopThree,
                         ]}
                       >
-                        {medal ? (
-                          <Text style={styles.medalEmoji}>{medal}</Text>
-                        ) : (
-                          <Text style={styles.rankNumber}>#{entry.rank}</Text>
-                        )}
+                        <Text
+                          style={[
+                            styles.rankNumber,
+                            entry.rank === 1 && styles.rankNumberFirst,
+                            entry.rank > 1 &&
+                              entry.rank <= 3 &&
+                              styles.rankNumberTopThree,
+                          ]}
+                        >
+                          {formatRankLabel(entry.rank)}
+                        </Text>
                       </View>
                       <View style={styles.globalRowMain}>
                         <View style={styles.globalNameRow}>
@@ -1377,80 +1394,85 @@ const styles = StyleSheet.create({
     paddingBottom: SPACING.xxl + 16,
   },
   pageHeader: {
-    gap: 3,
-  },
-  eyebrow: {
-    fontSize: 10,
-    fontWeight: '700',
-    letterSpacing: 0.9,
-    color: COLORS.inkMuted,
+    gap: 2,
   },
   pageTitle: {
     fontFamily: SERIF_FONT,
     fontSize: 22,
     fontWeight: '700',
     color: COLORS.ink,
+    letterSpacing: -0.2,
   },
-  kpiGrid: {
+  pageSubtitle: {
+    fontSize: 12.5,
+    color: COLORS.inkMuted,
+  },
+  kpiStrip: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: SPACING.sm,
-  },
-  kpiCard: {
-    flexGrow: 1,
-    flexBasis: '46%',
     backgroundColor: COLORS.surface,
     borderWidth: 1,
     borderColor: COLORS.border,
     borderRadius: RADII.lg,
-    padding: SPACING.md,
+    paddingVertical: 12,
     ...SHADOWS.card,
   },
+  kpiCell: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+    gap: 2,
+  },
+  kpiCellBorder: {
+    borderRightWidth: 1,
+    borderRightColor: COLORS.border,
+  },
   kpiLabel: {
-    fontSize: 11,
+    fontSize: 10.5,
     color: COLORS.inkMuted,
     fontWeight: '500',
   },
   kpiValue: {
-    marginTop: 4,
-    fontSize: 18,
+    fontFamily: SERIF_FONT,
+    fontSize: 16,
     fontWeight: '700',
     color: COLORS.ink,
     fontVariant: ['tabular-nums'],
   },
   kpiSubValue: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '500',
     color: COLORS.inkMuted,
   },
   subTabsBar: {
     flexDirection: 'row',
-    backgroundColor: COLORS.surface,
+    backgroundColor: COLORS.surfaceMuted,
     borderRadius: RADII.lg,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    padding: 4,
-    gap: 4,
+    padding: 3,
+    gap: 3,
   },
   subTabBtn: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 5,
-    paddingVertical: 9,
+    gap: 4,
+    paddingVertical: 8,
+    paddingHorizontal: 4,
     borderRadius: RADII.md,
   },
   subTabBtnActive: {
-    backgroundColor: COLORS.ink,
+    backgroundColor: COLORS.surface,
+    ...SHADOWS.card,
   },
   subTabText: {
-    fontSize: 12,
+    fontSize: 11.5,
     fontWeight: '600',
-    color: COLORS.inkSecondary,
+    color: COLORS.inkMuted,
   },
   subTabTextActive: {
-    color: COLORS.white,
+    color: COLORS.ink,
+    fontWeight: '700',
   },
   section: {
     gap: SPACING.md,
@@ -1538,8 +1560,8 @@ const styles = StyleSheet.create({
     gap: SPACING.md,
   },
   rankBadge: {
-    width: 40,
-    height: 40,
+    width: 36,
+    height: 36,
     borderRadius: RADII.md,
     borderWidth: 1,
     borderColor: COLORS.border,
@@ -1547,18 +1569,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  rankBadgeMedal: {
-    backgroundColor: COLORS.amberBg,
-    borderColor: COLORS.amberBorder,
+  rankBadgeFirst: {
+    backgroundColor: COLORS.accentSoft,
+    borderColor: COLORS.accentBorder,
   },
-  medalEmoji: {
-    fontSize: 20,
+  rankBadgeTopThree: {
+    backgroundColor: COLORS.surfaceMuted,
+    borderColor: COLORS.borderStrong,
   },
   rankNumber: {
-    fontSize: 12,
+    fontFamily: SERIF_FONT,
+    fontSize: 13,
     fontWeight: '700',
     color: COLORS.inkSecondary,
     fontVariant: ['tabular-nums'],
+  },
+  rankNumberFirst: {
+    color: COLORS.accent,
+  },
+  rankNumberTopThree: {
+    color: COLORS.ink,
   },
   rankMain: {
     flex: 1,
