@@ -457,49 +457,52 @@ function buildExplorerMapHtml(
         return buildRasterStyleJson(tileCfg);
       }
 
-      function createSiteMarkerElement(site) {
+      function createSiteMarkerElement(site, compactMode) {
         var el = document.createElement('div');
         el.style.cursor = 'pointer';
-        el.style.zIndex = site.isSelected ? '30' : '10';
-        var borderColor = site.isSelected ? '#B93815' : (site.isVisited ? '#047857' : '#141413');
-        var badgeText = site.isVisited ? '✓' : String(site.index);
+        el.style.zIndex = site.isSelected ? '40' : '12';
 
         if (site.isSelected) {
-          var shortLabel = site.label.length > 18 ? site.label.slice(0, 16) + '…' : site.label;
+          var shortLabel = site.label.length > 20 ? site.label.slice(0, 18) + '…' : site.label;
           el.innerHTML = '<div class="shg-pin-badge" style="display:inline-flex;flex-direction:column;align-items:center;user-select:none;">'
-            + '<div style="display:inline-flex;align-items:center;gap:6px;padding:3px 9px 3px 3px;border-radius:999px;background:#FFFFFF;border:2px solid #B93815;box-shadow:0 8px 22px rgba(20,20,19,0.28);">'
-            + '<div style="width:24px;height:24px;border-radius:999px;overflow:hidden;flex-shrink:0;background:#F3F1EC;">'
-            + '<img src="' + escapeHtml(site.coverImage) + '" alt="" style="width:24px;height:24px;object-fit:cover;display:block;" />'
+            + '<div style="display:inline-flex;align-items:center;gap:6px;padding:3px 10px 3px 3px;border-radius:999px;background:rgba(255,255,255,0.97);border:1.5px solid #B93815;box-shadow:0 8px 24px rgba(20,20,19,0.22);">'
+            + '<div style="width:22px;height:22px;border-radius:999px;overflow:hidden;flex-shrink:0;background:#F3F1EC;">'
+            + '<img src="' + escapeHtml(site.coverImage) + '" alt="" style="width:22px;height:22px;object-fit:cover;display:block;" />'
             + '</div>'
             + '<span style="font-size:11.5px;font-weight:700;color:#141413;white-space:nowrap;">'
             + escapeHtml(shortLabel)
             + '</span>'
-            + '<span style="display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 4px;border-radius:999px;background:#B93815;color:#FFFFFF;font-size:9.5px;font-weight:700;">'
-            + badgeText
-            + '</span>'
             + '</div>'
             + '<div style="width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:6px solid #B93815;margin-top:-1px;"></div>'
             + '</div>';
-        } else {
-          el.innerHTML = '<div class="shg-pin-badge" style="position:relative;width:36px;height:36px;border-radius:999px;background:#FFFFFF;border:2.5px solid ' + (site.isVisited ? '#047857' : '#FFFFFF') + ';box-shadow:0 4px 14px rgba(20,20,19,0.28);user-select:none;">'
-            + '<div style="width:100%;height:100%;border-radius:999px;overflow:hidden;background:#F3F1EC;">'
-            + '<img src="' + escapeHtml(site.coverImage) + '" alt="" style="width:100%;height:100%;object-fit:cover;display:block;" />'
-            + '</div>'
-            + '<span style="position:absolute;top:-4px;right:-4px;display:inline-flex;align-items:center;justify-content:center;min-width:16px;height:16px;padding:0 3px;border-radius:999px;background:' + borderColor + ';color:#FFFFFF;border:1.5px solid #FFFFFF;font-size:9px;font-weight:700;line-height:1;">'
-            + badgeText
-            + '</span>'
-            + '</div>';
+          return el;
         }
+
+        if (compactMode) {
+          var dotBg = site.isVisited ? '#047857' : '#B93815';
+          el.innerHTML = '<div class="shg-pin-badge" style="width:12px;height:12px;border-radius:999px;background:' + dotBg + ';border:2px solid #FFFFFF;box-shadow:0 2px 6px rgba(20,20,19,0.28);user-select:none;"></div>';
+          return el;
+        }
+
+        el.innerHTML = '<div class="shg-pin-badge" style="position:relative;width:30px;height:30px;border-radius:999px;background:#FFFFFF;border:2px solid ' + (site.isVisited ? '#047857' : '#FFFFFF') + ';box-shadow:0 4px 12px rgba(20,20,19,0.22);user-select:none;">'
+          + '<div style="width:100%;height:100%;border-radius:999px;overflow:hidden;background:#F3F1EC;">'
+          + '<img src="' + escapeHtml(site.coverImage) + '" alt="" style="width:100%;height:100%;object-fit:cover;display:block;" />'
+          + '</div>'
+          + (site.isVisited
+            ? '<span style="position:absolute;bottom:-2px;right:-2px;width:9px;height:9px;border-radius:999px;background:#047857;border:1.5px solid #FFFFFF;"></span>'
+            : '')
+          + '</div>';
         return el;
       }
 
       function createRestaurantMarkerElement(res) {
         var el = document.createElement('div');
         el.style.cursor = 'pointer';
+        el.style.zIndex = '8';
         var isOverture = res.source === 'overture';
-        var bg = isOverture ? '#EA580C' : '#141413';
-        el.innerHTML = '<div class="shg-pin-badge" style="display:inline-flex;align-items:center;gap:3px;padding:' + (isOverture ? '2px 6px' : '3px 7px') + ';border-radius:999px;background:' + bg + ';color:#FFFFFF;border:1.5px solid #FFFFFF;box-shadow:0 3px 9px rgba(0,0,0,0.24);font-size:' + (isOverture ? '9.5px' : '10px') + ';font-weight:700;white-space:nowrap;">'
-          + '<span style="color:#FDE047;">★</span>'
+        var dotColor = isOverture ? '#D97706' : '#141413';
+        el.innerHTML = '<div class="shg-pin-badge" style="display:inline-flex;align-items:center;gap:3px;padding:2px 6px;border-radius:999px;background:rgba(255,255,255,0.95);color:#141413;border:1px solid rgba(20,20,19,0.12);box-shadow:0 2px 8px rgba(0,0,0,0.14);font-size:9.5px;font-weight:700;white-space:nowrap;">'
+          + '<span style="width:6px;height:6px;border-radius:999px;background:' + dotColor + ';display:inline-block;"></span>'
           + '<span>' + Number(res.rating).toFixed(1) + '</span>'
           + '</div>';
         return el;
@@ -536,19 +539,28 @@ function buildExplorerMapHtml(
       }
 
       function applyMapboxOrOsmEnhancements(map, tileCfg, is3D, lightPreset) {
-        // 1. Mapbox Standard 3D (v3): cấu hình ánh sáng Ngày/Hoàng hôn/Đêm + hiển thị nhãn POI & 3D
+        // 1. Mapbox Standard 3D (v3): phong cách tối giản hiện đại (ẩn POI/Transit rác, giữ đường phố & khối 3D sạch)
         if (USE_MAPBOX && tileCfg.id === 'mapbox_standard') {
           try {
             map.setConfigProperty('basemap', 'lightPreset', lightPreset || 'day');
-            map.setConfigProperty('basemap', 'showPointOfInterestLabels', true);
+            map.setConfigProperty('basemap', 'showPointOfInterestLabels', false);
             map.setConfigProperty('basemap', 'showRoadLabels', true);
-            map.setConfigProperty('basemap', 'showTransitLabels', true);
+            map.setConfigProperty('basemap', 'showTransitLabels', false);
             map.setConfigProperty('basemap', 'show3dObjects', is3D);
+            if (typeof map.setFog === 'function') {
+              var isNight = lightPreset === 'night';
+              map.setFog(is3D ? {
+                color: isNight ? '#111827' : '#F4F2EC',
+                'high-color': isNight ? '#090D16' : '#E7ECF2',
+                'horizon-blend': 0.08,
+                range: [1.5, 11]
+              } : null);
+            }
           } catch (e) {}
           return;
         }
 
-        // 2. Mapbox Streets / Outdoors / Satellite v12: thêm lớp 3D building extrusion từ composite source
+        // 2. Mapbox Streets / Outdoors / Satellite v12: khối kiến trúc 3D tông alabaster sạch mượt
         if (USE_MAPBOX && tileCfg.renderMode === 'mapbox') {
           try {
             if (is3D && map.getSource('composite') && !map.getLayer('shg-mapbox-3d-buildings')) {
@@ -566,18 +578,20 @@ function buildExplorerMapHtml(
                 'source-layer': 'building',
                 filter: ['==', 'extrude', 'true'],
                 type: 'fill-extrusion',
-                minzoom: 14.5,
+                minzoom: 14.2,
                 paint: {
                   'fill-extrusion-color': [
                     'interpolate', ['linear'],
                     ['coalesce', ['get', 'height'], 10],
-                    0, '#EAE6DF',
-                    25, '#DDD7CC',
-                    80, '#CFC7B9'
+                    0, '#F3F1EC',
+                    25, '#E7E4DC',
+                    75, '#D9D4C9',
+                    160, '#CBC5B8'
                   ],
                   'fill-extrusion-height': ['get', 'height'],
                   'fill-extrusion-base': ['get', 'min_height'],
-                  'fill-extrusion-opacity': 0.82
+                  'fill-extrusion-opacity': 0.78,
+                  'fill-extrusion-vertical-gradient': true
                 }
               }, labelLayerId);
             } else if (map.getLayer('shg-mapbox-3d-buildings')) {
@@ -587,7 +601,7 @@ function buildExplorerMapHtml(
           return;
         }
 
-        // 3. OpenStreetMap Vector 3D (OpenFreeMap) — bảng màu Google Maps
+        // 3. OpenStreetMap Vector 3D (OpenFreeMap) — Bảng màu Kiến trúc Tối giản Hiện đại (Apple Maps / Editorial 3D)
         if (tileCfg.renderMode !== 'vector') return;
         var style = map.getStyle();
         if (!style || !Array.isArray(style.layers)) return;
@@ -599,32 +613,44 @@ function buildExplorerMapHtml(
           try { if (map.getLayer(id)) map.setLayoutProperty(id, prop, val); } catch (e) {}
         };
 
+        // Ẩn bớt icon POI/cửa hàng/trạm xe thừa để mặt bằng 3D tinh gọn, nổi bật 50 di sản
+        for (var j = 0; j < style.layers.length; j++) {
+          var lyr = style.layers[j];
+          var lid = String(lyr.id || '').toLowerCase();
+          if (
+            lyr.type === 'symbol' &&
+            (lid.indexOf('poi') !== -1 || lid.indexOf('shop') !== -1 || lid.indexOf('transit') !== -1 || lid.indexOf('housenumber') !== -1)
+          ) {
+            setLayout(lyr.id, 'visibility', 'none');
+          }
+        }
+
         if (tileCfg.googleLikePalette) {
-          setPaint('background', 'background-color', '#F1F3F4');
-          setPaint('water', 'fill-color', '#AADAFF');
-          setPaint('waterway_river', 'line-color', '#94CCF9');
-          setPaint('waterway_other', 'line-color', '#AADAFF');
-          setPaint('park', 'fill-color', '#C8E6C9');
-          setPaint('park_outline', 'line-color', '#A5D6A7');
-          setPaint('landcover_wood', 'fill-color', '#CBE8C6');
-          setPaint('landcover_grass', 'fill-color', '#D5ECD2');
-          setPaint('landuse_residential', 'fill-color', '#ECEFF1');
-          setPaint('landuse_commercial_area', 'fill-color', '#F5EFE6');
-          setPaint('landuse_hospital', 'fill-color', '#FDE8E8');
-          setPaint('landuse_school', 'fill-color', '#FEF7E0');
-          setPaint('road_motorway_casing', 'line-color', '#E2A24B');
-          setPaint('road_motorway', 'line-color', '#FCD6A4');
-          setPaint('road_trunk_primary_casing', 'line-color', '#DFC066');
-          setPaint('road_trunk_primary', 'line-color', '#FFE89E');
-          setPaint('road_secondary_tertiary_casing', 'line-color', '#D1D7E0');
+          setPaint('background', 'background-color', '#F6F5F2');
+          setPaint('water', 'fill-color', '#C9DDEA');
+          setPaint('waterway_river', 'line-color', '#BCD4E6');
+          setPaint('waterway_other', 'line-color', '#C9DDEA');
+          setPaint('park', 'fill-color', '#DCE8DC');
+          setPaint('park_outline', 'line-color', '#CDDDCF');
+          setPaint('landcover_wood', 'fill-color', '#DDE8DB');
+          setPaint('landcover_grass', 'fill-color', '#E5EFE3');
+          setPaint('landuse_residential', 'fill-color', '#F2F1ED');
+          setPaint('landuse_commercial_area', 'fill-color', '#F4EFE7');
+          setPaint('landuse_hospital', 'fill-color', '#F7ECEC');
+          setPaint('landuse_school', 'fill-color', '#F7F3E6');
+          setPaint('road_motorway_casing', 'line-color', '#E2D4BC');
+          setPaint('road_motorway', 'line-color', '#F3E7D3');
+          setPaint('road_trunk_primary_casing', 'line-color', '#E5DCCB');
+          setPaint('road_trunk_primary', 'line-color', '#F9F3E6');
+          setPaint('road_secondary_tertiary_casing', 'line-color', '#E6E4DE');
           setPaint('road_secondary_tertiary', 'line-color', '#FFFFFF');
-          setPaint('road_minor_casing', 'line-color', '#DCE1E8');
+          setPaint('road_minor_casing', 'line-color', '#ECEAE4');
           setPaint('road_minor', 'line-color', '#FFFFFF');
-          setPaint('road_service_track_casing', 'line-color', '#E4E8EE');
-          setPaint('road_service_track', 'line-color', '#FAFBFD');
-          setPaint('road_path_pedestrian', 'line-color', '#E8DEC8');
-          setPaint('building', 'fill-color', '#E8EAED');
-          setPaint('building', 'fill-outline-color', '#D5D9DF');
+          setPaint('road_service_track_casing', 'line-color', '#EFECE7');
+          setPaint('road_service_track', 'line-color', '#FAF9F6');
+          setPaint('road_path_pedestrian', 'line-color', '#ECE5D8');
+          setPaint('building', 'fill-color', '#ECEAE5');
+          setPaint('building', 'fill-outline-color', '#E0DDD6');
         }
 
         if (map.getLayer('building-3d')) {
@@ -632,12 +658,12 @@ function buildExplorerMapHtml(
           setPaint('building-3d', 'fill-extrusion-color', [
             'interpolate', ['linear'],
             ['coalesce', ['get', 'render_height'], 10],
-            0, '#EAE6DF',
-            18, '#E0DBD1',
-            45, '#D4CEC2',
-            120, '#C8C0B2'
+            0, '#F3F1EC',
+            18, '#EAE7E0',
+            50, '#DDD8CE',
+            130, '#CFC9BC'
           ]);
-          setPaint('building-3d', 'fill-extrusion-opacity', 0.9);
+          setPaint('building-3d', 'fill-extrusion-opacity', 0.8);
           setPaint('building-3d', 'fill-extrusion-vertical-gradient', true);
         }
       }
@@ -1029,11 +1055,28 @@ function buildExplorerMapHtml(
           updateUserHeadingVisual(heading, isNavigating);
         }
 
+        var lastShowRestaurants = false;
+        var lastZoomTier = 'street';
+
+        function getZoomTier() {
+          var z = map.getZoom();
+          if (z < 13.4) return 'overview';
+          if (z < 15.0) return 'city';
+          return 'street';
+        }
+
         function renderSites(sites, showRestaurants) {
+          lastShowRestaurants = !!showRestaurants;
+          var tier = getZoomTier();
+          lastZoomTier = tier;
+          var compactMode = tier === 'overview';
+          var allowAllRestaurants = Boolean(showRestaurants) && tier === 'street';
+
           var sig = JSON.stringify({
-            showRestaurants: showRestaurants,
+            tier: tier,
+            showRestaurants: !!showRestaurants,
             sites: sites.map(function(s) {
-              return [s.id, s.label, s.index, s.isVisited, s.isSelected];
+              return [s.id, s.label, s.isVisited, s.isSelected];
             })
           });
           if (sig === lastSitesSignature) return;
@@ -1045,7 +1088,7 @@ function buildExplorerMapHtml(
           restaurantMarkers = [];
 
           sites.forEach(function(site) {
-            var el = createSiteMarkerElement(site);
+            var el = createSiteMarkerElement(site, compactMode);
             el.addEventListener('click', function(ev) {
               ev.stopPropagation();
               postToHost({ type: 'SITE_CLICK', siteId: site.id });
@@ -1064,8 +1107,11 @@ function buildExplorerMapHtml(
               .addTo(map);
             siteMarkers.push(m);
 
-            if (showRestaurants && Array.isArray(site.restaurants)) {
-              site.restaurants.forEach(function(res) {
+            // Chỉ hiện quán ăn khi đang bật nút Ẩm thực ở zoom gần, HOẶC cho riêng địa điểm đang chọn để bản đồ 3D luôn gọn thoáng
+            var showSiteFood = (allowAllRestaurants || (site.isSelected && tier !== 'overview')) && Array.isArray(site.restaurants);
+            if (showSiteFood) {
+              var maxFood = site.isSelected ? 6 : 2;
+              site.restaurants.slice(0, maxFood).forEach(function(res) {
                 var rEl = createRestaurantMarkerElement(res);
                 rEl.addEventListener('click', function(ev) {
                   ev.stopPropagation();
@@ -1089,6 +1135,13 @@ function buildExplorerMapHtml(
             }
           });
         }
+
+        map.on('zoomend', function() {
+          var nextTier = getZoomTier();
+          if (nextTier !== lastZoomTier && lastKnownSites.length > 0) {
+            renderSites(lastKnownSites, lastShowRestaurants);
+          }
+        });
 
         function setTileConfig(cfg) {
           if (!cfg || currentStyleId === cfg.id) return;
@@ -1621,8 +1674,9 @@ export const MapExplorer: React.FC<MapExplorerProps> = ({
   );
   const [is3DView, setIs3DView] = useState<boolean>(true);
   const [lightPreset, setLightPreset] = useState<MapboxLightPreset>('day');
+  // Mặc định ẩn 300+ ghim quán ăn để mặt bằng bản đồ 3D cực gọn; tự hiện khi bấm nút Ẩm thực hoặc chọn di tích
   const [showRestaurantsOnMap, setShowRestaurantsOnMap] =
-    useState<boolean>(true);
+    useState<boolean>(false);
   const [showStyleMenu, setShowStyleMenu] = useState<boolean>(false);
   const [tappedPlace, setTappedPlace] = useState<{
     name: string;
@@ -2157,73 +2211,80 @@ export const MapExplorer: React.FC<MapExplorerProps> = ({
         )}
       </View>
 
-      {/* Minimal Top-Right Floating Controls (Layers + 3D + Light + Food) */}
+      {/* Minimalist Unified Top-Right Frosted Glass Dock (Layers · 3D · Light · Food) */}
       <View style={styles.topRightControls} pointerEvents="box-none">
-        <View style={styles.topRightIconColumn}>
+        <View style={styles.controlDock}>
           <TouchableOpacity
-            activeOpacity={0.85}
+            activeOpacity={0.8}
             onPress={() => setShowStyleMenu((prev) => !prev)}
             style={[
-              styles.roundControlBtn,
-              showStyleMenu && styles.roundControlBtnActive,
+              styles.dockBtn,
+              showStyleMenu && styles.dockBtnActive,
             ]}
             accessibilityLabel="Chọn lớp bản đồ"
           >
             <Layers
-              size={18}
+              size={16}
               color={showStyleMenu ? COLORS.white : COLORS.ink}
             />
           </TouchableOpacity>
 
           {is3DCapable && (
-            <TouchableOpacity
-              activeOpacity={0.85}
-              onPress={handleToggle3D}
-              style={[
-                styles.roundControlBtn,
-                is3DView && styles.roundControlBtn3DActive,
-              ]}
-              accessibilityLabel="Chuyển góc nhìn 2D và 3D"
-            >
-              <Text
+            <>
+              <View style={styles.dockDivider} />
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={handleToggle3D}
                 style={[
-                  styles.toggle3DText,
-                  is3DView && styles.toggle3DTextActive,
+                  styles.dockBtn,
+                  is3DView && styles.dockBtn3DActive,
                 ]}
+                accessibilityLabel="Chuyển góc nhìn 2D và 3D"
               >
-                {is3DView ? '3D' : '2D'}
-              </Text>
-            </TouchableOpacity>
+                <Text
+                  style={[
+                    styles.toggle3DText,
+                    is3DView && styles.toggle3DTextActive,
+                  ]}
+                >
+                  {is3DView ? '3D' : '2D'}
+                </Text>
+              </TouchableOpacity>
+            </>
           )}
 
           {showLightButton && (
-            <TouchableOpacity
-              activeOpacity={0.85}
-              onPress={handleCycleLightPreset}
-              style={styles.roundControlBtn}
-              accessibilityLabel="Đổi ánh sáng Mapbox Standard 3D"
-            >
-              {lightPreset === 'day' ? (
-                <Sun size={17} color="#D97706" />
-              ) : lightPreset === 'dusk' ? (
-                <Sunset size={17} color={COLORS.accent} />
-              ) : (
-                <Moon size={16} color={COLORS.ink} />
-              )}
-            </TouchableOpacity>
+            <>
+              <View style={styles.dockDivider} />
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={handleCycleLightPreset}
+                style={styles.dockBtn}
+                accessibilityLabel="Đổi ánh sáng Mapbox Standard 3D"
+              >
+                {lightPreset === 'day' ? (
+                  <Sun size={16} color="#D97706" />
+                ) : lightPreset === 'dusk' ? (
+                  <Sunset size={16} color={COLORS.accent} />
+                ) : (
+                  <Moon size={15} color={COLORS.ink} />
+                )}
+              </TouchableOpacity>
+            </>
           )}
 
+          <View style={styles.dockDivider} />
           <TouchableOpacity
-            activeOpacity={0.85}
+            activeOpacity={0.8}
             onPress={() => setShowRestaurantsOnMap((prev) => !prev)}
             style={[
-              styles.roundControlBtn,
-              showRestaurantsOnMap && styles.roundControlBtnActive,
+              styles.dockBtn,
+              showRestaurantsOnMap && styles.dockBtnActive,
             ]}
             accessibilityLabel="Hiện hoặc ẩn quán ăn quanh di tích"
           >
             <Utensils
-              size={17}
+              size={15}
               color={showRestaurantsOnMap ? COLORS.white : COLORS.ink}
             />
           </TouchableOpacity>
@@ -2279,7 +2340,7 @@ export const MapExplorer: React.FC<MapExplorerProps> = ({
         )}
       </View>
 
-      {/* Floating Bottom-Right Icon Controls (Zoom +/-, Fit All, My GPS) */}
+      {/* Minimalist Bottom-Right Controls (Unified Zoom/Fit Dock + GPS Anchor) */}
       <View
         style={[
           styles.rightControls,
@@ -2289,34 +2350,34 @@ export const MapExplorer: React.FC<MapExplorerProps> = ({
         ]}
         pointerEvents="box-none"
       >
-        <View style={styles.zoomGroup}>
+        <View style={styles.controlDock}>
           <TouchableOpacity
-            activeOpacity={0.82}
+            activeOpacity={0.8}
             onPress={handleZoomIn}
-            style={styles.zoomBtn}
+            style={styles.dockBtn}
             accessibilityLabel="Phóng to bản đồ"
           >
-            <Plus size={17} color={COLORS.ink} />
+            <Plus size={16} color={COLORS.ink} />
           </TouchableOpacity>
-          <View style={styles.zoomDivider} />
+          <View style={styles.dockDivider} />
           <TouchableOpacity
-            activeOpacity={0.82}
+            activeOpacity={0.8}
             onPress={handleZoomOut}
-            style={styles.zoomBtn}
+            style={styles.dockBtn}
             accessibilityLabel="Thu nhỏ bản đồ"
           >
-            <Minus size={17} color={COLORS.ink} />
+            <Minus size={16} color={COLORS.ink} />
+          </TouchableOpacity>
+          <View style={styles.dockDivider} />
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={handleFitAllMarkers}
+            style={styles.dockBtn}
+            accessibilityLabel="Xem toàn cảnh các di tích"
+          >
+            <Maximize2 size={15} color={COLORS.ink} />
           </TouchableOpacity>
         </View>
-
-        <TouchableOpacity
-          activeOpacity={0.85}
-          onPress={handleFitAllMarkers}
-          style={styles.roundControlBtn}
-          accessibilityLabel="Xem toàn cảnh các di tích"
-        >
-          <Maximize2 size={17} color={COLORS.ink} />
-        </TouchableOpacity>
 
         <TouchableOpacity
           activeOpacity={0.85}
@@ -2833,17 +2894,39 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     gap: SPACING.sm,
   },
-  topRightIconColumn: {
-    gap: SPACING.sm,
-    alignItems: 'flex-end',
+  controlDock: {
+    width: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.92)',
+    borderWidth: 1,
+    borderColor: 'rgba(20, 20, 19, 0.08)',
+    overflow: 'hidden',
+    ...SHADOWS.floating,
+  },
+  dockBtn: {
+    width: 38,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dockBtnActive: {
+    backgroundColor: COLORS.ink,
+  },
+  dockBtn3DActive: {
+    backgroundColor: COLORS.gpsBlue,
+  },
+  dockDivider: {
+    height: 1,
+    backgroundColor: 'rgba(20, 20, 19, 0.07)',
+    marginHorizontal: 8,
   },
   roundControlBtn: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: 'rgba(255, 255, 255, 0.96)',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.94)',
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: 'rgba(20, 20, 19, 0.08)',
     alignItems: 'center',
     justifyContent: 'center',
     ...SHADOWS.floating,
