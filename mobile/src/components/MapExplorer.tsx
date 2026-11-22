@@ -20,6 +20,7 @@ import {
   Check,
   ChevronDown,
   ChevronUp,
+  Compass,
   CornerUpLeft,
   CornerUpRight,
   ExternalLink,
@@ -72,6 +73,7 @@ import { COLORS, RADII, SERIF_FONT, SHADOWS, SPACING } from '../theme';
 
 export interface MapExplorerProps {
   userLocation: [number, number];
+  userHeading?: number | null;
   sites: HeritageSite[];
   selectedSiteId?: string | null;
   visitedRecords: VisitedSiteRecord[];
@@ -119,6 +121,9 @@ interface MapStatePayload {
   lightPreset: MapboxLightPreset;
   selectedLanguage: SupportedLanguage;
   userLocation: [number, number];
+  userHeading: number | null;
+  followNav: boolean;
+  isSimulatingWalk: boolean;
   searchRadiusMeters: number;
   sites: SerializedSiteMarker[];
   showRestaurants: boolean;
@@ -133,6 +138,7 @@ interface MapStatePayload {
 type MapCommand =
   | { type: 'FIT_ALL' }
   | { type: 'CENTER_USER' }
+  | { type: 'RECENTER_NAV' }
   | { type: 'ZOOM_IN' }
   | { type: 'ZOOM_OUT' }
   | { type: 'SET_3D'; enabled: boolean }
@@ -142,6 +148,7 @@ type MapCommand =
 type MapBridgeIncomingMessage =
   | { source: 'shg-map'; mapId: string; type: 'MAP_READY'; engine?: string }
   | { source: 'shg-map'; mapId: string; type: 'MAPBOX_AUTH_ERROR'; message?: string }
+  | { source: 'shg-map'; mapId: string; type: 'NAV_FOLLOW_CHANGED'; following: boolean }
   | { source: 'shg-map'; mapId: string; type: 'SITE_CLICK'; siteId: string }
   | {
       source: 'shg-map';
@@ -425,11 +432,14 @@ function buildExplorerMapHtml(
         el.style.display = 'flex';
         el.style.alignItems = 'center';
         el.style.justifyContent = 'center';
-        el.style.width = '30px';
-        el.style.height = '30px';
+        el.style.width = '56px';
+        el.style.height = '56px';
         el.style.cursor = 'grab';
-        el.innerHTML = '<span class="shg-gps-ring"></span>'
-          + '<span style="position:relative;width:16px;height:16px;border-radius:9999px;background:#1A73E8;border:3px solid #FFFFFF;box-shadow:0 3px 12px rgba(26,115,232,0.55);"></span>';
+        el.innerHTML = '<span class="shg-heading-cone" style="position:absolute;top:-2px;left:50%;width:40px;height:36px;margin-left:-20px;background:radial-gradient(ellipse at 50% 100%, rgba(26,115,232,0.52) 0%, rgba(26,115,232,0.16) 52%, rgba(26,115,232,0) 80%);clip-path:polygon(50% 96%, 6% 4%, 94% 4%);opacity:0;transition:opacity 0.25s ease;pointer-events:none;"></span>'
+          + '<span class="shg-gps-ring"></span>'
+          + '<span class="shg-gps-core" style="position:relative;display:flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:9999px;background:#1A73E8;border:3px solid #FFFFFF;box-shadow:0 3px 12px rgba(26,115,232,0.6);">'
+          + '<svg class="shg-nav-arrow" viewBox="0 0 24 24" width="11" height="11" style="opacity:0;transition:opacity 0.2s ease;"><path d="M12 2L19 20L12 16.5L5 20L12 2Z" fill="#FFFFFF"/></svg>'
+          + '</span>';
         return el;
       }
 
@@ -573,9 +583,13 @@ function buildExplorerMapHtml(
         var styleReady = false;
 
         var userMarker = null;
+        var userMarkerEl = null;
         var destMarker = null;
         var siteMarkers = [];
         var restaurantMarkers = [];
+        var isFollowingNav = false;
+        var lastKnownHeading = null;
+        var wasInNavMode = false;
 
         var map = new gl.Map({
           container: 'map',
@@ -711,7 +725,7 @@ function buildExplorerMapHtml(
               .addTo(map);
           }
 
-          if (shouldFit) {
+          if (shouldFit && !isFollowingNav) {
             try {
               var bounds = new gl.LngLatBounds(lngLatCoords[0], lngLatCoords[0]);
               lngLatCoords.forEach(function(c) { bounds.extend(c); });
@@ -724,12 +738,45 @@ function buildExplorerMapHtml(
           }
         }
 
-        function ensureUserMarker(coords) {
+        function updateUserHeadingVisual(heading, isNavigating) {
+          if (!userMarker || !userMarkerEl) return;
+          var cone = userMarkerEl.querySelector('.shg-heading-cone');
+          var arrow = userMarkerEl.querySelector('.shg-nav-arrow');
+          var showDir = typeof heading === 'number' && !isNaN(heading);
+          if (cone) cone.style.opacity = showDir ? '1' : '0';
+          if (arrow) arrow.style.opacity = (showDir && isNavigating) ? '1' : '0';
+          if (showDir && typeof userMarker.setRotation === 'function') {
+            userMarker.setRotation(heading);
+          }
+        }
+
+        function engageNavCamera(coords, heading, durationMs, linear) {
+          var targetBearing = (typeof heading === 'number' && !isNaN(heading))
+            ? heading
+            : map.getBearing();
+          var opts = {
+            center: [coords[1], coords[0]],
+            zoom: 18.0,
+            pitch: is3DEnabled ? 62 : 0,
+            bearing: targetBearing,
+            padding: { top: 230, bottom: 185, left: 0, right: 0 },
+            duration: durationMs
+          };
+          if (linear) {
+            opts.easing = function(t) { return t; };
+          }
+          map.easeTo(opts);
+        }
+
+        function ensureUserMarker(coords, heading, isNavigating) {
           if (!userMarker) {
+            userMarkerEl = createUserMarkerElement();
             userMarker = new gl.Marker({
-              element: createUserMarkerElement(),
+              element: userMarkerEl,
               draggable: true,
-              anchor: 'center'
+              anchor: 'center',
+              rotationAlignment: 'map',
+              pitchAlignment: 'map'
             })
               .setLngLat([coords[1], coords[0]])
               .addTo(map);
@@ -741,6 +788,7 @@ function buildExplorerMapHtml(
           } else {
             userMarker.setLngLat([coords[1], coords[0]]);
           }
+          updateUserHeadingVisual(heading, isNavigating);
         }
 
         function renderSites(sites, showRestaurants) {
@@ -876,8 +924,25 @@ function buildExplorerMapHtml(
           });
         });
 
+        map.on('dragstart', function() {
+          if (isFollowingNav) {
+            isFollowingNav = false;
+            postToHost({ type: 'NAV_FOLLOW_CHANGED', following: false });
+          }
+        });
+
         window.__SHG_UPDATE__ = function(state) {
           if (!state) return;
+          var hasRoute = Boolean(state.route && Array.isArray(state.route.coordinates) && state.route.coordinates.length >= 2);
+          if (typeof state.followNav === 'boolean') {
+            isFollowingNav = hasRoute && state.followNav;
+          }
+          if (typeof state.userHeading === 'number') {
+            lastKnownHeading = state.userHeading;
+          } else if (!hasRoute) {
+            lastKnownHeading = null;
+          }
+
           if (state.lightPreset && state.lightPreset !== currentLightPreset) {
             currentLightPreset = state.lightPreset;
             if (styleReady && USE_MAPBOX && currentTile.id === 'mapbox_standard') {
@@ -889,8 +954,8 @@ function buildExplorerMapHtml(
             if (styleReady) {
               applyMapboxOrOsmEnhancements(map, currentTile, is3DEnabled, currentLightPreset);
               map.easeTo({
-                pitch: is3DEnabled ? 48 : 0,
-                bearing: is3DEnabled ? -14 : 0,
+                pitch: is3DEnabled ? (isFollowingNav ? 62 : 48) : 0,
+                bearing: is3DEnabled ? (isFollowingNav && typeof lastKnownHeading === 'number' ? lastKnownHeading : -14) : 0,
                 duration: 500
               });
             }
@@ -898,56 +963,102 @@ function buildExplorerMapHtml(
           if (state.tileConfig) {
             setTileConfig(state.tileConfig);
           }
+
+          var nextKey = state.route ? state.route.key : '';
+          var routeJustStarted = nextKey && nextKey !== lastRouteKey;
+          if (nextKey !== lastRouteKey) {
+            lastRouteKey = nextKey;
+            syncRouteLayer(state.route || null, !isFollowingNav);
+          }
+
           if (Array.isArray(state.userLocation) && state.userLocation.length === 2) {
             lastKnownUser = state.userLocation;
-            ensureUserMarker(state.userLocation);
-            syncRadiusLayer(state.userLocation, state.searchRadiusMeters || 0);
+            ensureUserMarker(state.userLocation, lastKnownHeading, hasRoute);
+            syncRadiusLayer(state.userLocation, hasRoute ? 0 : (state.searchRadiusMeters || 0));
 
-            var latDiff = Math.abs(prevUserCenter[0] - state.userLocation[0]);
-            var lngDiff = Math.abs(prevUserCenter[1] - state.userLocation[1]);
-            if (latDiff > 0.012 || lngDiff > 0.012) {
-              map.flyTo({
-                center: [state.userLocation[1], state.userLocation[0]],
-                zoom: 15.6,
-                duration: 850
-              });
+            if (hasRoute && isFollowingNav) {
+              // Góc nhìn 3D Heading-Up Chase-Cam mượt mà theo hướng điện thoại / OSRM
+              if (routeJustStarted || !wasInNavMode) {
+                engageNavCamera(state.userLocation, lastKnownHeading, 850, false);
+              } else {
+                engageNavCamera(
+                  state.userLocation,
+                  lastKnownHeading,
+                  state.isSimulatingWalk ? 260 : 420,
+                  Boolean(state.isSimulatingWalk)
+                );
+              }
+            } else {
+              if (wasInNavMode && !hasRoute) {
+                map.easeTo({
+                  center: [state.userLocation[1], state.userLocation[0]],
+                  zoom: 15.8,
+                  pitch: is3DEnabled ? 45 : 0,
+                  bearing: is3DEnabled ? -12 : 0,
+                  padding: { top: 0, bottom: 0, left: 0, right: 0 },
+                  duration: 650
+                });
+              } else {
+                var latDiff = Math.abs(prevUserCenter[0] - state.userLocation[0]);
+                var lngDiff = Math.abs(prevUserCenter[1] - state.userLocation[1]);
+                if (latDiff > 0.012 || lngDiff > 0.012) {
+                  map.flyTo({
+                    center: [state.userLocation[1], state.userLocation[0]],
+                    zoom: 15.6,
+                    duration: 850
+                  });
+                }
+              }
             }
             prevUserCenter = state.userLocation;
           }
+          wasInNavMode = hasRoute;
+
           if (Array.isArray(state.sites)) {
             lastKnownSites = state.sites;
             renderSites(state.sites, !!state.showRestaurants);
-          }
-          var nextKey = state.route ? state.route.key : '';
-          if (nextKey !== lastRouteKey) {
-            lastRouteKey = nextKey;
-            syncRouteLayer(state.route || null, true);
           }
         };
 
         window.__SHG_CMD__ = function(cmd) {
           if (!cmd || !cmd.type) return;
           if (cmd.type === 'FIT_ALL') {
+            isFollowingNav = false;
+            postToHost({ type: 'NAV_FOLLOW_CHANGED', following: false });
             var pts = [[lastKnownUser[1], lastKnownUser[0]]];
-            lastKnownSites.forEach(function(s) { pts.push([s.lng, s.lat]); });
+            if (lastRouteData && Array.isArray(lastRouteData.coordinates) && lastRouteData.coordinates.length > 1) {
+              lastRouteData.coordinates.forEach(function(pt) { pts.push([pt[1], pt[0]]); });
+            } else {
+              lastKnownSites.forEach(function(s) { pts.push([s.lng, s.lat]); });
+            }
             if (pts.length > 1) {
               var b = new gl.LngLatBounds(pts[0], pts[0]);
               pts.forEach(function(p) { b.extend(p); });
               map.fitBounds(b, {
-                padding: { top: 64, bottom: 110, left: 36, right: 56 },
-                maxZoom: 15.5,
+                padding: { top: 72, bottom: lastRouteData ? 225 : 110, left: 40, right: 56 },
+                maxZoom: 16,
+                pitch: 0,
+                bearing: 0,
                 duration: 650
               });
             } else {
               map.flyTo({ center: [lastKnownUser[1], lastKnownUser[0]], zoom: 15.5, duration: 600 });
             }
+          } else if (cmd.type === 'RECENTER_NAV') {
+            isFollowingNav = true;
+            engageNavCamera(lastKnownUser, lastKnownHeading, 750, false);
           } else if (cmd.type === 'CENTER_USER') {
-            map.flyTo({
-              center: [lastKnownUser[1], lastKnownUser[0]],
-              zoom: 16.5,
-              pitch: is3DEnabled ? 48 : 0,
-              duration: 650
-            });
+            if (lastRouteData) {
+              isFollowingNav = true;
+              engageNavCamera(lastKnownUser, lastKnownHeading, 750, false);
+            } else {
+              map.flyTo({
+                center: [lastKnownUser[1], lastKnownUser[0]],
+                zoom: 16.5,
+                pitch: is3DEnabled ? 48 : 0,
+                duration: 650
+              });
+            }
           } else if (cmd.type === 'ZOOM_IN') {
             map.zoomIn({ duration: 260 });
           } else if (cmd.type === 'ZOOM_OUT') {
@@ -1159,6 +1270,7 @@ function renderStepIcon(maneuverType: RouteStep['maneuverType']) {
 
 export const MapExplorer: React.FC<MapExplorerProps> = ({
   userLocation,
+  userHeading = null,
   sites,
   selectedSiteId,
   visitedRecords,
@@ -1213,6 +1325,7 @@ export const MapExplorer: React.FC<MapExplorerProps> = ({
     parentSite: HeritageSite;
   } | null>(null);
   const [stepsExpanded, setStepsExpanded] = useState<boolean>(false);
+  const [isFollowingNav, setIsFollowingNav] = useState<boolean>(true);
   const [isMapReady, setIsMapReady] = useState<boolean>(false);
 
   // Load saved Mapbox token from AsyncStorage (if user entered it in-app)
@@ -1270,6 +1383,8 @@ export const MapExplorer: React.FC<MapExplorerProps> = ({
       setFocusedSite(null);
       setFocusedRestaurant(null);
       setTappedPlace(null);
+      setIsFollowingNav(true);
+      setIs3DView(true);
     } else {
       setStepsExpanded(false);
     }
@@ -1348,6 +1463,9 @@ export const MapExplorer: React.FC<MapExplorerProps> = ({
       lightPreset,
       selectedLanguage,
       userLocation,
+      userHeading: userHeading ?? null,
+      followNav: isFollowingNav,
+      isSimulatingWalk,
       searchRadiusMeters,
       sites: serializedSites,
       showRestaurants: showRestaurantsOnMap,
@@ -1367,6 +1485,9 @@ export const MapExplorer: React.FC<MapExplorerProps> = ({
     lightPreset,
     selectedLanguage,
     userLocation,
+    userHeading,
+    isFollowingNav,
+    isSimulatingWalk,
     searchRadiusMeters,
     sites,
     visitedRecords,
@@ -1405,6 +1526,9 @@ export const MapExplorer: React.FC<MapExplorerProps> = ({
       switch (msg.type) {
         case 'MAP_READY':
           setIsMapReady(true);
+          break;
+        case 'NAV_FOLLOW_CHANGED':
+          setIsFollowingNav(Boolean(msg.following));
           break;
         case 'MAPBOX_AUTH_ERROR':
           setTokenError(
@@ -1490,13 +1614,24 @@ export const MapExplorer: React.FC<MapExplorerProps> = ({
   );
 
   const handleFitAllMarkers = useCallback(() => {
+    setIsFollowingNav(false);
     sendToMap({ type: 'CMD', command: { type: 'FIT_ALL' } });
   }, [sendToMap]);
 
+  const handleRecenterNav3D = useCallback(() => {
+    setIsFollowingNav(true);
+    setIs3DView(true);
+    sendToMap({ type: 'CMD', command: { type: 'RECENTER_NAV' } });
+  }, [sendToMap]);
+
   const handleCenterOnGps = useCallback(() => {
+    if (activeRoute) {
+      handleRecenterNav3D();
+      return;
+    }
     onDetectRealGps?.();
     sendToMap({ type: 'CMD', command: { type: 'CENTER_USER' } });
-  }, [onDetectRealGps, sendToMap]);
+  }, [activeRoute, handleRecenterNav3D, onDetectRealGps, sendToMap]);
 
   const handleZoomIn = useCallback(() => {
     sendToMap({ type: 'CMD', command: { type: 'ZOOM_IN' } });
@@ -1816,12 +1951,40 @@ export const MapExplorer: React.FC<MapExplorerProps> = ({
         <TouchableOpacity
           activeOpacity={0.85}
           onPress={handleCenterOnGps}
-          style={styles.roundControlBtn}
-          accessibilityLabel="Về vị trí GPS của tôi"
+          style={[
+            styles.roundControlBtn,
+            activeRoute && isFollowingNav && styles.roundControlBtn3DActive,
+          ]}
+          accessibilityLabel={
+            activeRoute
+              ? 'Bám theo hướng đi 3D'
+              : 'Về vị trí GPS của tôi'
+          }
         >
-          <LocateFixed size={19} color={COLORS.gpsBlue} />
+          {activeRoute ? (
+            <Compass
+              size={19}
+              color={isFollowingNav ? COLORS.white : COLORS.gpsBlue}
+            />
+          ) : (
+            <LocateFixed size={19} color={COLORS.gpsBlue} />
+          )}
         </TouchableOpacity>
       </View>
+
+      {/* Re-center 3D Heading-Up Pill when user manually panned away during OSRM navigation */}
+      {activeRoute && !isFollowingNav && !isRoutingLoading && (
+        <View style={styles.recenterNavWrap} pointerEvents="box-none">
+          <TouchableOpacity
+            activeOpacity={0.88}
+            onPress={handleRecenterNav3D}
+            style={styles.recenterNavBtn}
+          >
+            <Compass size={15} color={COLORS.white} />
+            <Text style={styles.recenterNavText}>Bám theo hướng đi 3D</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* Routing Loading Indicator */}
       {isRoutingLoading && (
@@ -2373,6 +2536,27 @@ const styles = StyleSheet.create({
   },
   rightControlsRaised: {
     bottom: 220,
+  },
+  recenterNavWrap: {
+    position: 'absolute',
+    left: SPACING.md,
+    bottom: 228,
+    zIndex: 18,
+  },
+  recenterNavBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: COLORS.gpsBlue,
+    borderRadius: RADII.pill,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    ...SHADOWS.floating,
+  },
+  recenterNavText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.white,
   },
   zoomGroup: {
     width: 42,

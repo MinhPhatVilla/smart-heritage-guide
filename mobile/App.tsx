@@ -47,8 +47,10 @@ import {
 } from './src/types/heritage';
 import { CITY_PRESETS, HERITAGE_SITES } from './src/data/heritageSites';
 import {
+  calculateBearingDegrees,
   formatDistance,
   getNearbySitesWithMetrics,
+  interpolateRouteForSmoothWalk,
 } from './src/utils/geoUtils';
 import { fetchWalkingRoute } from './src/services/routingService';
 import {
@@ -71,6 +73,7 @@ import {
   LocationWatchHandle,
   formatCoordinatesLabel,
   getCurrentLocation,
+  watchDeviceHeading,
   watchLocation,
 } from './src/services/locationService';
 import { speechService } from './src/services/speechService';
@@ -130,6 +133,7 @@ function SmartHeritageAppContent() {
   const [userLocation, setUserLocation] = useState<[number, number]>([
     10.7775, 106.699,
   ]);
+  const [userHeading, setUserHeading] = useState<number | null>(null);
   const [activeCityId, setActiveCityId] = useState<string>('ALL_HCM');
   const [gpsStatus, setGpsStatus] = useState<string>('Trung tâm Quận 1');
   const [isLocatingGps, setIsLocatingGps] = useState<boolean>(false);
@@ -239,6 +243,32 @@ function SmartHeritageAppContent() {
     }, 1000);
     return () => clearInterval(interval);
   }, [activeRoute]);
+
+  // Theo dõi la bàn điện thoại thật (Heading-Up 3D) khi đang dẫn đường OSRM và không chạy mô phỏng
+  useEffect(() => {
+    if (!activeRoute || isSimulatingWalk) return;
+    let cancelled = false;
+    let handle: LocationWatchHandle | null = null;
+
+    void watchDeviceHeading({
+      onUpdate: (headingDeg) => {
+        if (!cancelled) {
+          setUserHeading(headingDeg);
+        }
+      },
+    }).then((sub) => {
+      if (cancelled) {
+        sub?.remove();
+      } else {
+        handle = sub;
+      }
+    });
+
+    return () => {
+      cancelled = true;
+      handle?.remove();
+    };
+  }, [activeRoute, isSimulatingWalk]);
 
   useEffect(() => {
     if (!toastMessage) return;
@@ -409,6 +439,13 @@ function SmartHeritageAppContent() {
       );
       setIsRoutingLoading(false);
       setActiveRoute(route);
+      if (route.coordinates.length >= 2) {
+        setUserHeading(
+          calculateBearingDegrees(route.coordinates[0], route.coordinates[1])
+        );
+      } else {
+        setUserHeading(calculateBearingDegrees(userLocation, [site.lat, site.lng]));
+      }
       setActiveWalkSeconds(0);
       usedSimulatedWalkRef.current = false;
     },
@@ -432,6 +469,15 @@ function SmartHeritageAppContent() {
       );
       setIsRoutingLoading(false);
       setActiveRoute(route);
+      if (route.coordinates.length >= 2) {
+        setUserHeading(
+          calculateBearingDegrees(route.coordinates[0], route.coordinates[1])
+        );
+      } else {
+        setUserHeading(
+          calculateBearingDegrees(userLocation, [restaurant.lat, restaurant.lng])
+        );
+      }
       setActiveWalkSeconds(0);
     },
     [stopWalkSimulation, userLocation]
@@ -444,14 +490,19 @@ function SmartHeritageAppContent() {
     setIsSimulatingWalk(true);
     triggerHaptic('light');
 
-    const coords = activeRoute.coordinates;
+    // Nội suy đều ~10m mỗi bước dọc tuyến OSRM để camera 3D lướt êm qua mọi khúc cua
+    const coords = interpolateRouteForSmoothWalk(activeRoute.coordinates, 10);
     let stepIdx = 0;
     const stepDurationIncrement = Math.max(
-      25,
+      6,
       Math.round(
         activeRoute.estimatedDurationSeconds / Math.max(1, coords.length)
       )
     );
+
+    if (coords.length >= 2) {
+      setUserHeading(calculateBearingDegrees(coords[0], coords[1]));
+    }
 
     walkTimerRef.current = setInterval(() => {
       stepIdx += 1;
@@ -489,14 +540,20 @@ function SmartHeritageAppContent() {
       }
 
       const nextCoord = coords[stepIdx];
+      const lookAheadIdx = Math.min(coords.length - 1, stepIdx + 2);
+      const lookAheadCoord = coords[lookAheadIdx];
+      if (lookAheadIdx > stepIdx) {
+        setUserHeading(calculateBearingDegrees(nextCoord, lookAheadCoord));
+      }
       setUserLocation(nextCoord);
       setActiveWalkSeconds((prev) => prev + stepDurationIncrement);
-    }, 320);
+    }, 260);
   }, [activeRoute, autoAudioGuide, isSimulatingWalk, stopGpsWatch]);
 
   const handleCancelRoute = useCallback(() => {
     stopWalkSimulation();
     setActiveRoute(null);
+    setUserHeading(null);
     setActiveWalkSeconds(0);
   }, [stopWalkSimulation]);
 
@@ -1153,6 +1210,7 @@ function SmartHeritageAppContent() {
 
             <MapExplorer
               userLocation={userLocation}
+              userHeading={userHeading}
               sites={mapSites}
               selectedSiteId={selectedSite?.id || activeRoute?.targetId}
               visitedRecords={visitedRecords}
