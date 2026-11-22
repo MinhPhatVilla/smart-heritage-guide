@@ -26,6 +26,7 @@ import {
   ExternalLink,
   Flag,
   Footprints,
+  Globe,
   KeyRound,
   Layers,
   LocateFixed,
@@ -74,6 +75,8 @@ import {
   HCMC_FOCUS_BOUNDS,
   HCMC_MAX_BOUNDS,
   HCMC_MIN_ZOOM,
+  VIETNAM_BOUNDARY_RINGS,
+  VIETNAM_FOCUS_BOUNDS,
   VIETNAM_MAX_BOUNDS,
   VIETNAM_MIN_ZOOM,
 } from '../data/vietnamMapBounds';
@@ -154,6 +157,7 @@ type MapCommand =
   | { type: 'ZOOM_OUT' }
   | { type: 'SET_3D'; enabled: boolean }
   | { type: 'SET_LIGHT'; preset: MapboxLightPreset }
+  | { type: 'FIT_SCOPE'; focusHcmcOnly: boolean }
   | { type: 'FLY_TO'; lat: number; lng: number; zoom?: number };
 
 type MapBridgeIncomingMessage =
@@ -198,7 +202,9 @@ function buildExplorerMapHtml(
   const safeMapboxToken = JSON.stringify(mapboxToken);
   const safeInitialFocusHcmc = JSON.stringify(initialFocusHcmcOnly);
   const safeVietnamBounds = JSON.stringify(VIETNAM_MAX_BOUNDS);
+  const safeVietnamFocusBounds = JSON.stringify(VIETNAM_FOCUS_BOUNDS);
   const safeVietnamMinZoom = JSON.stringify(VIETNAM_MIN_ZOOM);
+  const safeVietnamRings = JSON.stringify(VIETNAM_BOUNDARY_RINGS);
   const safeHcmcBounds = JSON.stringify(HCMC_MAX_BOUNDS);
   const safeHcmcFocusBounds = JSON.stringify(HCMC_FOCUS_BOUNDS);
   const safeHcmcMinZoom = JSON.stringify(HCMC_MIN_ZOOM);
@@ -301,7 +307,9 @@ function buildExplorerMapHtml(
       var USE_MAPBOX = Boolean(MAPBOX_TOKEN);
       var INITIAL_FOCUS_HCMC = ${safeInitialFocusHcmc};
       var VIETNAM_MAX_BOUNDS = ${safeVietnamBounds};
+      var VIETNAM_FOCUS_BOUNDS = ${safeVietnamFocusBounds};
       var VIETNAM_MIN_ZOOM = ${safeVietnamMinZoom};
+      var VIETNAM_BOUNDARY_RINGS = ${safeVietnamRings};
       var HCMC_MAX_BOUNDS = ${safeHcmcBounds};
       var HCMC_FOCUS_BOUNDS = ${safeHcmcFocusBounds};
       var HCMC_MIN_ZOOM = ${safeHcmcMinZoom};
@@ -322,10 +330,10 @@ function buildExplorerMapHtml(
         return copy;
       }
 
-      function buildHcmcInverseMaskGeoJson() {
-        // Outer box covering Vietnam & surrounding seas (CCW), inner holes = real HCMC administrative polygon(s) (CW)
-        var outerWorld = [[92, 0], [126, 0], [126, 30], [92, 30], [92, 0]];
-        var holes = HCMC_BOUNDARY_RINGS.map(function(r) { return normalizeRing(r, true); });
+      function buildInverseMaskGeoJson(rings) {
+        // Outer world veil (CCW), inner spotlight cutouts (CW) — keeps active region crisp while softly misting outside
+        var outerWorld = [[82, -8], [136, -8], [136, 36], [82, 36], [82, -8]];
+        var holes = rings.map(function(r) { return normalizeRing(r, true); });
         return {
           type: 'FeatureCollection',
           features: [{
@@ -334,19 +342,19 @@ function buildExplorerMapHtml(
               type: 'Polygon',
               coordinates: [normalizeRing(outerWorld, false)].concat(holes)
             },
-            properties: { role: 'hcmc-dim-mask' }
+            properties: { role: 'spotlight-dim-mask' }
           }]
         };
       }
 
-      function buildHcmcBorderGeoJson() {
+      function buildBorderGeoJson(rings) {
         return {
           type: 'FeatureCollection',
-          features: HCMC_BOUNDARY_RINGS.map(function(ring) {
+          features: rings.map(function(ring) {
             return {
               type: 'Feature',
               geometry: { type: 'LineString', coordinates: ring },
-              properties: { role: 'hcmc-border' }
+              properties: { role: 'spotlight-border' }
             };
           })
         };
@@ -680,11 +688,49 @@ function buildExplorerMapHtml(
 
         map.addControl(new gl.ScaleControl({ maxWidth: 90, unit: 'metric' }), 'bottom-left');
 
+        function getSpotlightTheme() {
+          var isDark = currentTile.id === 'mapbox_satellite' || currentTile.id === 'satellite' || currentLightPreset === 'night';
+          var isDusk = !isDark && currentLightPreset === 'dusk';
+          if (isDark) {
+            return {
+              maskColor: '#0A0F1A',
+              maskOpacity: 0.64,
+              featherColor: '#000000',
+              featherOpacity: 0.36,
+              casingColor: 'rgba(255, 255, 255, 0.35)',
+              lineColor: '#F59E0B',
+              lineOpacity: 0.9
+            };
+          }
+          if (isDusk) {
+            return {
+              maskColor: '#EAE2D6',
+              maskOpacity: 0.72,
+              featherColor: '#B59E84',
+              featherOpacity: 0.28,
+              casingColor: '#FFFFFF',
+              lineColor: '#B93815',
+              lineOpacity: 0.86
+            };
+          }
+          // Editorial frosted warm mist for light / 3D street maps (Apple Maps / Airbnb style)
+          return {
+            maskColor: '#F3F0E9',
+            maskOpacity: 0.78,
+            featherColor: '#B8ACA0',
+            featherOpacity: 0.24,
+            casingColor: '#FFFFFF',
+            lineColor: '#B93815',
+            lineOpacity: 0.84
+          };
+        }
+
         function ensureCustomOverlayLayers() {
           var slotProps = (USE_MAPBOX && currentTile.id === 'mapbox_standard') ? { slot: 'middle' } : {};
-          var isDarkBase = currentTile.id === 'mapbox_satellite' || currentTile.id === 'satellite' || currentLightPreset === 'night';
+          var topSlotProps = (USE_MAPBOX && currentTile.id === 'mapbox_standard') ? { slot: 'top' } : {};
+          var theme = getSpotlightTheme();
 
-          // Lớp làm mờ các tỉnh xung quanh khi bật chế độ "Chỉ TP.HCM"
+          // Lớp sương mờ tinh tế (Frosted Spotlight Veil) làm dịu các tỉnh/quốc gia ngoài phạm vi chọn
           if (!map.getSource('shg-hcmc-mask')) {
             map.addSource('shg-hcmc-mask', {
               type: 'geojson',
@@ -695,10 +741,10 @@ function buildExplorerMapHtml(
               type: 'fill',
               source: 'shg-hcmc-mask',
               paint: {
-                'fill-color': isDarkBase ? '#090C12' : '#1E242B',
-                'fill-opacity': isDarkBase ? 0.62 : 0.44
+                'fill-color': theme.maskColor,
+                'fill-opacity': theme.maskOpacity
               }
-            }, slotProps));
+            }, topSlotProps));
           }
 
           if (!map.getSource('shg-hcmc-border')) {
@@ -706,28 +752,43 @@ function buildExplorerMapHtml(
               type: 'geojson',
               data: { type: 'FeatureCollection', features: [] }
             });
+            // 1. Soft feathered vignette halo along the administrative boundary
             map.addLayer(Object.assign({
               id: 'shg-hcmc-border-glow',
               type: 'line',
               source: 'shg-hcmc-border',
               layout: { 'line-join': 'round', 'line-cap': 'round' },
               paint: {
-                'line-color': '#B93815',
-                'line-width': 6,
-                'line-opacity': 0.22
+                'line-color': theme.featherColor,
+                'line-width': 20,
+                'line-blur': 13,
+                'line-opacity': theme.featherOpacity
               }
-            }, slotProps));
+            }, topSlotProps));
+            // 2. Clean crisp white inner rim separating roads & rivers from border
+            map.addLayer(Object.assign({
+              id: 'shg-hcmc-border-casing',
+              type: 'line',
+              source: 'shg-hcmc-border',
+              layout: { 'line-join': 'round', 'line-cap': 'round' },
+              paint: {
+                'line-color': theme.casingColor,
+                'line-width': 4.2,
+                'line-opacity': 0.9
+              }
+            }, topSlotProps));
+            // 3. Refined editorial heritage border hairline
             map.addLayer(Object.assign({
               id: 'shg-hcmc-border-line',
               type: 'line',
               source: 'shg-hcmc-border',
               layout: { 'line-join': 'round', 'line-cap': 'round' },
               paint: {
-                'line-color': '#B93815',
-                'line-width': 2.2,
-                'line-opacity': 0.92
+                'line-color': theme.lineColor,
+                'line-width': 1.75,
+                'line-opacity': theme.lineOpacity
               }
-            }, slotProps));
+            }, topSlotProps));
           }
 
           if (!map.getSource('shg-radius')) {
@@ -807,31 +868,47 @@ function buildExplorerMapHtml(
           } catch (e) {}
 
           if (styleReady && map.getSource('shg-hcmc-mask') && map.getSource('shg-hcmc-border')) {
-            var isDarkBase = currentTile.id === 'mapbox_satellite' || currentTile.id === 'satellite' || currentLightPreset === 'night';
+            var theme = getSpotlightTheme();
             try {
               if (map.getLayer('shg-hcmc-mask-fill')) {
-                map.setPaintProperty('shg-hcmc-mask-fill', 'fill-color', isDarkBase ? '#090C12' : '#1E242B');
-                map.setPaintProperty('shg-hcmc-mask-fill', 'fill-opacity', isDarkBase ? 0.62 : 0.44);
+                map.setPaintProperty('shg-hcmc-mask-fill', 'fill-color', theme.maskColor);
+                map.setPaintProperty('shg-hcmc-mask-fill', 'fill-opacity', theme.maskOpacity);
+              }
+              if (map.getLayer('shg-hcmc-border-glow')) {
+                map.setPaintProperty('shg-hcmc-border-glow', 'line-color', theme.featherColor);
+                map.setPaintProperty('shg-hcmc-border-glow', 'line-opacity', theme.featherOpacity);
+              }
+              if (map.getLayer('shg-hcmc-border-casing')) {
+                map.setPaintProperty('shg-hcmc-border-casing', 'line-color', theme.casingColor);
+              }
+              if (map.getLayer('shg-hcmc-border-line')) {
+                map.setPaintProperty('shg-hcmc-border-line', 'line-color', theme.lineColor);
+                map.setPaintProperty('shg-hcmc-border-line', 'line-opacity', theme.lineOpacity);
+                map.setPaintProperty('shg-hcmc-border-line', 'line-width', isFocusHcmcOnly ? 1.8 : 1.4);
               }
             } catch (e) {}
 
-            if (isFocusHcmcOnly) {
-              map.getSource('shg-hcmc-mask').setData(buildHcmcInverseMaskGeoJson());
-              map.getSource('shg-hcmc-border').setData(buildHcmcBorderGeoJson());
-            } else {
-              map.getSource('shg-hcmc-mask').setData({ type: 'FeatureCollection', features: [] });
-              map.getSource('shg-hcmc-border').setData({ type: 'FeatureCollection', features: [] });
-            }
+            // Chỉ TP.HCM: làm mờ các tỉnh xung quanh; Toàn Việt Nam: làm mờ các quốc gia ngoài lãnh thổ Việt Nam
+            var activeRings = isFocusHcmcOnly ? HCMC_BOUNDARY_RINGS : VIETNAM_BOUNDARY_RINGS;
+            map.getSource('shg-hcmc-mask').setData(buildInverseMaskGeoJson(activeRings));
+            map.getSource('shg-hcmc-border').setData(buildBorderGeoJson(activeRings));
           }
 
-          if (shouldAdjustCamera && isFocusHcmcOnly && !isFollowingNav) {
+          if (shouldAdjustCamera && !isFollowingNav) {
             try {
-              var c = map.getCenter();
-              var outsideHcmc = c.lng < HCMC_FOCUS_BOUNDS[0][0] || c.lng > HCMC_FOCUS_BOUNDS[1][0] || c.lat < HCMC_FOCUS_BOUNDS[0][1] || c.lat > HCMC_FOCUS_BOUNDS[1][1];
-              if (outsideHcmc || map.getZoom() < HCMC_MIN_ZOOM + 0.4) {
+              if (isFocusHcmcOnly) {
                 map.fitBounds(HCMC_FOCUS_BOUNDS, {
-                  padding: { top: 64, bottom: 96, left: 32, right: 56 },
-                  duration: 700
+                  padding: { top: 72, bottom: 108, left: 28, right: 56 },
+                  pitch: 0,
+                  bearing: 0,
+                  duration: 850
+                });
+              } else {
+                map.fitBounds(VIETNAM_FOCUS_BOUNDS, {
+                  padding: { top: 64, bottom: 90, left: 24, right: 48 },
+                  pitch: 0,
+                  bearing: 0,
+                  duration: 900
                 });
               }
             } catch (e) {}
@@ -1244,6 +1321,10 @@ function buildExplorerMapHtml(
             if (styleReady && USE_MAPBOX && currentTile.id === 'mapbox_standard') {
               try { map.setConfigProperty('basemap', 'lightPreset', currentLightPreset); } catch (e) {}
             }
+            syncHcmcFocusLayer(isFocusHcmcOnly, false);
+          } else if (cmd.type === 'FIT_SCOPE') {
+            isFollowingNav = false;
+            syncHcmcFocusLayer(Boolean(cmd.focusHcmcOnly), true);
           } else if (cmd.type === 'FLY_TO' && typeof cmd.lat === 'number' && typeof cmd.lng === 'number') {
             map.flyTo({ center: [cmd.lng, cmd.lat], zoom: cmd.zoom || 16, duration: 650 });
           }
@@ -1306,25 +1387,41 @@ function buildExplorerMapHtml(
           var lastKnownUser = INITIAL_CENTER;
           var lastKnownSites = [];
 
-          function renderLeafletHcmcMask(enabled) {
+          function renderLeafletHcmcMask(enabled, shouldAdjustCamera) {
             maskLayer.clearLayers();
             map.setMaxBounds(enabled ? hcmcLeafletBounds : vnLeafletBounds);
-            map.setMinZoom(enabled ? 9 : 5);
-            if (!enabled) return;
-            var outer = [[0, 92], [30, 92], [30, 126], [0, 126]];
-            var holes = HCMC_BOUNDARY_RINGS.map(function(ring) {
+            map.setMinZoom(enabled ? 8 : 5);
+            var activeRings = enabled ? HCMC_BOUNDARY_RINGS : VIETNAM_BOUNDARY_RINGS;
+            var outer = [[-8, 82], [36, 82], [36, 136], [-8, 136]];
+            var holes = activeRings.map(function(ring) {
               return ring.map(function(pt) { return [pt[1], pt[0]]; });
             });
             L.polygon([outer].concat(holes), {
-              color: '#B93815',
-              weight: 2.2,
-              fillColor: '#1E242B',
-              fillOpacity: 0.44,
+              color: '#FFFFFF',
+              weight: 4,
+              opacity: 0.9,
+              fillColor: '#F3F0E9',
+              fillOpacity: 0.78,
               interactive: false
             }).addTo(maskLayer);
+            holes.forEach(function(hole) {
+              L.polyline(hole, {
+                color: '#B93815',
+                weight: 1.8,
+                opacity: 0.85,
+                interactive: false
+              }).addTo(maskLayer);
+            });
+            if (shouldAdjustCamera) {
+              var target = enabled ? HCMC_FOCUS_BOUNDS : VIETNAM_FOCUS_BOUNDS;
+              map.fitBounds([
+                [target[0][1], target[0][0]],
+                [target[1][1], target[1][0]]
+              ], { padding: [36, 56] });
+            }
           }
 
-          renderLeafletHcmcMask(leafletFocusHcmc);
+          renderLeafletHcmcMask(leafletFocusHcmc, false);
 
           map.on('click', function(e) {
             postToHost({ type: 'MAP_CLICK', lat: e.latlng.lat, lng: e.latlng.lng });
@@ -1334,7 +1431,7 @@ function buildExplorerMapHtml(
             if (!state) return;
             if (typeof state.focusHcmcOnly === 'boolean' && state.focusHcmcOnly !== leafletFocusHcmc) {
               leafletFocusHcmc = state.focusHcmcOnly;
-              renderLeafletHcmcMask(leafletFocusHcmc);
+              renderLeafletHcmcMask(leafletFocusHcmc, true);
             }
             if (state.tileConfig && state.tileConfig.url) {
               map.removeLayer(tileLayer);
@@ -1393,6 +1490,10 @@ function buildExplorerMapHtml(
             if (cmd.type === 'CENTER_USER') map.flyTo(lastKnownUser, 16);
             if (cmd.type === 'ZOOM_IN') map.zoomIn();
             if (cmd.type === 'ZOOM_OUT') map.zoomOut();
+            if (cmd.type === 'FIT_SCOPE') {
+              leafletFocusHcmc = Boolean(cmd.focusHcmcOnly);
+              renderLeafletHcmcMask(leafletFocusHcmc, true);
+            }
             if (cmd.type === 'FIT_ALL') {
               var pts = [lastKnownUser].concat(lastKnownSites.map(function(s) { return [s.lat, s.lng]; }));
               if (pts.length > 1) map.fitBounds(L.latLngBounds(pts), { padding: [36, 60] });
@@ -1981,24 +2082,26 @@ export const MapExplorer: React.FC<MapExplorerProps> = ({
         )}
       </View>
 
-      {/* Top-Left Region Scope Switcher (Chỉ TP.HCM · làm mờ tỉnh lân cận vs Toàn Việt Nam) + Tapped Place Pill */}
+      {/* Top-Left Region Scope Switcher (TP.HCM · sương mờ tỉnh lân cận vs Việt Nam) + Tapped Place Pill */}
       <View style={styles.topLeftPlaceWrap} pointerEvents="box-none">
         {!activeRoute && (
           <View style={styles.scopeSegmentedPill}>
             <TouchableOpacity
               activeOpacity={0.82}
-              onPress={() => onToggleFocusHcmcOnly?.(true)}
+              onPress={() => {
+                onToggleFocusHcmcOnly?.(true);
+                sendToMap({ type: 'CMD', command: { type: 'FIT_SCOPE', focusHcmcOnly: true } });
+              }}
               style={[
                 styles.scopeSegBtn,
                 focusHcmcOnly && styles.scopeSegBtnActive,
               ]}
               accessibilityLabel="Chỉ hiển thị TP.HCM và làm mờ các tỉnh xung quanh"
             >
-              <View
-                style={[
-                  styles.scopeDot,
-                  focusHcmcOnly && styles.scopeDotActive,
-                ]}
+              <MapPin
+                size={12}
+                color={focusHcmcOnly ? '#FDE68A' : COLORS.inkMuted}
+                strokeWidth={2.4}
               />
               <Text
                 style={[
@@ -2006,18 +2109,26 @@ export const MapExplorer: React.FC<MapExplorerProps> = ({
                   focusHcmcOnly && styles.scopeSegTextActive,
                 ]}
               >
-                Chỉ TP.HCM
+                TP.HCM
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
               activeOpacity={0.82}
-              onPress={() => onToggleFocusHcmcOnly?.(false)}
+              onPress={() => {
+                onToggleFocusHcmcOnly?.(false);
+                sendToMap({ type: 'CMD', command: { type: 'FIT_SCOPE', focusHcmcOnly: false } });
+              }}
               style={[
                 styles.scopeSegBtn,
                 !focusHcmcOnly && styles.scopeSegBtnActive,
               ]}
               accessibilityLabel="Mở bản đồ toàn lãnh thổ Việt Nam"
             >
+              <Globe
+                size={12}
+                color={!focusHcmcOnly ? '#FDE68A' : COLORS.inkMuted}
+                strokeWidth={2.2}
+              />
               <Text
                 style={[
                   styles.scopeSegText,
@@ -2650,37 +2761,29 @@ const styles = StyleSheet.create({
   scopeSegmentedPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.96)',
+    backgroundColor: 'rgba(255, 255, 255, 0.94)',
     borderRadius: RADII.pill,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: 'rgba(20, 20, 19, 0.08)',
     padding: 3,
-    gap: 2,
+    gap: 3,
     ...SHADOWS.floating,
   },
   scopeSegBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+    paddingHorizontal: 11,
+    paddingVertical: 6,
     borderRadius: RADII.pill,
   },
   scopeSegBtnActive: {
     backgroundColor: COLORS.ink,
   },
-  scopeDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: COLORS.inkMuted,
-  },
-  scopeDotActive: {
-    backgroundColor: COLORS.accent,
-  },
   scopeSegText: {
-    fontSize: 11,
+    fontSize: 11.5,
     fontWeight: '700',
+    letterSpacing: 0.15,
     color: COLORS.inkSecondary,
   },
   scopeSegTextActive: {
