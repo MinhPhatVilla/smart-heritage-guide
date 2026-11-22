@@ -3,13 +3,16 @@ import {
   ActivityIndicator,
   Image,
   Linking,
+  Modal,
   Platform,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { WebView, type WebViewMessageEvent } from 'react-native-webview';
 import {
   ArrowUp,
@@ -22,15 +25,19 @@ import {
   ExternalLink,
   Flag,
   Footprints,
+  KeyRound,
   Layers,
   LocateFixed,
   MapPin,
   Maximize2,
   Minus,
+  Moon,
   Navigation,
   Play,
   Plus,
   Star,
+  Sun,
+  Sunset,
   Utensils,
   Volume2,
   X,
@@ -51,11 +58,15 @@ import {
 } from '../utils/geoUtils';
 import {
   BaseMapStyle,
+  MAPBOX_TOKEN_STORAGE_KEY,
   MapTileConfig,
+  MapboxLightPreset,
   buildOsmWalkingUrl,
   getAvailableMapStyles,
   getDefaultMapStyle,
   getTileConfig,
+  isValidMapboxPublicToken,
+  resolveMapboxAccessToken,
 } from '../services/mapTiles';
 import { COLORS, RADII, SERIF_FONT, SHADOWS, SPACING } from '../theme';
 
@@ -104,6 +115,7 @@ interface SerializedSiteMarker {
 interface MapStatePayload {
   tileConfig: MapTileConfig;
   is3D: boolean;
+  lightPreset: MapboxLightPreset;
   selectedLanguage: SupportedLanguage;
   userLocation: [number, number];
   searchRadiusMeters: number;
@@ -123,10 +135,12 @@ type MapCommand =
   | { type: 'ZOOM_IN' }
   | { type: 'ZOOM_OUT' }
   | { type: 'SET_3D'; enabled: boolean }
+  | { type: 'SET_LIGHT'; preset: MapboxLightPreset }
   | { type: 'FLY_TO'; lat: number; lng: number; zoom?: number };
 
 type MapBridgeIncomingMessage =
   | { source: 'shg-map'; mapId: string; type: 'MAP_READY'; engine?: string }
+  | { source: 'shg-map'; mapId: string; type: 'MAPBOX_AUTH_ERROR'; message?: string }
   | { source: 'shg-map'; mapId: string; type: 'SITE_CLICK'; siteId: string }
   | {
       source: 'shg-map';
@@ -147,24 +161,35 @@ type MapBridgeIncomingMessage =
   | { source: 'shg-map'; mapId: string; type: 'USER_DRAG'; lat: number; lng: number };
 
 /**
- * Tạo trang HTML bản đồ OpenStreetMap Vector 3D chi tiết kiểu Google Maps (MapLibre GL JS + OpenFreeMap),
- * kèm cơ chế tự động chuyển sang Leaflet OSM HOT khi thiết bị không hỗ trợ WebGL.
+ * Trình dựng bản đồ hợp nhất:
+ * - Khi có Mapbox Public Token (`pk.`) => chạy **Mapbox GL JS v3.7.0** (Mapbox Standard 3D, ánh sáng Ngày/Hoàng hôn/Đêm, Streets v12, Satellite Streets v12, Outdoors v12).
+ * - Khi chưa có token => chạy **MapLibre GL JS + OpenStreetMap Vector 3D** (miễn phí, không cần key), kèm tự động dự phòng sang Leaflet OSM HOT nếu thiết bị thiếu WebGL.
  */
-function buildExplorerOsmMapHtml(
+function buildExplorerMapHtml(
   mapId: string,
   initialCenter: [number, number],
-  initialTile: MapTileConfig
+  initialTile: MapTileConfig,
+  mapboxToken: string
 ): string {
+  const useMapboxEngine = Boolean(mapboxToken);
   const safeMapId = JSON.stringify(mapId);
   const safeCenter = JSON.stringify(initialCenter);
   const safeTile = JSON.stringify(initialTile);
+  const safeMapboxToken = JSON.stringify(mapboxToken);
+
+  const glCssUrl = useMapboxEngine
+    ? 'https://api.mapbox.com/mapbox-gl-js/v3.7.0/mapbox-gl.css'
+    : 'https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.css';
+  const glJsUrl = useMapboxEngine
+    ? 'https://api.mapbox.com/mapbox-gl-js/v3.7.0/mapbox-gl.js'
+    : 'https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.js';
 
   return `<!DOCTYPE html>
 <html lang="vi">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.css" />
+  <link rel="stylesheet" href="${glCssUrl}" />
   <style>
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; font-family: "Times New Roman", Times, serif; }
     html, body, #map {
@@ -176,18 +201,18 @@ function buildExplorerOsmMapHtml(
       overflow: hidden;
       font-family: "Times New Roman", Times, serif;
     }
-    .maplibregl-map, .leaflet-container {
+    .mapboxgl-map, .maplibregl-map, .leaflet-container {
       background: #F2F0EA;
       font-family: "Times New Roman", Times, serif !important;
     }
-    .maplibregl-ctrl-attrib {
+    .mapboxgl-ctrl-attrib, .maplibregl-ctrl-attrib {
       font-size: 9px !important;
       background: rgba(255, 255, 255, 0.8) !important;
       color: #57554F !important;
       border-radius: 6px 0 0 0;
     }
-    .maplibregl-ctrl-scale {
-      background: rgba(255, 255, 255, 0.88) !important;
+    .mapboxgl-ctrl-scale, .maplibregl-ctrl-scale {
+      background: rgba(255, 255, 255, 0.9) !important;
       border: 1.5px solid #3C4043 !important;
       border-top: none !important;
       color: #202124 !important;
@@ -197,7 +222,7 @@ function buildExplorerOsmMapHtml(
       border-radius: 0 0 3px 3px;
       box-shadow: 0 1px 4px rgba(0,0,0,0.12);
     }
-    .maplibregl-ctrl-bottom-left {
+    .mapboxgl-ctrl-bottom-left, .maplibregl-ctrl-bottom-left {
       left: 10px !important;
       bottom: 10px !important;
     }
@@ -239,12 +264,14 @@ function buildExplorerOsmMapHtml(
 </head>
 <body>
   <div id="map"></div>
-  <script src="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+  <script src="${glJsUrl}"></script>
   <script>
     (function() {
       var MAP_ID = ${safeMapId};
       var INITIAL_CENTER = ${safeCenter}; // [lat, lng]
       var INITIAL_TILE = ${safeTile};
+      var MAPBOX_TOKEN = ${safeMapboxToken};
+      var USE_MAPBOX = Boolean(MAPBOX_TOKEN);
 
       function postToHost(payload) {
         try {
@@ -269,8 +296,7 @@ function buildExplorerOsmMapHtml(
       function expandSubdomainUrls(template, subdomains) {
         if (!template) return [];
         if (template.indexOf('{s}') === -1) return [template];
-        var subs = (subdomains || 'abc').split('');
-        return subs.map(function(s) {
+        return (subdomains || 'abc').split('').map(function(s) {
           return template.replace('{s}', s);
         });
       }
@@ -332,6 +358,16 @@ function buildExplorerOsmMapHtml(
           });
         }
         return { version: 8, sources: sources, layers: layers };
+      }
+
+      function resolveGlStyle(tileCfg) {
+        if (USE_MAPBOX && tileCfg.renderMode === 'mapbox' && tileCfg.mapboxStyleUrl) {
+          return tileCfg.mapboxStyleUrl;
+        }
+        if (tileCfg.renderMode === 'vector' && tileCfg.vectorStyleUrl) {
+          return tileCfg.vectorStyleUrl;
+        }
+        return buildRasterStyleJson(tileCfg);
       }
 
       function createSiteMarkerElement(site) {
@@ -407,28 +443,71 @@ function buildExplorerOsmMapHtml(
         return el;
       }
 
-      /**
-       * Tinh chỉnh lớp vector OpenStreetMap (OpenFreeMap Liberty) để đạt thẩm mỹ
-       * chi tiết sắc nét như Google Maps (màu sông, công viên, phân cấp đường, tòa nhà 3D & nhãn Việt).
-       */
-      function applyGoogleMapsPolish(map, tileCfg, is3D) {
-        if (!tileCfg || tileCfg.renderMode !== 'vector') return;
+      function applyMapboxOrOsmEnhancements(map, tileCfg, is3D, lightPreset) {
+        // 1. Mapbox Standard 3D (v3): cấu hình ánh sáng Ngày/Hoàng hôn/Đêm + hiển thị nhãn POI & 3D
+        if (USE_MAPBOX && tileCfg.id === 'mapbox_standard') {
+          try {
+            map.setConfigProperty('basemap', 'lightPreset', lightPreset || 'day');
+            map.setConfigProperty('basemap', 'showPointOfInterestLabels', true);
+            map.setConfigProperty('basemap', 'showRoadLabels', true);
+            map.setConfigProperty('basemap', 'showTransitLabels', true);
+            map.setConfigProperty('basemap', 'show3dObjects', is3D);
+          } catch (e) {}
+          return;
+        }
+
+        // 2. Mapbox Streets / Outdoors / Satellite v12: thêm lớp 3D building extrusion từ composite source
+        if (USE_MAPBOX && tileCfg.renderMode === 'mapbox') {
+          try {
+            if (is3D && map.getSource('composite') && !map.getLayer('shg-mapbox-3d-buildings')) {
+              var layers = (map.getStyle() && map.getStyle().layers) || [];
+              var labelLayerId = undefined;
+              for (var i = 0; i < layers.length; i++) {
+                if (layers[i].type === 'symbol' && layers[i].layout && layers[i].layout['text-field']) {
+                  labelLayerId = layers[i].id;
+                  break;
+                }
+              }
+              map.addLayer({
+                id: 'shg-mapbox-3d-buildings',
+                source: 'composite',
+                'source-layer': 'building',
+                filter: ['==', 'extrude', 'true'],
+                type: 'fill-extrusion',
+                minzoom: 14.5,
+                paint: {
+                  'fill-extrusion-color': [
+                    'interpolate', ['linear'],
+                    ['coalesce', ['get', 'height'], 10],
+                    0, '#EAE6DF',
+                    25, '#DDD7CC',
+                    80, '#CFC7B9'
+                  ],
+                  'fill-extrusion-height': ['get', 'height'],
+                  'fill-extrusion-base': ['get', 'min_height'],
+                  'fill-extrusion-opacity': 0.82
+                }
+              }, labelLayerId);
+            } else if (map.getLayer('shg-mapbox-3d-buildings')) {
+              map.setLayoutProperty('shg-mapbox-3d-buildings', 'visibility', is3D ? 'visible' : 'none');
+            }
+          } catch (e) {}
+          return;
+        }
+
+        // 3. OpenStreetMap Vector 3D (OpenFreeMap) — bảng màu Google Maps
+        if (tileCfg.renderMode !== 'vector') return;
         var style = map.getStyle();
         if (!style || !Array.isArray(style.layers)) return;
 
         var setPaint = function(id, prop, val) {
-          try {
-            if (map.getLayer(id)) map.setPaintProperty(id, prop, val);
-          } catch (e) {}
+          try { if (map.getLayer(id)) map.setPaintProperty(id, prop, val); } catch (e) {}
         };
         var setLayout = function(id, prop, val) {
-          try {
-            if (map.getLayer(id)) map.setLayoutProperty(id, prop, val);
-          } catch (e) {}
+          try { if (map.getLayer(id)) map.setLayoutProperty(id, prop, val); } catch (e) {}
         };
 
         if (tileCfg.googleLikePalette) {
-          // Bảng màu Google Maps hiện đại trên nền dữ liệu OpenStreetMap
           setPaint('background', 'background-color', '#F1F3F4');
           setPaint('water', 'fill-color', '#AADAFF');
           setPaint('waterway_river', 'line-color', '#94CCF9');
@@ -441,8 +520,6 @@ function buildExplorerOsmMapHtml(
           setPaint('landuse_commercial_area', 'fill-color', '#F5EFE6');
           setPaint('landuse_hospital', 'fill-color', '#FDE8E8');
           setPaint('landuse_school', 'fill-color', '#FEF7E0');
-
-          // Phân cấp giao thông kiểu Google Maps
           setPaint('road_motorway_casing', 'line-color', '#E2A24B');
           setPaint('road_motorway', 'line-color', '#FCD6A4');
           setPaint('road_trunk_primary_casing', 'line-color', '#DFC066');
@@ -454,13 +531,10 @@ function buildExplorerOsmMapHtml(
           setPaint('road_service_track_casing', 'line-color', '#E4E8EE');
           setPaint('road_service_track', 'line-color', '#FAFBFD');
           setPaint('road_path_pedestrian', 'line-color', '#E8DEC8');
-
-          // Tòa nhà 2D sắc nét
           setPaint('building', 'fill-color', '#E8EAED');
           setPaint('building', 'fill-outline-color', '#D5D9DF');
         }
 
-        // Nâng cấp lớp tòa nhà 3D (fill-extrusion) theo độ cao thực tế từ OpenStreetMap
         if (map.getLayer('building-3d')) {
           setLayout('building-3d', 'visibility', is3D ? 'visible' : 'none');
           setPaint('building-3d', 'fill-extrusion-color', [
@@ -474,24 +548,18 @@ function buildExplorerOsmMapHtml(
           setPaint('building-3d', 'fill-extrusion-opacity', 0.9);
           setPaint('building-3d', 'fill-extrusion-vertical-gradient', true);
         }
-
-        // Ưu tiên tên địa danh & tên đường tiếng Việt sắc nét với viền trắng halo
-        style.layers.forEach(function(layer) {
-          if (layer.type !== 'symbol') return;
-          if (!layer.layout || !layer.layout['text-field']) return;
-          if (layer.id.indexOf('road') !== -1 || layer.id.indexOf('poi') !== -1 || layer.id.indexOf('label') !== -1 || layer.id.indexOf('place') !== -1) {
-            try {
-              map.setPaintProperty(layer.id, 'text-halo-color', 'rgba(255, 255, 255, 0.94)');
-              map.setPaintProperty(layer.id, 'text-halo-width', 1.4);
-            } catch (e) {}
-          }
-        });
       }
 
-      function initMapLibre() {
+      function initGlMap() {
+        var gl = USE_MAPBOX ? window.mapboxgl : window.maplibregl;
+        if (USE_MAPBOX) {
+          gl.accessToken = MAPBOX_TOKEN;
+        }
+
         var currentTile = INITIAL_TILE;
         var currentStyleId = INITIAL_TILE.id;
         var is3DEnabled = true;
+        var currentLightPreset = 'day';
         var prevUserCenter = INITIAL_CENTER;
         var lastSitesSignature = '';
         var lastRouteKey = '';
@@ -506,41 +574,38 @@ function buildExplorerOsmMapHtml(
         var siteMarkers = [];
         var restaurantMarkers = [];
 
-        var initialStyle = (INITIAL_TILE.renderMode === 'vector' && INITIAL_TILE.vectorStyleUrl)
-          ? INITIAL_TILE.vectorStyleUrl
-          : buildRasterStyleJson(INITIAL_TILE);
-
-        var map = new maplibregl.Map({
+        var map = new gl.Map({
           container: 'map',
-          style: initialStyle,
+          style: resolveGlStyle(INITIAL_TILE),
           center: [INITIAL_CENTER[1], INITIAL_CENTER[0]],
           zoom: 15.6,
-          pitch: 42,
-          bearing: -10,
-          maxPitch: 62,
+          pitch: 45,
+          bearing: -12,
+          maxPitch: 70,
           antialias: true,
           attributionControl: true
         });
 
-        map.addControl(new maplibregl.ScaleControl({ maxWidth: 90, unit: 'metric' }), 'bottom-left');
+        map.addControl(new gl.ScaleControl({ maxWidth: 90, unit: 'metric' }), 'bottom-left');
 
         function ensureCustomOverlayLayers() {
-          // 1. Vòng bán kính tìm kiếm
+          var slotProps = (USE_MAPBOX && currentTile.id === 'mapbox_standard') ? { slot: 'middle' } : {};
+
           if (!map.getSource('shg-radius')) {
             map.addSource('shg-radius', {
               type: 'geojson',
               data: { type: 'FeatureCollection', features: [] }
             });
-            map.addLayer({
+            map.addLayer(Object.assign({
               id: 'shg-radius-fill',
               type: 'fill',
               source: 'shg-radius',
               paint: {
                 'fill-color': '#1A73E8',
-                'fill-opacity': 0.055
+                'fill-opacity': 0.06
               }
-            });
-            map.addLayer({
+            }, slotProps));
+            map.addLayer(Object.assign({
               id: 'shg-radius-line',
               type: 'line',
               source: 'shg-radius',
@@ -550,16 +615,15 @@ function buildExplorerOsmMapHtml(
                 'line-dasharray': [4, 4],
                 'line-opacity': 0.65
               }
-            });
+            }, slotProps));
           }
 
-          // 2. Tuyến đi bộ kiểu Google Maps (viền trắng + xanh cobalt #1A73E8 + điểm bước chân)
           if (!map.getSource('shg-route')) {
             map.addSource('shg-route', {
               type: 'geojson',
               data: { type: 'FeatureCollection', features: [] }
             });
-            map.addLayer({
+            map.addLayer(Object.assign({
               id: 'shg-route-casing',
               type: 'line',
               source: 'shg-route',
@@ -569,8 +633,8 @@ function buildExplorerOsmMapHtml(
                 'line-width': 10,
                 'line-opacity': 0.96
               }
-            });
-            map.addLayer({
+            }, slotProps));
+            map.addLayer(Object.assign({
               id: 'shg-route-core',
               type: 'line',
               source: 'shg-route',
@@ -580,8 +644,8 @@ function buildExplorerOsmMapHtml(
                 'line-width': 5.5,
                 'line-opacity': 0.96
               }
-            });
-            map.addLayer({
+            }, slotProps));
+            map.addLayer(Object.assign({
               id: 'shg-route-dashes',
               type: 'line',
               source: 'shg-route',
@@ -592,7 +656,7 @@ function buildExplorerOsmMapHtml(
                 'line-dasharray': [0.5, 2.8],
                 'line-opacity': 0.95
               }
-            });
+            }, slotProps));
           }
         }
 
@@ -636,7 +700,7 @@ function buildExplorerOsmMapHtml(
           });
 
           if (route.destination) {
-            destMarker = new maplibregl.Marker({
+            destMarker = new gl.Marker({
               element: createDestMarkerElement(),
               anchor: 'center'
             })
@@ -646,7 +710,7 @@ function buildExplorerOsmMapHtml(
 
           if (shouldFit) {
             try {
-              var bounds = new maplibregl.LngLatBounds(lngLatCoords[0], lngLatCoords[0]);
+              var bounds = new gl.LngLatBounds(lngLatCoords[0], lngLatCoords[0]);
               lngLatCoords.forEach(function(c) { bounds.extend(c); });
               map.fitBounds(bounds, {
                 padding: { top: 76, bottom: 220, left: 44, right: 56 },
@@ -659,7 +723,7 @@ function buildExplorerOsmMapHtml(
 
         function ensureUserMarker(coords) {
           if (!userMarker) {
-            userMarker = new maplibregl.Marker({
+            userMarker = new gl.Marker({
               element: createUserMarkerElement(),
               draggable: true,
               anchor: 'center'
@@ -703,7 +767,7 @@ function buildExplorerOsmMapHtml(
               });
             });
 
-            var m = new maplibregl.Marker({
+            var m = new gl.Marker({
               element: el,
               anchor: site.isSelected ? 'bottom' : 'center'
             })
@@ -728,7 +792,7 @@ function buildExplorerOsmMapHtml(
                   });
                 });
 
-                var rm = new maplibregl.Marker({ element: rEl, anchor: 'center' })
+                var rm = new gl.Marker({ element: rEl, anchor: 'center' })
                   .setLngLat([res.lng, res.lat])
                   .addTo(map);
                 restaurantMarkers.push(rm);
@@ -743,34 +807,42 @@ function buildExplorerOsmMapHtml(
           currentTile = cfg;
           styleReady = false;
 
-          var nextStyle = (cfg.renderMode === 'vector' && cfg.vectorStyleUrl)
-            ? cfg.vectorStyleUrl
-            : buildRasterStyleJson(cfg);
-
-          if (cfg.renderMode !== 'vector') {
+          var is3DCapable = cfg.renderMode === 'mapbox' || cfg.renderMode === 'vector';
+          if (!is3DCapable) {
             map.easeTo({ pitch: 0, bearing: 0, duration: 400 });
           } else if (is3DEnabled) {
-            map.easeTo({ pitch: 42, duration: 450 });
+            map.easeTo({ pitch: 45, duration: 450 });
           }
 
-          map.setStyle(nextStyle);
+          map.setStyle(resolveGlStyle(cfg));
         }
 
         map.on('style.load', function() {
           styleReady = true;
-          applyGoogleMapsPolish(map, currentTile, is3DEnabled);
+          applyMapboxOrOsmEnhancements(map, currentTile, is3DEnabled, currentLightPreset);
           ensureCustomOverlayLayers();
           syncRadiusLayer(lastKnownUser, lastRadiusMeters);
           syncRouteLayer(lastRouteData, false);
         });
 
-        // Nếu vector style bị lỗi mạng, tự động chuyển sang raster OSM HOT để không bao giờ trắng bản đồ
-        var vectorFallbackTriggered = false;
+        var fallbackTriggered = false;
         map.on('error', function(e) {
-          if (vectorFallbackTriggered) return;
+          var status = e && e.error && e.error.status;
           var msg = (e && e.error && e.error.message) ? String(e.error.message) : '';
-          if (currentTile.renderMode === 'vector' && (msg.indexOf('openfreemap') !== -1 || msg.indexOf('Failed to fetch') !== -1)) {
-            vectorFallbackTriggered = true;
+          if (USE_MAPBOX && (status === 401 || status === 403 || msg.indexOf('Unauthorized') !== -1 || msg.indexOf('access token') !== -1)) {
+            if (!fallbackTriggered) {
+              fallbackTriggered = true;
+              postToHost({
+                type: 'MAPBOX_AUTH_ERROR',
+                message: 'Mapbox Access Token không hợp lệ hoặc đã hết hạn. Đã tự động chuyển sang bản đồ OSM 3D.'
+              });
+              currentTile = Object.assign({}, currentTile, { renderMode: 'raster' });
+              map.setStyle(buildRasterStyleJson(currentTile));
+            }
+            return;
+          }
+          if (!fallbackTriggered && currentTile.renderMode === 'vector' && (msg.indexOf('openfreemap') !== -1 || msg.indexOf('Failed to fetch') !== -1)) {
+            fallbackTriggered = true;
             currentTile = Object.assign({}, currentTile, { renderMode: 'raster' });
             map.setStyle(buildRasterStyleJson(currentTile));
           }
@@ -783,10 +855,10 @@ function buildExplorerOsmMapHtml(
             var feats = map.queryRenderedFeatures(e.point);
             for (var i = 0; i < feats.length; i++) {
               var props = feats[i].properties || {};
-              var candidate = props['name:vi'] || props.name || props['name:latin'] || '';
+              var candidate = props['name_vi'] || props['name:vi'] || props.name || props['name_en'] || '';
               if (candidate) {
                 placeName = String(candidate);
-                placeCategory = String(props.subclass || props.class || feats[i].sourceLayer || '');
+                placeCategory = String(props.category_en || props.subclass || props.class || '');
                 break;
               }
             }
@@ -803,17 +875,19 @@ function buildExplorerOsmMapHtml(
 
         window.__SHG_UPDATE__ = function(state) {
           if (!state) return;
+          if (state.lightPreset && state.lightPreset !== currentLightPreset) {
+            currentLightPreset = state.lightPreset;
+            if (styleReady && USE_MAPBOX && currentTile.id === 'mapbox_standard') {
+              try { map.setConfigProperty('basemap', 'lightPreset', currentLightPreset); } catch (e) {}
+            }
+          }
           if (typeof state.is3D === 'boolean' && state.is3D !== is3DEnabled) {
             is3DEnabled = state.is3D;
-            if (styleReady && currentTile.renderMode === 'vector') {
-              try {
-                if (map.getLayer('building-3d')) {
-                  map.setLayoutProperty('building-3d', 'visibility', is3DEnabled ? 'visible' : 'none');
-                }
-              } catch (e) {}
+            if (styleReady) {
+              applyMapboxOrOsmEnhancements(map, currentTile, is3DEnabled, currentLightPreset);
               map.easeTo({
-                pitch: is3DEnabled ? 46 : 0,
-                bearing: is3DEnabled ? -12 : 0,
+                pitch: is3DEnabled ? 48 : 0,
+                bearing: is3DEnabled ? -14 : 0,
                 duration: 500
               });
             }
@@ -831,7 +905,7 @@ function buildExplorerOsmMapHtml(
             if (latDiff > 0.012 || lngDiff > 0.012) {
               map.flyTo({
                 center: [state.userLocation[1], state.userLocation[0]],
-                zoom: 15.5,
+                zoom: 15.6,
                 duration: 850
               });
             }
@@ -854,7 +928,7 @@ function buildExplorerOsmMapHtml(
             var pts = [[lastKnownUser[1], lastKnownUser[0]]];
             lastKnownSites.forEach(function(s) { pts.push([s.lng, s.lat]); });
             if (pts.length > 1) {
-              var b = new maplibregl.LngLatBounds(pts[0], pts[0]);
+              var b = new gl.LngLatBounds(pts[0], pts[0]);
               pts.forEach(function(p) { b.extend(p); });
               map.fitBounds(b, {
                 padding: { top: 64, bottom: 110, left: 36, right: 56 },
@@ -868,7 +942,7 @@ function buildExplorerOsmMapHtml(
             map.flyTo({
               center: [lastKnownUser[1], lastKnownUser[0]],
               zoom: 16.5,
-              pitch: is3DEnabled && currentTile.renderMode === 'vector' ? 46 : 0,
+              pitch: is3DEnabled ? 48 : 0,
               duration: 650
             });
           } else if (cmd.type === 'ZOOM_IN') {
@@ -877,14 +951,19 @@ function buildExplorerOsmMapHtml(
             map.zoomOut({ duration: 260 });
           } else if (cmd.type === 'SET_3D') {
             is3DEnabled = !!cmd.enabled;
-            if (styleReady && map.getLayer('building-3d')) {
-              map.setLayoutProperty('building-3d', 'visibility', is3DEnabled ? 'visible' : 'none');
+            if (styleReady) {
+              applyMapboxOrOsmEnhancements(map, currentTile, is3DEnabled, currentLightPreset);
             }
             map.easeTo({
-              pitch: is3DEnabled && currentTile.renderMode === 'vector' ? 48 : 0,
-              bearing: is3DEnabled && currentTile.renderMode === 'vector' ? -14 : 0,
+              pitch: is3DEnabled ? 50 : 0,
+              bearing: is3DEnabled ? -14 : 0,
               duration: 500
             });
+          } else if (cmd.type === 'SET_LIGHT' && cmd.preset) {
+            currentLightPreset = cmd.preset;
+            if (styleReady && USE_MAPBOX && currentTile.id === 'mapbox_standard') {
+              try { map.setConfigProperty('basemap', 'lightPreset', currentLightPreset); } catch (e) {}
+            }
           } else if (cmd.type === 'FLY_TO' && typeof cmd.lat === 'number' && typeof cmd.lng === 'number') {
             map.flyTo({ center: [cmd.lng, cmd.lat], zoom: cmd.zoom || 16, duration: 650 });
           }
@@ -904,13 +983,10 @@ function buildExplorerOsmMapHtml(
 
         map.on('load', function() {
           map.resize();
-          postToHost({ type: 'MAP_READY', engine: 'maplibre-osm-3d' });
+          postToHost({ type: 'MAP_READY', engine: USE_MAPBOX ? 'mapbox-gl-v3' : 'maplibre-osm-3d' });
         });
       }
 
-      /**
-       * Dự phòng tự động sang Leaflet OSM HOT nếu trình duyệt/WebView không hỗ trợ WebGL.
-       */
       function initLeafletFallback() {
         var css = document.createElement('link');
         css.rel = 'stylesheet';
@@ -1033,19 +1109,24 @@ function buildExplorerOsmMapHtml(
           initLeafletFallback();
           return;
         }
-        if (typeof maplibregl === 'undefined') {
-          var fallback = document.createElement('script');
-          fallback.src = 'https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js';
-          fallback.onload = function() {
-            if (typeof maplibregl !== 'undefined') initMapLibre();
-            else initLeafletFallback();
-          };
-          fallback.onerror = initLeafletFallback;
-          document.head.appendChild(fallback);
+        var targetGlobal = USE_MAPBOX ? window.mapboxgl : window.maplibregl;
+        if (typeof targetGlobal === 'undefined') {
+          if (!USE_MAPBOX) {
+            var fallback = document.createElement('script');
+            fallback.src = 'https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js';
+            fallback.onload = function() {
+              if (typeof window.maplibregl !== 'undefined') initGlMap();
+              else initLeafletFallback();
+            };
+            fallback.onerror = initLeafletFallback;
+            document.head.appendChild(fallback);
+          } else {
+            initLeafletFallback();
+          }
           return;
         }
         try {
-          initMapLibre();
+          initGlMap();
         } catch (err) {
           initLeafletFallback();
         }
@@ -1093,15 +1174,28 @@ export const MapExplorer: React.FC<MapExplorerProps> = ({
   onMoveUserLocation,
   onDetectRealGps,
 }) => {
-  const mapId = useMemo(
-    () => `explorer-${Math.random().toString(36).slice(2, 10)}`,
-    []
+  const [runtimeMapboxToken, setRuntimeMapboxToken] = useState<string>('');
+  const [tokenLoaded, setTokenLoaded] = useState<boolean>(false);
+  const [showTokenModal, setShowTokenModal] = useState<boolean>(false);
+  const [tokenDraft, setTokenDraft] = useState<string>('');
+  const [tokenError, setTokenError] = useState<string | null>(null);
+
+  const activeMapboxToken = useMemo(
+    () => resolveMapboxAccessToken(runtimeMapboxToken),
+    [runtimeMapboxToken]
   );
-  const availableStyles = useMemo(() => getAvailableMapStyles(), []);
+  const isMapboxActive = Boolean(activeMapboxToken);
+
+  const availableStyles = useMemo(
+    () => getAvailableMapStyles(activeMapboxToken),
+    [activeMapboxToken]
+  );
+
   const [mapStyle, setMapStyle] = useState<BaseMapStyle>(() =>
     getDefaultMapStyle()
   );
   const [is3DView, setIs3DView] = useState<boolean>(true);
+  const [lightPreset, setLightPreset] = useState<MapboxLightPreset>('day');
   const [showRestaurantsOnMap, setShowRestaurantsOnMap] =
     useState<boolean>(false);
   const [showStyleMenu, setShowStyleMenu] = useState<boolean>(false);
@@ -1118,6 +1212,37 @@ export const MapExplorer: React.FC<MapExplorerProps> = ({
   const [stepsExpanded, setStepsExpanded] = useState<boolean>(false);
   const [isMapReady, setIsMapReady] = useState<boolean>(false);
 
+  // Load saved Mapbox token from AsyncStorage (if user entered it in-app)
+  useEffect(() => {
+    let mounted = true;
+    AsyncStorage.getItem(MAPBOX_TOKEN_STORAGE_KEY)
+      .then((saved) => {
+        if (!mounted) return;
+        if (saved && isValidMapboxPublicToken(saved)) {
+          setRuntimeMapboxToken(saved.trim());
+          setMapStyle('mapbox_standard');
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (mounted) setTokenLoaded(true);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  // Unique mapId per engine mode so iframe/WebView cleanly reboots when switching between OSM & Mapbox GL JS
+  const mapId = useMemo(
+    () =>
+      `explorer-${isMapboxActive ? 'mbx' : 'osm'}-${Math.random().toString(36).slice(2, 8)}`,
+    [isMapboxActive, activeMapboxToken]
+  );
+
+  useEffect(() => {
+    setIsMapReady(false);
+  }, [mapId]);
+
   const webViewRef = useRef<WebView<{}> | null>(null);
   const iframeRef = useRef<{
     contentWindow?: { postMessage: (msg: string, targetOrigin: string) => void };
@@ -1126,17 +1251,17 @@ export const MapExplorer: React.FC<MapExplorerProps> = ({
 
   const initialHtml = useMemo(
     () =>
-      buildExplorerOsmMapHtml(
+      buildExplorerMapHtml(
         mapId,
         userLocation,
-        getTileConfig(getDefaultMapStyle())
+        getTileConfig(getDefaultMapStyle(activeMapboxToken)),
+        activeMapboxToken
       ),
-    // Keep static HTML shell so map never reloads on prop updates
+    // Keep static HTML shell per mapId so map never reloads on minor prop updates
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [mapId]
   );
 
-  // Clear quick preview cards when an active route begins
   useEffect(() => {
     if (activeRoute) {
       setFocusedSite(null);
@@ -1180,7 +1305,13 @@ export const MapExplorer: React.FC<MapExplorerProps> = ({
     [mapId]
   );
 
-  const currentTileConfig = useMemo(() => getTileConfig(mapStyle), [mapStyle]);
+  const currentTileConfig = useMemo(() => {
+    const cfg = getTileConfig(mapStyle);
+    if (cfg.requiresMapboxToken && !isMapboxActive) {
+      return getTileConfig('osm_3d');
+    }
+    return cfg;
+  }, [mapStyle, isMapboxActive]);
 
   const mapStatePayload = useMemo<MapStatePayload>(() => {
     const visitedIdSet = new Set(visitedRecords.map((r) => r.siteId));
@@ -1210,6 +1341,7 @@ export const MapExplorer: React.FC<MapExplorerProps> = ({
     return {
       tileConfig: currentTileConfig,
       is3D: is3DView,
+      lightPreset,
       selectedLanguage,
       userLocation,
       searchRadiusMeters,
@@ -1228,6 +1360,7 @@ export const MapExplorer: React.FC<MapExplorerProps> = ({
   }, [
     currentTileConfig,
     is3DView,
+    lightPreset,
     selectedLanguage,
     userLocation,
     searchRadiusMeters,
@@ -1268,6 +1401,12 @@ export const MapExplorer: React.FC<MapExplorerProps> = ({
       switch (msg.type) {
         case 'MAP_READY':
           setIsMapReady(true);
+          break;
+        case 'MAPBOX_AUTH_ERROR':
+          setTokenError(
+            msg.message ||
+              'Mapbox Token không hợp lệ. Vui lòng kiểm tra lại token bắt đầu bằng pk.'
+          );
           break;
         case 'SITE_CLICK': {
           const matched = sites.find((s) => s.id === msg.siteId);
@@ -1316,7 +1455,6 @@ export const MapExplorer: React.FC<MapExplorerProps> = ({
     [mapId, sites, onMoveUserLocation]
   );
 
-  // Listen for iframe postMessage events on Expo Web
   useEffect(() => {
     if (Platform.OS !== 'web') return;
     const globalWin = globalThis as unknown as {
@@ -1372,6 +1510,43 @@ export const MapExplorer: React.FC<MapExplorerProps> = ({
     });
   }, [sendToMap]);
 
+  const handleCycleLightPreset = useCallback(() => {
+    const order: MapboxLightPreset[] = ['day', 'dusk', 'night'];
+    setLightPreset((prev) => {
+      const next = order[(order.indexOf(prev) + 1) % order.length];
+      sendToMap({ type: 'CMD', command: { type: 'SET_LIGHT', preset: next } });
+      return next;
+    });
+  }, [sendToMap]);
+
+  const handleOpenTokenModal = useCallback(() => {
+    setShowStyleMenu(false);
+    setTokenDraft(runtimeMapboxToken);
+    setTokenError(null);
+    setShowTokenModal(true);
+  }, [runtimeMapboxToken]);
+
+  const handleSaveMapboxToken = useCallback(async () => {
+    const clean = tokenDraft.trim();
+    if (!clean) {
+      await AsyncStorage.removeItem(MAPBOX_TOKEN_STORAGE_KEY).catch(() => {});
+      setRuntimeMapboxToken('');
+      setMapStyle(getDefaultMapStyle(''));
+      setTokenError(null);
+      setShowTokenModal(false);
+      return;
+    }
+    if (!isValidMapboxPublicToken(clean)) {
+      setTokenError('Token Mapbox công khai phải bắt đầu bằng "pk." (Public Token).');
+      return;
+    }
+    await AsyncStorage.setItem(MAPBOX_TOKEN_STORAGE_KEY, clean).catch(() => {});
+    setRuntimeMapboxToken(clean);
+    setMapStyle('mapbox_standard');
+    setTokenError(null);
+    setShowTokenModal(false);
+  }, [tokenDraft]);
+
   const handleOpenExternalOsmMaps = useCallback(() => {
     if (!activeRoute) return;
     const url = buildOsmWalkingUrl(userLocation, activeRoute.destination);
@@ -1403,47 +1578,61 @@ export const MapExplorer: React.FC<MapExplorerProps> = ({
     );
   }, [focusedRestaurant, userLocation]);
 
-  const isVectorMode = currentTileConfig.renderMode === 'vector';
+  const is3DCapable =
+    currentTileConfig.renderMode === 'mapbox' ||
+    currentTileConfig.renderMode === 'vector';
+  const showLightButton =
+    isMapboxActive && currentTileConfig.supportsLightPreset;
 
   return (
     <View style={styles.root}>
-      {/* Interactive OpenStreetMap Vector 3D / Raster Surface */}
+      {/* Interactive Mapbox GL JS v3 / OpenStreetMap 3D Surface */}
       <View style={styles.mapSurface}>
-        {Platform.OS === 'web' ? (
-          React.createElement('iframe', {
-            ref: iframeRef,
-            srcDoc: initialHtml,
-            onLoad: handleIframeLoad,
-            title: 'Smart Heritage Guide OpenStreetMap 3D',
-            sandbox: 'allow-scripts allow-same-origin',
-            style: {
-              width: '100%',
-              height: '100%',
-              border: 'none',
-              display: 'block',
-            },
-          })
+        {tokenLoaded ? (
+          Platform.OS === 'web' ? (
+            React.createElement('iframe', {
+              key: mapId,
+              ref: iframeRef,
+              srcDoc: initialHtml,
+              onLoad: handleIframeLoad,
+              title: isMapboxActive
+                ? 'Smart Heritage Guide Mapbox GL JS v3'
+                : 'Smart Heritage Guide OpenStreetMap 3D',
+              sandbox: 'allow-scripts allow-same-origin',
+              style: {
+                width: '100%',
+                height: '100%',
+                border: 'none',
+                display: 'block',
+              },
+            })
+          ) : (
+            <WebView<{}>
+              key={mapId}
+              ref={webViewRef}
+              originWhitelist={['*']}
+              source={{ html: initialHtml }}
+              onMessage={handleWebViewMessage}
+              javaScriptEnabled
+              domStorageEnabled
+              scrollEnabled={false}
+              bounces={false}
+              overScrollMode="never"
+              showsHorizontalScrollIndicator={false}
+              showsVerticalScrollIndicator={false}
+              style={styles.webView}
+            />
+          )
         ) : (
-          <WebView<{}>
-            ref={webViewRef}
-            originWhitelist={['*']}
-            source={{ html: initialHtml }}
-            onMessage={handleWebViewMessage}
-            javaScriptEnabled
-            domStorageEnabled
-            scrollEnabled={false}
-            bounces={false}
-            overScrollMode="never"
-            showsHorizontalScrollIndicator={false}
-            showsVerticalScrollIndicator={false}
-            style={styles.webView}
-          />
+          <View style={styles.bootCenter}>
+            <ActivityIndicator size="small" color={COLORS.accent} />
+          </View>
         )}
       </View>
 
-      {/* Subtle Tapped OSM Feature Pill (like Google Maps dropped pin label) */}
-      {tappedPlace && !activeRoute && !focusedSite && !focusedRestaurant && (
-        <View style={styles.topLeftPlaceWrap} pointerEvents="box-none">
+      {/* Top-Left Pill: Tapped OSM/Mapbox Place OR Quick Mapbox Activation Chip */}
+      <View style={styles.topLeftPlaceWrap} pointerEvents="box-none">
+        {tappedPlace && !activeRoute && !focusedSite && !focusedRestaurant ? (
           <View style={styles.tappedPlacePill}>
             <MapPin size={13} color={COLORS.gpsBlue} />
             <Text style={styles.tappedPlaceText} numberOfLines={1}>
@@ -1456,10 +1645,21 @@ export const MapExplorer: React.FC<MapExplorerProps> = ({
               <X size={13} color={COLORS.inkMuted} />
             </TouchableOpacity>
           </View>
-        </View>
-      )}
+        ) : !isMapboxActive && !activeRoute && !focusedSite && !focusedRestaurant ? (
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={handleOpenTokenModal}
+            style={styles.mapboxPromptPill}
+          >
+            <KeyRound size={12} color={COLORS.accent} />
+            <Text style={styles.mapboxPromptText}>
+              Bật Mapbox GL JS v3
+            </Text>
+          </TouchableOpacity>
+        ) : null}
+      </View>
 
-      {/* Minimal Top-Right Floating Controls (Layers + 3D + Food) */}
+      {/* Minimal Top-Right Floating Controls (Layers + 3D + Light + Food) */}
       <View style={styles.topRightControls} pointerEvents="box-none">
         <View style={styles.topRightIconColumn}>
           <TouchableOpacity
@@ -1469,7 +1669,7 @@ export const MapExplorer: React.FC<MapExplorerProps> = ({
               styles.roundControlBtn,
               showStyleMenu && styles.roundControlBtnActive,
             ]}
-            accessibilityLabel="Chọn lớp bản đồ OpenStreetMap"
+            accessibilityLabel="Chọn lớp bản đồ"
           >
             <Layers
               size={18}
@@ -1477,7 +1677,7 @@ export const MapExplorer: React.FC<MapExplorerProps> = ({
             />
           </TouchableOpacity>
 
-          {isVectorMode && (
+          {is3DCapable && (
             <TouchableOpacity
               activeOpacity={0.85}
               onPress={handleToggle3D}
@@ -1485,7 +1685,7 @@ export const MapExplorer: React.FC<MapExplorerProps> = ({
                 styles.roundControlBtn,
                 is3DView && styles.roundControlBtn3DActive,
               ]}
-              accessibilityLabel="Chuyển góc nhìn 2D và tòa nhà 3D"
+              accessibilityLabel="Chuyển góc nhìn 2D và 3D"
             >
               <Text
                 style={[
@@ -1495,6 +1695,23 @@ export const MapExplorer: React.FC<MapExplorerProps> = ({
               >
                 {is3DView ? '3D' : '2D'}
               </Text>
+            </TouchableOpacity>
+          )}
+
+          {showLightButton && (
+            <TouchableOpacity
+              activeOpacity={0.85}
+              onPress={handleCycleLightPreset}
+              style={styles.roundControlBtn}
+              accessibilityLabel="Đổi ánh sáng Mapbox Standard 3D"
+            >
+              {lightPreset === 'day' ? (
+                <Sun size={17} color="#D97706" />
+              ) : lightPreset === 'dusk' ? (
+                <Sunset size={17} color={COLORS.accent} />
+              ) : (
+                <Moon size={16} color={COLORS.ink} />
+              )}
             </TouchableOpacity>
           )}
 
@@ -1518,10 +1735,12 @@ export const MapExplorer: React.FC<MapExplorerProps> = ({
           <View style={styles.stylePopover}>
             <View style={styles.stylePopoverHeader}>
               <Box size={12} color={COLORS.inkMuted} />
-              <Text style={styles.stylePopoverTitle}>Bản đồ OpenStreetMap</Text>
+              <Text style={styles.stylePopoverTitle}>
+                {isMapboxActive ? 'Mapbox GL JS v3' : 'OpenStreetMap 3D'}
+              </Text>
             </View>
             {availableStyles.map((tile) => {
-              const active = mapStyle === tile.id;
+              const active = currentTileConfig.id === tile.id;
               return (
                 <TouchableOpacity
                   key={tile.id}
@@ -1547,6 +1766,17 @@ export const MapExplorer: React.FC<MapExplorerProps> = ({
                 </TouchableOpacity>
               );
             })}
+            <View style={styles.popoverDivider} />
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={handleOpenTokenModal}
+              style={styles.tokenActionRow}
+            >
+              <KeyRound size={13} color={COLORS.gpsBlue} />
+              <Text style={styles.tokenActionText}>
+                {isMapboxActive ? 'Đổi Mapbox Token' : 'Nhập Mapbox Token'}
+              </Text>
+            </TouchableOpacity>
           </View>
         )}
       </View>
@@ -1606,7 +1836,7 @@ export const MapExplorer: React.FC<MapExplorerProps> = ({
           <View style={styles.loadingPill}>
             <ActivityIndicator size="small" color={COLORS.gpsBlue} />
             <Text style={styles.loadingText}>
-              Đang tính lộ trình đi bộ OpenStreetMap…
+              Đang tính lộ trình đi bộ trên bản đồ…
             </Text>
           </View>
         </View>
@@ -1756,7 +1986,7 @@ export const MapExplorer: React.FC<MapExplorerProps> = ({
 
               <View style={styles.navTitleBlock}>
                 <View style={styles.navStatusLine}>
-                  <Text style={styles.navStatusLabel}>Đang dẫn đường OSM</Text>
+                  <Text style={styles.navStatusLabel}>Đang dẫn đường</Text>
                   <View style={styles.timerBadge}>
                     <Footprints size={11} color={COLORS.ink} />
                     <Text style={styles.timerText}>
@@ -1881,6 +2111,82 @@ export const MapExplorer: React.FC<MapExplorerProps> = ({
           </View>
         </View>
       )}
+
+      {/* Mapbox Public Token Modal (cho phép dán pk. token và trải nghiệm Mapbox GL JS v3 ngay lập tức) */}
+      <Modal
+        visible={showTokenModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowTokenModal(false)}
+      >
+        <View style={styles.tokenBackdrop}>
+          <View style={styles.tokenModalCard}>
+            <View style={styles.tokenModalHeader}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.tokenModalTitle}>
+                  Kích hoạt Mapbox GL JS v3
+                </Text>
+                <Text style={styles.tokenModalSub}>
+                  Dán Public Token (bắt đầu bằng pk.) để mở Mapbox Standard 3D, ánh sáng Ngày/Hoàng hôn/Đêm và Vệ tinh 3D.
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => setShowTokenModal(false)}
+                style={styles.closeIconBtn}
+              >
+                <X size={18} color={COLORS.inkMuted} />
+              </TouchableOpacity>
+            </View>
+
+            <TextInput
+              value={tokenDraft}
+              onChangeText={(txt) => {
+                setTokenDraft(txt);
+                setTokenError(null);
+              }}
+              placeholder="pk.eyJ1Ijoi..."
+              placeholderTextColor={COLORS.inkMuted}
+              autoCapitalize="none"
+              autoCorrect={false}
+              style={styles.tokenInput}
+            />
+
+            {tokenError && (
+              <Text style={styles.tokenErrorText}>{tokenError}</Text>
+            )}
+
+            <Text style={styles.tokenHintText}>
+              Bạn cũng có thể đặt EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN trong mobile/.env. Để trống để dùng OpenStreetMap 3D miễn phí.
+            </Text>
+
+            <View style={styles.tokenModalActions}>
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={() =>
+                  Linking.openURL(
+                    'https://account.mapbox.com/access-tokens/'
+                  ).catch(() => {})
+                }
+                style={styles.tokenSecondaryBtn}
+              >
+                <ExternalLink size={13} color={COLORS.ink} />
+                <Text style={styles.tokenSecondaryBtnText}>Lấy token</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                activeOpacity={0.85}
+                onPress={handleSaveMapboxToken}
+                style={styles.tokenPrimaryBtn}
+              >
+                <Check size={14} color={COLORS.white} />
+                <Text style={styles.tokenPrimaryBtnText}>
+                  {tokenDraft.trim() ? 'Áp dụng Mapbox' : 'Dùng OSM 3D'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -1903,6 +2209,11 @@ const styles = StyleSheet.create({
   webView: {
     flex: 1,
     backgroundColor: '#F2F0EA',
+  },
+  bootCenter: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   topLeftPlaceWrap: {
     position: 'absolute',
@@ -1930,6 +2241,23 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: COLORS.ink,
     flexShrink: 1,
+  },
+  mapboxPromptPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.96)',
+    borderRadius: RADII.pill,
+    borderWidth: 1,
+    borderColor: COLORS.accentBorder,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    ...SHADOWS.card,
+  },
+  mapboxPromptText: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: COLORS.accent,
   },
   topRightControls: {
     position: 'absolute',
@@ -1972,7 +2300,7 @@ const styles = StyleSheet.create({
     color: COLORS.white,
   },
   stylePopover: {
-    width: 176,
+    width: 186,
     backgroundColor: 'rgba(255, 255, 255, 0.98)',
     borderRadius: RADII.lg,
     borderWidth: 1,
@@ -2014,6 +2342,25 @@ const styles = StyleSheet.create({
   styleOptionTextActive: {
     color: COLORS.accent,
     fontWeight: '700',
+  },
+  popoverDivider: {
+    height: 1,
+    backgroundColor: COLORS.border,
+    marginVertical: 4,
+    marginHorizontal: SPACING.xs,
+  },
+  tokenActionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: 8,
+    borderRadius: RADII.md,
+  },
+  tokenActionText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.gpsBlue,
   },
   rightControls: {
     position: 'absolute',
@@ -2436,6 +2783,94 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: COLORS.inkMuted,
     marginTop: 1,
+  },
+  tokenBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(20, 20, 19, 0.48)',
+    justifyContent: 'center',
+    padding: SPACING.lg,
+  },
+  tokenModalCard: {
+    backgroundColor: COLORS.surface,
+    borderRadius: RADII.xl,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    padding: SPACING.lg,
+    gap: SPACING.md,
+    ...SHADOWS.floating,
+  },
+  tokenModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: SPACING.sm,
+  },
+  tokenModalTitle: {
+    fontFamily: SERIF_FONT,
+    fontSize: 18,
+    fontWeight: '700',
+    color: COLORS.ink,
+  },
+  tokenModalSub: {
+    fontSize: 12.5,
+    color: COLORS.inkSecondary,
+    lineHeight: 18,
+    marginTop: 4,
+  },
+  tokenInput: {
+    backgroundColor: COLORS.bg,
+    borderWidth: 1,
+    borderColor: COLORS.borderStrong,
+    borderRadius: RADII.md,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 13,
+    color: COLORS.ink,
+  },
+  tokenErrorText: {
+    fontSize: 12,
+    color: COLORS.accent,
+    fontWeight: '600',
+  },
+  tokenHintText: {
+    fontSize: 11.5,
+    color: COLORS.inkMuted,
+    lineHeight: 16,
+  },
+  tokenModalActions: {
+    flexDirection: 'row',
+    gap: SPACING.sm,
+  },
+  tokenSecondaryBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: COLORS.bg,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: RADII.md,
+    paddingVertical: 10,
+  },
+  tokenSecondaryBtnText: {
+    fontSize: 12.5,
+    fontWeight: '600',
+    color: COLORS.ink,
+  },
+  tokenPrimaryBtn: {
+    flex: 1.4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: COLORS.ink,
+    borderRadius: RADII.md,
+    paddingVertical: 10,
+  },
+  tokenPrimaryBtnText: {
+    fontSize: 12.5,
+    fontWeight: '700',
+    color: COLORS.white,
   },
 });
 

@@ -6,10 +6,17 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { WebView, type WebViewMessageEvent } from 'react-native-webview';
 import { Maximize2 } from 'lucide-react-native';
 import { HeritageSite, NearbyRestaurant } from '../types/heritage';
-import { MapTileConfig, getTileConfig } from '../services/mapTiles';
+import {
+  MAPBOX_TOKEN_STORAGE_KEY,
+  MapTileConfig,
+  getTileConfig,
+  isValidMapboxPublicToken,
+  resolveMapboxAccessToken,
+} from '../services/mapTiles';
 import { calculateDistanceMeters } from '../utils/geoUtils';
 import { COLORS, RADII, SHADOWS, SPACING } from '../theme';
 
@@ -51,19 +58,29 @@ function buildMiniMapHtml(
   mapId: string,
   center: [number, number],
   primaryTile: MapTileConfig,
-  fallbackTile: MapTileConfig
+  fallbackTile: MapTileConfig,
+  mapboxToken: string
 ): string {
+  const useMapbox = Boolean(mapboxToken);
   const safeMapId = JSON.stringify(mapId);
   const safeCenter = JSON.stringify(center);
   const safePrimary = JSON.stringify(primaryTile);
   const safeFallback = JSON.stringify(fallbackTile);
+  const safeToken = JSON.stringify(mapboxToken);
+
+  const glCss = useMapbox
+    ? 'https://api.mapbox.com/mapbox-gl-js/v3.7.0/mapbox-gl.css'
+    : 'https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.css';
+  const glJs = useMapbox
+    ? 'https://api.mapbox.com/mapbox-gl-js/v3.7.0/mapbox-gl.js'
+    : 'https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.js';
 
   return `<!DOCTYPE html>
 <html lang="vi">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.css" />
+  <link rel="stylesheet" href="${glCss}" />
   <style>
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; font-family: "Times New Roman", Times, serif; }
     html, body, #minimap {
@@ -75,8 +92,8 @@ function buildMiniMapHtml(
       overflow: hidden;
       font-family: "Times New Roman", Times, serif;
     }
-    .maplibregl-map, .leaflet-container { background: #F2F0EA; font-family: "Times New Roman", Times, serif !important; }
-    .maplibregl-ctrl-attrib {
+    .mapboxgl-map, .maplibregl-map, .leaflet-container { background: #F2F0EA; font-family: "Times New Roman", Times, serif !important; }
+    .mapboxgl-ctrl-attrib, .maplibregl-ctrl-attrib {
       font-size: 8.5px !important;
       background: rgba(255, 255, 255, 0.8) !important;
       color: #57554F !important;
@@ -91,13 +108,15 @@ function buildMiniMapHtml(
 </head>
 <body>
   <div id="minimap"></div>
-  <script src="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+  <script src="${glJs}"></script>
   <script>
     (function() {
       var MAP_ID = ${safeMapId};
       var INITIAL_CENTER = ${safeCenter};
       var PRIMARY_TILE = ${safePrimary};
       var FALLBACK_TILE = ${safeFallback};
+      var MAPBOX_TOKEN = ${safeToken};
+      var USE_MAPBOX = Boolean(MAPBOX_TOKEN);
 
       function postToHost(payload) {
         try {
@@ -143,7 +162,14 @@ function buildMiniMapHtml(
         };
       }
 
-      function applyGooglePolish(map) {
+      function applyStylePolish(map) {
+        if (USE_MAPBOX) {
+          try {
+            map.setConfigProperty('basemap', 'lightPreset', 'day');
+            map.setConfigProperty('basemap', 'show3dObjects', true);
+          } catch (e) {}
+          return;
+        }
         var setPaint = function(id, prop, val) {
           try { if (map.getLayer(id)) map.setPaintProperty(id, prop, val); } catch (e) {}
         };
@@ -159,14 +185,21 @@ function buildMiniMapHtml(
         setPaint('building-3d', 'fill-extrusion-opacity', 0.88);
       }
 
-      function initMapLibre() {
-        var map = new maplibregl.Map({
+      function initGlMiniMap() {
+        var gl = USE_MAPBOX ? window.mapboxgl : window.maplibregl;
+        if (USE_MAPBOX) gl.accessToken = MAPBOX_TOKEN;
+
+        var initialStyle = USE_MAPBOX
+          ? (PRIMARY_TILE.mapboxStyleUrl || 'mapbox://styles/mapbox/standard')
+          : (PRIMARY_TILE.vectorStyleUrl || buildRasterStyle(FALLBACK_TILE));
+
+        var map = new gl.Map({
           container: 'minimap',
-          style: PRIMARY_TILE.vectorStyleUrl || buildRasterStyle(FALLBACK_TILE),
+          style: initialStyle,
           center: [INITIAL_CENTER[1], INITIAL_CENTER[0]],
           zoom: 16,
-          pitch: 36,
-          bearing: -8,
+          pitch: 38,
+          bearing: -10,
           antialias: true,
           attributionControl: true
         });
@@ -183,7 +216,8 @@ function buildMiniMapHtml(
               type: 'geojson',
               data: { type: 'FeatureCollection', features: [] }
             });
-            map.addLayer({
+            var slotProps = USE_MAPBOX ? { slot: 'middle' } : {};
+            map.addLayer(Object.assign({
               id: 'mini-connectors-line',
               type: 'line',
               source: 'mini-connectors',
@@ -191,15 +225,15 @@ function buildMiniMapHtml(
                 'line-color': '#B93815',
                 'line-width': 2,
                 'line-dasharray': [2, 2],
-                'line-opacity': 0.78
+                'line-opacity': 0.8
               }
-            });
+            }, slotProps));
           }
         }
 
         function fitAll() {
           if (lastBoundsPoints.length > 1) {
-            var b = new maplibregl.LngLatBounds(lastBoundsPoints[0], lastBoundsPoints[0]);
+            var b = new gl.LngLatBounds(lastBoundsPoints[0], lastBoundsPoints[0]);
             lastBoundsPoints.forEach(function(p) { b.extend(p); });
             map.fitBounds(b, { padding: 38, maxZoom: 16.5, duration: 500 });
           } else {
@@ -220,14 +254,14 @@ function buildMiniMapHtml(
             + '<span style="width:7px;height:7px;border-radius:999px;background:#FBBF24;flex-shrink:0;"></span>'
             + '<span>' + escapeHtml(shortSiteName) + '</span>'
             + '</div>';
-          markers.push(new maplibregl.Marker({ element: siteEl, anchor: 'center' }).setLngLat([site.lng, site.lat]).addTo(map));
+          markers.push(new gl.Marker({ element: siteEl, anchor: 'center' }).setLngLat([site.lng, site.lat]).addTo(map));
 
           var boundsPoints = [[site.lng, site.lat]];
 
           if (Array.isArray(payload.userLocation) && payload.userLocation.length === 2) {
             var uEl = document.createElement('div');
             uEl.innerHTML = '<div style="width:14px;height:14px;border-radius:999px;background:#1A73E8;border:2.5px solid #FFFFFF;box-shadow:0 2px 8px rgba(26,115,232,0.5);"></div>';
-            markers.push(new maplibregl.Marker({ element: uEl, anchor: 'center' }).setLngLat([payload.userLocation[1], payload.userLocation[0]]).addTo(map));
+            markers.push(new gl.Marker({ element: uEl, anchor: 'center' }).setLngLat([payload.userLocation[1], payload.userLocation[0]]).addTo(map));
             if (payload.includeUserInBounds) {
               boundsPoints.push([payload.userLocation[1], payload.userLocation[0]]);
             }
@@ -247,7 +281,7 @@ function buildMiniMapHtml(
               ev.stopPropagation();
               postToHost({ type: 'RESTAURANT_CLICK', restaurantId: res.id });
             });
-            markers.push(new maplibregl.Marker({ element: rEl, anchor: 'center' }).setLngLat([res.lng, res.lat]).addTo(map));
+            markers.push(new gl.Marker({ element: rEl, anchor: 'center' }).setLngLat([res.lng, res.lat]).addTo(map));
             lineFeatures.push({
               type: 'Feature',
               geometry: { type: 'LineString', coordinates: [[site.lng, site.lat], [res.lng, res.lat]] },
@@ -268,15 +302,16 @@ function buildMiniMapHtml(
 
         map.on('style.load', function() {
           styleReady = true;
-          applyGooglePolish(map);
+          applyStylePolish(map);
           ensureConnectorsLayer();
           if (lastPayload) renderPayload(lastPayload);
         });
 
         map.on('error', function(e) {
           if (fallbackSwitched) return;
+          var status = e && e.error && e.error.status;
           var msg = (e && e.error && e.error.message) ? String(e.error.message) : '';
-          if (msg.indexOf('openfreemap') !== -1 || msg.indexOf('Failed to fetch') !== -1) {
+          if (status === 401 || status === 403 || msg.indexOf('openfreemap') !== -1 || msg.indexOf('Failed to fetch') !== -1) {
             fallbackSwitched = true;
             map.setStyle(buildRasterStyle(FALLBACK_TILE));
           }
@@ -387,22 +422,12 @@ function buildMiniMapHtml(
         }
       }
 
-      if (!hasWebGL() || typeof maplibregl === 'undefined') {
-        if (hasWebGL() && typeof maplibregl === 'undefined') {
-          var s = document.createElement('script');
-          s.src = 'https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js';
-          s.onload = function() {
-            if (typeof maplibregl !== 'undefined') initMapLibre();
-            else initLeafletFallback();
-          };
-          s.onerror = initLeafletFallback;
-          document.head.appendChild(s);
-        } else {
-          initLeafletFallback();
-        }
+      var targetGlobal = USE_MAPBOX ? window.mapboxgl : window.maplibregl;
+      if (!hasWebGL() || typeof targetGlobal === 'undefined') {
+        initLeafletFallback();
       } else {
         try {
-          initMapLibre();
+          initGlMiniMap();
         } catch (err) {
           initLeafletFallback();
         }
@@ -420,9 +445,35 @@ export const SiteMiniMap: React.FC<SiteMiniMapProps> = ({
   onSelectRestaurant,
   height = 240,
 }) => {
+  const [runtimeToken, setRuntimeToken] = useState<string>('');
+  const [tokenLoaded, setTokenLoaded] = useState<boolean>(false);
+
+  useEffect(() => {
+    let mounted = true;
+    AsyncStorage.getItem(MAPBOX_TOKEN_STORAGE_KEY)
+      .then((saved) => {
+        if (mounted && saved && isValidMapboxPublicToken(saved)) {
+          setRuntimeToken(saved.trim());
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (mounted) setTokenLoaded(true);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const activeToken = useMemo(
+    () => resolveMapboxAccessToken(runtimeToken),
+    [runtimeToken]
+  );
+
   const mapId = useMemo(
-    () => `minimap-${site.id}-${Math.random().toString(36).slice(2, 8)}`,
-    [site.id]
+    () =>
+      `minimap-${site.id}-${activeToken ? 'mbx' : 'osm'}-${Math.random().toString(36).slice(2, 8)}`,
+    [site.id, activeToken]
   );
   const [isReady, setIsReady] = useState(false);
 
@@ -441,8 +492,9 @@ export const SiteMiniMap: React.FC<SiteMiniMapProps> = ({
       buildMiniMapHtml(
         mapId,
         [site.lat, site.lng],
-        getTileConfig('osm_3d'),
-        getTileConfig('osm_hot')
+        getTileConfig(activeToken ? 'mapbox_standard' : 'osm_3d'),
+        getTileConfig('osm_hot'),
+        activeToken
       ),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [mapId]
@@ -584,34 +636,37 @@ export const SiteMiniMap: React.FC<SiteMiniMapProps> = ({
 
   return (
     <View style={[styles.container, { height }]}>
-      {Platform.OS === 'web' ? (
-        React.createElement('iframe', {
-          ref: iframeRef,
-          srcDoc: initialHtml,
-          onLoad: handleIframeLoad,
-          title: `OpenStreetMap 3D ${site.translations.vi.name}`,
-          sandbox: 'allow-scripts allow-same-origin',
-          style: {
-            width: '100%',
-            height: '100%',
-            border: 'none',
-            display: 'block',
-          },
-        })
-      ) : (
-        <WebView<{}>
-          ref={webViewRef}
-          originWhitelist={['*']}
-          source={{ html: initialHtml }}
-          onMessage={handleWebViewMessage}
-          javaScriptEnabled
-          domStorageEnabled
-          scrollEnabled={false}
-          bounces={false}
-          overScrollMode="never"
-          style={styles.webView}
-        />
-      )}
+      {tokenLoaded &&
+        (Platform.OS === 'web' ? (
+          React.createElement('iframe', {
+            key: mapId,
+            ref: iframeRef,
+            srcDoc: initialHtml,
+            onLoad: handleIframeLoad,
+            title: `Bản đồ 3D ${site.translations.vi.name}`,
+            sandbox: 'allow-scripts allow-same-origin',
+            style: {
+              width: '100%',
+              height: '100%',
+              border: 'none',
+              display: 'block',
+            },
+          })
+        ) : (
+          <WebView<{}>
+            key={mapId}
+            ref={webViewRef}
+            originWhitelist={['*']}
+            source={{ html: initialHtml }}
+            onMessage={handleWebViewMessage}
+            javaScriptEnabled
+            domStorageEnabled
+            scrollEnabled={false}
+            bounces={false}
+            overScrollMode="never"
+            style={styles.webView}
+          />
+        ))}
 
       {/* Fit All Floating Button */}
       <TouchableOpacity
