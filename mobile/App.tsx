@@ -28,6 +28,7 @@ import {
   Navigation,
   Route,
   Search,
+  ShieldCheck,
   SlidersHorizontal,
   Sparkles,
   Trophy,
@@ -86,9 +87,10 @@ import { SiteCard } from './src/components/SiteCard';
 import { SmartTourModal } from './src/components/SmartTourModal';
 import { AiChatModal } from './src/components/AiChatModal';
 import { AuthModal } from './src/components/AuthModal';
+import { AdminDashboardView } from './src/components/AdminDashboardView';
 import { COLORS, RADII, SERIF_FONT, SHADOWS, SPACING } from './src/theme';
 
-type MainTab = 'explore' | 'map' | 'journey';
+type MainTab = 'explore' | 'map' | 'journey' | 'admin';
 
 const PROXIMITY_TRIGGER_METERS = 150;
 const PROXIMITY_RESET_METERS = 220;
@@ -167,6 +169,7 @@ function SmartHeritageAppContent() {
   const [autoAudioGuide, setAutoAudioGuide] = useState<boolean>(true);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
+  const [catalogSites, setCatalogSites] = useState<HeritageSite[]>(HERITAGE_SITES);
   const [visitedRecords, setVisitedRecords] = useState<VisitedSiteRecord[]>(
     INITIAL_SAMPLE_JOURNEYS
   );
@@ -294,22 +297,22 @@ function SmartHeritageAppContent() {
   const rawNearbySites = useMemo(
     () =>
       getNearbySitesWithMetrics(
-        HERITAGE_SITES,
+        catalogSites,
         userLocation[0],
         userLocation[1],
         searchRadiusMeters > 0 ? searchRadiusMeters : undefined
       ),
-    [userLocation, searchRadiusMeters]
+    [catalogSites, userLocation, searchRadiusMeters]
   );
 
   const allSitesWithMetrics = useMemo(
     () =>
       getNearbySitesWithMetrics(
-        HERITAGE_SITES,
+        catalogSites,
         userLocation[0],
         userLocation[1]
       ),
-    [userLocation]
+    [catalogSites, userLocation]
   );
 
   const nearbySitesWithMetrics = useMemo(() => {
@@ -521,7 +524,7 @@ function SmartHeritageAppContent() {
         triggerHaptic('success');
 
         if (activeRoute.targetType === 'heritage') {
-          const targetSite = HERITAGE_SITES.find(
+          const targetSite = catalogSites.find(
             (s) => s.id === activeRoute.targetId
           );
           if (targetSite) {
@@ -561,7 +564,7 @@ function SmartHeritageAppContent() {
     if (!activeRoute) return;
     stopWalkSimulation();
     triggerHaptic('success');
-    const targetSite = HERITAGE_SITES.find(
+    const targetSite = catalogSites.find(
       (s) => s.id === activeRoute.targetId
     );
     if (targetSite) {
@@ -570,7 +573,7 @@ function SmartHeritageAppContent() {
       setActiveRoute(null);
       setToastMessage(`Hoàn thành hành trình tới ${activeRoute.targetName}!`);
     }
-  }, [activeRoute, stopWalkSimulation]);
+  }, [activeRoute, catalogSites, stopWalkSimulation]);
 
   const handleSavePhotoCheckIn = useCallback(
     async (data: {
@@ -698,6 +701,8 @@ function SmartHeritageAppContent() {
     ]
   );
 
+  const isAdminUser = authState.isAuthenticated && authState.profile?.role === 'admin';
+
   const handleAuthSuccess = useCallback((profile: UserProfile) => {
     setAuthState({
       isAuthenticated: true,
@@ -705,7 +710,12 @@ function SmartHeritageAppContent() {
       profile,
     });
     setAuthModalVisible(false);
-    setToastMessage(`Xin chào ${profile.display_name}! Đã bật đồng bộ Cloud.`);
+    if (profile.role === 'admin') {
+      setActiveTab('admin');
+      setToastMessage(`Xin chào Admin ${profile.display_name}! Đã mở bảng Quản trị.`);
+    } else {
+      setToastMessage(`Xin chào ${profile.display_name}! Đã bật đồng bộ Cloud.`);
+    }
     triggerHaptic('success');
   }, []);
 
@@ -716,8 +726,64 @@ function SmartHeritageAppContent() {
       isGuest: true,
       profile: null,
     });
+    setActiveTab((prev) => (prev === 'admin' ? 'explore' : prev));
     setToastMessage('Đã chuyển về chế độ Khách (Offline).');
   }, []);
+
+  const handleAdminUpsertSite = useCallback((nextSite: HeritageSite) => {
+    setCatalogSites((prev) => {
+      const exists = prev.some((s) => s.id === nextSite.id);
+      if (exists) {
+        return prev.map((s) => (s.id === nextSite.id ? nextSite : s));
+      }
+      return [nextSite, ...prev];
+    });
+  }, []);
+
+  const handleAdminDeleteSite = useCallback((siteId: string) => {
+    setCatalogSites((prev) => prev.filter((s) => s.id !== siteId));
+    setSelectedSite((prev) => (prev?.id === siteId ? null : prev));
+  }, []);
+
+  const handleAdminUpsertRestaurant = useCallback(
+    (siteId: string, nextRestaurant: NearbyRestaurant) => {
+      setCatalogSites((prev) =>
+        prev.map((site) => {
+          if (site.id !== siteId) return site;
+          const exists = site.nearbyRestaurants.some(
+            (r) => r.id === nextRestaurant.id
+          );
+          return {
+            ...site,
+            nearbyRestaurants: exists
+              ? site.nearbyRestaurants.map((r) =>
+                  r.id === nextRestaurant.id ? nextRestaurant : r
+                )
+              : [nextRestaurant, ...site.nearbyRestaurants],
+          };
+        })
+      );
+    },
+    []
+  );
+
+  const handleAdminDeleteRestaurant = useCallback(
+    (siteId: string, restaurantId: string) => {
+      setCatalogSites((prev) =>
+        prev.map((site) =>
+          site.id === siteId
+            ? {
+                ...site,
+                nearbyRestaurants: site.nearbyRestaurants.filter(
+                  (r) => r.id !== restaurantId
+                ),
+              }
+            : site
+        )
+      );
+    },
+    []
+  );
 
   const handleSyncOfflineJourneys = useCallback(async () => {
     if (!authState.isAuthenticated || isSyncingCloud) return;
@@ -780,13 +846,16 @@ function SmartHeritageAppContent() {
     triggerHaptic('light');
   }, []);
 
-  const handleOpenRecognizedSite = useCallback((siteId: string) => {
-    const matched = HERITAGE_SITES.find((s) => s.id === siteId);
-    if (!matched) return;
-    setQuickAudioSite(matched);
-    setSelectedSite(matched);
-    triggerHaptic('success');
-  }, []);
+  const handleOpenRecognizedSite = useCallback(
+    (siteId: string) => {
+      const matched = catalogSites.find((s) => s.id === siteId);
+      if (!matched) return;
+      setQuickAudioSite(matched);
+      setSelectedSite(matched);
+      triggerHaptic('success');
+    },
+    [catalogSites]
+  );
 
   const handleCloseQuickAudio = useCallback(() => {
     speechService.stop();
@@ -1159,7 +1228,7 @@ function SmartHeritageAppContent() {
                     Không tìm thấy địa điểm phù hợp
                   </Text>
                   <Text style={styles.emptySubtitle}>
-                    Hãy đặt lại bộ lọc để xem toàn bộ {HERITAGE_SITES.length} di
+                    Hãy đặt lại bộ lọc để xem toàn bộ {catalogSites.length} di
                     tích lịch sử TP.HCM.
                   </Text>
                   <TouchableOpacity
@@ -1174,7 +1243,7 @@ function SmartHeritageAppContent() {
                     style={styles.emptyResetBtn}
                   >
                     <Text style={styles.emptyResetBtnText}>
-                      Xem tất cả {HERITAGE_SITES.length} di tích
+                      Xem tất cả {catalogSites.length} di tích
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -1242,21 +1311,37 @@ function SmartHeritageAppContent() {
           <View style={styles.tabContainer}>
             <JourneyAndRankingView
               records={visitedRecords}
-              allSites={HERITAGE_SITES}
+              allSites={catalogSites}
               userLocation={userLocation}
               selectedLanguage={selectedLanguage}
               authState={authState}
               isSyncing={isSyncingCloud}
               onSelectSiteById={(siteId) => {
-                const target = HERITAGE_SITES.find((s) => s.id === siteId);
+                const target = catalogSites.find((s) => s.id === siteId);
                 if (target) setSelectedSite(target);
               }}
               onOpenCaptureForSite={(siteId) => {
-                const target = HERITAGE_SITES.find((s) => s.id === siteId);
+                const target = catalogSites.find((s) => s.id === siteId);
                 if (target) setPhotoCaptureSite(target);
               }}
               onOpenAuthModal={() => setAuthModalVisible(true)}
               onSyncNow={handleSyncOfflineJourneys}
+            />
+          </View>
+        )}
+
+        {activeTab === 'admin' && isAdminUser && (
+          <View style={styles.tabContainer}>
+            <AdminDashboardView
+              sites={catalogSites}
+              userLocation={userLocation}
+              authState={authState}
+              onUpsertSite={handleAdminUpsertSite}
+              onDeleteSite={handleAdminDeleteSite}
+              onUpsertRestaurant={handleAdminUpsertRestaurant}
+              onDeleteRestaurant={handleAdminDeleteRestaurant}
+              onOpenAuthModal={() => setAuthModalVisible(true)}
+              onNotify={(msg) => setToastMessage(msg)}
             />
           </View>
         )}
@@ -1381,6 +1466,33 @@ function SmartHeritageAppContent() {
             Hành trình
           </Text>
         </TouchableOpacity>
+
+        {isAdminUser && (
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={() => {
+              setActiveTab('admin');
+              triggerHaptic('selection');
+            }}
+            style={styles.tabItem}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: activeTab === 'admin' }}
+          >
+            <ShieldCheck
+              size={21}
+              strokeWidth={activeTab === 'admin' ? 2.2 : 1.7}
+              color={activeTab === 'admin' ? COLORS.accent : COLORS.inkMuted}
+            />
+            <Text
+              style={[
+                styles.tabLabel,
+                activeTab === 'admin' && styles.tabLabelActive,
+              ]}
+            >
+              Quản trị
+            </Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Filter & Location Bottom Sheet */}
@@ -1644,7 +1756,7 @@ function SmartHeritageAppContent() {
         userLocation={userLocation}
         selectedLanguage={selectedLanguage}
         visitedSiteIds={visitedRecords.map((r) => r.siteId)}
-        allSites={HERITAGE_SITES}
+        allSites={catalogSites}
         onClose={() => setSmartTourVisible(false)}
         onStartNavigateStop={handleStartNavigationToSite}
         onSelectSite={(site) => setSelectedSite(site)}
@@ -1659,7 +1771,7 @@ function SmartHeritageAppContent() {
         userLocation={userLocation}
         onClose={() => setAiChatVisible(false)}
         onOpenSiteById={(siteId) => {
-          const target = HERITAGE_SITES.find((s) => s.id === siteId);
+          const target = catalogSites.find((s) => s.id === siteId);
           if (target) setSelectedSite(target);
         }}
       />
@@ -1675,6 +1787,10 @@ function SmartHeritageAppContent() {
         onAuthSuccess={handleAuthSuccess}
         onLogout={handleLogout}
         onSyncOfflineJourneys={handleSyncOfflineJourneys}
+        onOpenAdminDashboard={() => {
+          setAuthModalVisible(false);
+          setActiveTab('admin');
+        }}
       />
     </View>
   );
