@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   FlatList,
+  Image,
   Modal,
   Platform,
   ScrollView,
@@ -21,6 +22,7 @@ import {
   Check,
   ChevronDown,
   Compass,
+  Footprints,
   Globe,
   LocateFixed,
   Map as MapIcon,
@@ -31,8 +33,10 @@ import {
   ShieldCheck,
   SlidersHorizontal,
   Sparkles,
+  Star,
   Trophy,
   User,
+  Utensils,
   Volume2,
   X,
 } from 'lucide-react-native';
@@ -49,7 +53,10 @@ import {
 import { CITY_PRESETS, HERITAGE_SITES } from './src/data/heritageSites';
 import {
   calculateBearingDegrees,
+  calculateDistanceMeters,
+  estimateWalkingSeconds,
   formatDistance,
+  formatWalkingDuration,
   getNearbySitesWithMetrics,
   interpolateRouteForSmoothWalk,
 } from './src/utils/geoUtils';
@@ -860,7 +867,11 @@ function SmartHeritageAppContent() {
   );
 
   const handleCloseQuickAudio = useCallback(() => {
-    speechService.stop();
+    try {
+      speechService.stop();
+    } catch {
+      // Ignore audio stop errors
+    }
     setQuickAudioSite(null);
   }, []);
 
@@ -899,16 +910,65 @@ function SmartHeritageAppContent() {
         isActiveRouteTarget={activeRoute?.targetId === item.site.id}
         onOpenDetail={setSelectedSite}
         onStartNavigation={handleStartNavigationToSite}
+        onNavigateToRestaurant={handleNavigateToRestaurant}
         onOpenPhotoCapture={setPhotoCaptureSite}
       />
     ),
     [
       activeRoute?.targetId,
+      handleNavigateToRestaurant,
       handleStartNavigationToSite,
       selectedLanguage,
       visitedMap,
     ]
   );
+
+  // Top quán ăn & đồ uống gần vị trí hiện tại để hiển thị nổi bật ngay trong tab Khám phá
+  const nearbyFeaturedRestaurants = useMemo(() => {
+    const seen = new Set<string>();
+    const list: Array<{
+      restaurant: NearbyRestaurant;
+      parentSite: HeritageSite;
+      parentName: string;
+      distanceMeters: number;
+      walkingSeconds: number;
+    }> = [];
+
+    for (const { site } of nearbySitesWithMetrics.slice(0, 28)) {
+      const parentName =
+        (site.translations?.[selectedLanguage] || site.translations?.vi)?.name ||
+        site.city;
+      const eateries = Array.isArray(site.nearbyRestaurants)
+        ? site.nearbyRestaurants
+        : [];
+      for (const res of eateries) {
+        const key = `${res.name.trim().toLowerCase()}|${res.lat.toFixed(4)}|${res.lng.toFixed(4)}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        const dist = calculateDistanceMeters(
+          userLocation[0],
+          userLocation[1],
+          res.lat,
+          res.lng
+        );
+        list.push({
+          restaurant: res,
+          parentSite: site,
+          parentName,
+          distanceMeters: dist,
+          walkingSeconds: estimateWalkingSeconds(dist),
+        });
+      }
+    }
+
+    return list
+      .sort((a, b) => {
+        const scoreA = a.distanceMeters - (a.restaurant.rating ?? 4.5) * 140;
+        const scoreB = b.distanceMeters - (b.restaurant.rating ?? 4.5) * 140;
+        return scoreA - scoreB;
+      })
+      .slice(0, 12);
+  }, [nearbySitesWithMetrics, selectedLanguage, userLocation]);
 
   const mapSites = useMemo(
     () => nearbySitesWithMetrics.map((i) => i.site),
@@ -1005,10 +1065,114 @@ function SmartHeritageAppContent() {
         </View>
       )}
 
+      {/* Dedicated Nearby Food & Drink Showcase right inside Explore */}
+      {nearbyFeaturedRestaurants.length > 0 && (
+        <View style={styles.foodShowcaseWrap}>
+          <View style={styles.foodShowcaseHeader}>
+            <View style={styles.foodShowcaseTitleRow}>
+              <View style={styles.foodShowcaseIcon}>
+                <Utensils size={13} color={COLORS.accent} />
+              </View>
+              <View>
+                <Text style={styles.foodShowcaseTitle}>
+                  Ẩm thực & Quán ngon gần bạn
+                </Text>
+                <Text style={styles.foodShowcaseSub}>
+                  Gợi ý theo vị trí {activeCityLabel}
+                </Text>
+              </View>
+            </View>
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={() => setActiveTab('map')}
+              style={styles.foodShowcaseMapLink}
+            >
+              <Text style={styles.foodShowcaseMapLinkText}>Xem bản đồ</Text>
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.foodCarouselContent}
+          >
+            {nearbyFeaturedRestaurants.map((entry) => (
+              <View key={entry.restaurant.id} style={styles.foodCarouselCard}>
+                <TouchableOpacity
+                  activeOpacity={0.88}
+                  onPress={() => setSelectedSite(entry.parentSite)}
+                  style={styles.foodCarouselTop}
+                >
+                  <Image
+                    source={{
+                      uri:
+                        entry.restaurant.imageUrl ||
+                        'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=600&q=80',
+                    }}
+                    style={styles.foodCarouselThumb}
+                    resizeMode="cover"
+                  />
+                  <View style={styles.foodCarouselInfo}>
+                    <View style={styles.foodCarouselNameRow}>
+                      <Text style={styles.foodCarouselName} numberOfLines={1}>
+                        {entry.restaurant.name}
+                      </Text>
+                    </View>
+                    <View style={styles.foodCarouselRatingLine}>
+                      <Star
+                        size={11}
+                        color={COLORS.amberStar}
+                        fill={COLORS.amberStar}
+                      />
+                      <Text style={styles.foodCarouselRating}>
+                        {(entry.restaurant.rating ?? 4.5).toFixed(1)}
+                      </Text>
+                      <Text style={styles.foodCarouselDot}>·</Text>
+                      <Text style={styles.foodCarouselPrice} numberOfLines={1}>
+                        {entry.restaurant.priceRange || entry.restaurant.cuisine}
+                      </Text>
+                    </View>
+                    <Text style={styles.foodCarouselDish} numberOfLines={1}>
+                      {entry.restaurant.specialtyDishes?.length
+                        ? entry.restaurant.specialtyDishes.slice(0, 2).join(' · ')
+                        : entry.restaurant.cuisine}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+
+                <View style={styles.foodCarouselFooter}>
+                  <View style={styles.foodCarouselDistWrap}>
+                    <Footprints size={11} color={COLORS.accent} />
+                    <Text style={styles.foodCarouselDistText} numberOfLines={1}>
+                      {formatDistance(entry.distanceMeters)} ·{' '}
+                      {formatWalkingDuration(entry.walkingSeconds)}
+                    </Text>
+                  </View>
+
+                  <TouchableOpacity
+                    activeOpacity={0.82}
+                    onPress={() =>
+                      handleNavigateToRestaurant(
+                        entry.restaurant,
+                        entry.parentSite
+                      )
+                    }
+                    style={styles.foodCarouselGoBtn}
+                  >
+                    <Navigation size={11} color={COLORS.white} />
+                    <Text style={styles.foodCarouselGoText}>Chỉ đường</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ))}
+          </ScrollView>
+        </View>
+      )}
+
       {/* Subtle Section Meta Line */}
       <View style={styles.sectionMetaRow}>
         <Text style={styles.sectionMetaText}>
-          {nearbySitesWithMetrics.length} điểm di sản · {activeCityLabel}
+          {nearbySitesWithMetrics.length} điểm di sản & tham quan · {activeCityLabel}
         </Text>
         {activeFilterCount > 0 && (
           <TouchableOpacity
@@ -1883,8 +2047,8 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.amberStar,
   },
   locationSubtitle: {
-    fontFamily: SERIF_FONT,
     fontSize: 12,
+    fontWeight: '500',
     color: COLORS.inkSecondary,
     flexShrink: 1,
   },
@@ -1905,7 +2069,6 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
   },
   langPillText: {
-    fontFamily: SERIF_FONT,
     fontSize: 12,
     fontWeight: '700',
     color: COLORS.ink,
@@ -1976,7 +2139,6 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    fontFamily: SERIF_FONT,
     fontSize: 13.5,
     color: COLORS.ink,
     paddingVertical: 0,
@@ -2029,9 +2191,8 @@ const styles = StyleSheet.create({
     borderBottomColor: COLORS.ink,
   },
   catTabText: {
-    fontFamily: SERIF_FONT,
     fontSize: 13,
-    fontWeight: '500',
+    fontWeight: '600',
     color: COLORS.inkMuted,
   },
   catTabTextActive: {
@@ -2093,13 +2254,11 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   aiCardTitle: {
-    fontFamily: SERIF_FONT,
     fontSize: 13,
     fontWeight: '700',
     color: COLORS.ink,
   },
   aiCardSub: {
-    fontFamily: SERIF_FONT,
     fontSize: 11,
     color: COLORS.inkMuted,
     marginTop: 1,
@@ -2156,18 +2315,163 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingTop: 2,
+    paddingTop: 4,
   },
   sectionMetaText: {
-    fontFamily: SERIF_FONT,
-    fontSize: 12,
-    color: COLORS.inkMuted,
+    fontSize: 12.5,
+    fontWeight: '700',
+    color: COLORS.ink,
   },
   clearFilterText: {
-    fontFamily: SERIF_FONT,
     fontSize: 12,
     fontWeight: '700',
     color: COLORS.accent,
+  },
+  foodShowcaseWrap: {
+    gap: 10,
+  },
+  foodShowcaseHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  foodShowcaseTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 9,
+    flex: 1,
+  },
+  foodShowcaseIcon: {
+    width: 30,
+    height: 30,
+    borderRadius: RADII.md,
+    backgroundColor: COLORS.accentSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  foodShowcaseTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: COLORS.ink,
+  },
+  foodShowcaseSub: {
+    fontSize: 11.5,
+    color: COLORS.inkMuted,
+    marginTop: 1,
+  },
+  foodShowcaseMapLink: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: RADII.pill,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  foodShowcaseMapLinkText: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: COLORS.accent,
+  },
+  foodCarouselContent: {
+    gap: 10,
+    paddingRight: SPACING.md,
+  },
+  foodCarouselCard: {
+    width: 248,
+    backgroundColor: COLORS.surface,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    padding: 10,
+    gap: 9,
+    ...SHADOWS.card,
+  },
+  foodCarouselTop: {
+    flexDirection: 'row',
+    gap: 10,
+    alignItems: 'center',
+  },
+  foodCarouselThumb: {
+    width: 58,
+    height: 58,
+    borderRadius: 12,
+    backgroundColor: COLORS.surfaceMuted,
+  },
+  foodCarouselInfo: {
+    flex: 1,
+    minWidth: 0,
+    gap: 3,
+  },
+  foodCarouselNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  foodCarouselName: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: COLORS.ink,
+  },
+  foodCarouselRatingLine: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  foodCarouselRating: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: COLORS.ink,
+    fontVariant: ['tabular-nums'],
+  },
+  foodCarouselDot: {
+    fontSize: 11,
+    color: COLORS.inkMuted,
+  },
+  foodCarouselPrice: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: COLORS.accent,
+    flexShrink: 1,
+  },
+  foodCarouselDish: {
+    fontSize: 11,
+    color: COLORS.inkSecondary,
+  },
+  foodCarouselFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.surfaceMuted,
+  },
+  foodCarouselDistWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    flex: 1,
+    minWidth: 0,
+  },
+  foodCarouselDistText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: COLORS.inkSecondary,
+    fontVariant: ['tabular-nums'],
+  },
+  foodCarouselGoBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: COLORS.ink,
+    borderRadius: RADII.pill,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  foodCarouselGoText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: COLORS.white,
   },
   quickAudioCard: {
     backgroundColor: COLORS.surface,
@@ -2294,9 +2598,8 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   tabLabel: {
-    fontFamily: SERIF_FONT,
     fontSize: 11,
-    fontWeight: '500',
+    fontWeight: '600',
     color: COLORS.inkMuted,
   },
   tabLabelActive: {

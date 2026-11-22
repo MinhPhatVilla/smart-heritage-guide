@@ -1,20 +1,22 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Image,
   Linking,
   Modal,
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WebView } from 'react-native-webview';
 import {
   ArrowLeft,
   Camera,
+  ChevronRight,
   Clock,
   ExternalLink,
   Film,
@@ -66,6 +68,9 @@ export interface HeritageDetailModalProps {
 
 type DetailTab = 'overview' | 'media' | 'dining';
 
+const FALLBACK_FOOD_IMG =
+  'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=600&q=80';
+
 function escapeHtmlAttr(str: string): string {
   return str
     .replace(/&/g, '&amp;')
@@ -109,6 +114,7 @@ export const HeritageDetailModal: React.FC<HeritageDetailModalProps> = ({
   onOpenPhotoCheckIn,
   onAskAiAboutSite,
 }) => {
+  const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState<DetailTab>('overview');
   const [minRatingFilter, setMinRatingFilter] = useState<number>(0);
   const [lightboxMedia, setLightboxMedia] = useState<{
@@ -118,12 +124,17 @@ export const HeritageDetailModal: React.FC<HeritageDetailModalProps> = ({
   } | null>(null);
   const [playingVideoId, setPlayingVideoId] = useState<string | null>(null);
 
-  const handleCloseModal = () => {
-    speechService.stop();
+  // Luôn đảm bảo thoát modal thành công ngay cả khi audio / WebView đang chạy hoặc gặp lỗi
+  const handleCloseModal = useCallback(() => {
+    try {
+      speechService.stop();
+    } catch {
+      // Bỏ qua lỗi dừng giọng đọc để không bao giờ chặn thao tác đóng
+    }
     setPlayingVideoId(null);
     setLightboxMedia(null);
     onClose();
-  };
+  }, [onClose]);
 
   useEffect(() => {
     setActiveTab('overview');
@@ -132,7 +143,7 @@ export const HeritageDetailModal: React.FC<HeritageDetailModalProps> = ({
     setPlayingVideoId(null);
   }, [site.id]);
 
-  // Hỗ trợ bấm phím Escape trên Web để thoát chi tiết địa danh ngay lập tức
+  // Hỗ trợ bấm phím Escape trên Web để thoát lightbox hoặc thoát chi tiết địa danh ngay lập tức
   useEffect(() => {
     if (!visible || Platform.OS !== 'web') return;
     const win = globalThis as unknown as {
@@ -145,27 +156,59 @@ export const HeritageDetailModal: React.FC<HeritageDetailModalProps> = ({
         if (lightboxMedia) {
           setLightboxMedia(null);
         } else {
-          speechService.stop();
-          onClose();
+          handleCloseModal();
         }
       }
     };
     win.addEventListener('keydown', onKeyDown);
     return () => win.removeEventListener?.('keydown', onKeyDown);
-  }, [visible, lightboxMedia, onClose]);
+  }, [visible, lightboxMedia, handleCloseModal]);
 
-  const localized = site.translations[selectedLanguage] || site.translations.vi;
+  const localized = site.translations?.[selectedLanguage] || site.translations?.vi || {
+    name: site.id,
+    shortSummary: '',
+    historicalEra: '',
+    openingHours: '07:00 – 18:00',
+    architecturalHighlights: [],
+    audioScript: [],
+  };
+
+  const safeGallery = useMemo(
+    () => (Array.isArray(site.mediaGallery) ? site.mediaGallery : []),
+    [site.mediaGallery]
+  );
+
+  const safeRestaurants = useMemo(
+    () => (Array.isArray(site.nearbyRestaurants) ? site.nearbyRestaurants : []),
+    [site.nearbyRestaurants]
+  );
+
+  const safeHighlights = useMemo(
+    () =>
+      Array.isArray(localized.architecturalHighlights)
+        ? localized.architecturalHighlights
+        : [],
+    [localized.architecturalHighlights]
+  );
 
   const topRestaurants = useMemo(
     () =>
       getRecommendedRestaurants(
-        site.nearbyRestaurants,
+        safeRestaurants,
         site.lat,
         site.lng,
         minRatingFilter
       ),
-    [site.nearbyRestaurants, site.lat, site.lng, minRatingFilter]
+    [safeRestaurants, site.lat, site.lng, minRatingFilter]
   );
+
+  const previewRestaurants = useMemo(
+    () => getRecommendedRestaurants(safeRestaurants, site.lat, site.lng, 0).slice(0, 3),
+    [safeRestaurants, site.lat, site.lng]
+  );
+
+  const safeRating = Number.isFinite(site.rating) ? site.rating : 4.7;
+  const safeReviewCount = Number.isFinite(site.reviewCount) ? site.reviewCount : 0;
 
   const handleOpenExternalVideo = async (url: string) => {
     try {
@@ -223,11 +266,11 @@ export const HeritageDetailModal: React.FC<HeritageDetailModalProps> = ({
               style={styles.mediaImage}
               resizeMode="cover"
             />
-            <View style={styles.videoPosterScrim} />
-            <View style={styles.playCircle}>
+            <View style={styles.videoPosterScrim} pointerEvents="none" />
+            <View style={styles.playCircle} pointerEvents="none">
               <Play size={22} color={COLORS.ink} fill={COLORS.ink} />
             </View>
-            <View style={styles.mediaTypeBadge}>
+            <View style={styles.mediaTypeBadge} pointerEvents="none">
               <Film size={11} color={COLORS.white} />
               <Text style={styles.mediaTypeBadgeText}>
                 Video tư liệu
@@ -239,9 +282,7 @@ export const HeritageDetailModal: React.FC<HeritageDetailModalProps> = ({
 
         <View style={styles.videoActionsStrip}>
           <TouchableOpacity
-            onPress={() =>
-              setPlayingVideoId(isPlaying ? null : media.id)
-            }
+            onPress={() => setPlayingVideoId(isPlaying ? null : media.id)}
             style={styles.videoActionBtn}
             activeOpacity={0.75}
           >
@@ -266,16 +307,108 @@ export const HeritageDetailModal: React.FC<HeritageDetailModalProps> = ({
     );
   };
 
-  return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      presentationStyle="fullScreen"
-      onRequestClose={handleCloseModal}
+  if (!visible) return null;
+
+  const modalBody = (
+    <View
+      style={[
+        styles.rootContainer,
+        {
+          paddingTop: Platform.OS === 'web' ? 0 : Math.max(insets.top, 8),
+          paddingBottom: Platform.OS === 'web' ? 0 : Math.max(insets.bottom, 0),
+        },
+      ]}
     >
-      <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
-        {/* Hero Image Header */}
-        <View style={styles.heroWrap}>
+      {/* Dedicated Sticky Top Navigation Bar (normal flow — NEVER overlapped or blocked!) */}
+      <View style={styles.topNavBar}>
+        <Pressable
+          onPress={handleCloseModal}
+          style={({ pressed }) => [
+            styles.topBackBtn,
+            pressed && styles.topBtnPressed,
+          ]}
+          hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
+          accessibilityRole="button"
+          accessibilityLabel="Quay lại danh sách"
+        >
+          <ArrowLeft size={17} color={COLORS.ink} strokeWidth={2.3} />
+          <Text style={styles.topBackText}>Quay lại</Text>
+        </Pressable>
+
+        <View style={styles.topTitleCol}>
+          <Text style={styles.topTitle} numberOfLines={1}>
+            {localized.name}
+          </Text>
+          <Text style={styles.topSub} numberOfLines={1}>
+            {site.city}
+          </Text>
+        </View>
+
+        <Pressable
+          onPress={handleCloseModal}
+          style={({ pressed }) => [
+            styles.topCloseBtn,
+            pressed && styles.topBtnPressed,
+          ]}
+          hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
+          accessibilityRole="button"
+          accessibilityLabel="Đóng chi tiết di tích"
+        >
+          <X size={19} color={COLORS.ink} strokeWidth={2.3} />
+        </Pressable>
+      </View>
+
+      {/* Clean Sticky Tab Bar */}
+      <View style={styles.tabsBar}>
+        {(
+          [
+            { id: 'overview', label: 'Tổng quan & Nghe', icon: Volume2 },
+            {
+              id: 'dining',
+              label: `Ẩm thực (${safeRestaurants.length})`,
+              icon: Utensils,
+            },
+            {
+              id: 'media',
+              label: `Tư liệu (${safeGallery.length})`,
+              icon: ImageIcon,
+            },
+          ] as const
+        ).map((tab) => {
+          const active = activeTab === tab.id;
+          const IconComponent = tab.icon;
+          return (
+            <Pressable
+              key={tab.id}
+              onPress={() => setActiveTab(tab.id)}
+              style={[styles.tabBtn, active && styles.tabBtnActive]}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: active }}
+            >
+              <IconComponent
+                size={14}
+                color={active ? COLORS.accent : COLORS.inkMuted}
+              />
+              <Text
+                style={[styles.tabLabel, active && styles.tabLabelActive]}
+                numberOfLines={1}
+              >
+                {tab.label}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+
+      {/* Scrollable Body (Hero lives inside scroll for spacious, comfortable reading!) */}
+      <ScrollView
+        style={styles.bodyScroll}
+        contentContainerStyle={styles.bodyContent}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
+        {/* Compact Editorial Hero Card */}
+        <View style={styles.heroCard}>
           <Image
             source={{ uri: site.coverImage }}
             style={styles.heroImage}
@@ -283,253 +416,401 @@ export const HeritageDetailModal: React.FC<HeritageDetailModalProps> = ({
           />
           <View style={styles.heroScrim} pointerEvents="none" />
 
-          <View style={styles.heroBottom} pointerEvents="box-none">
-            <View style={styles.heroMetaRow}>
-              <Text style={styles.heroMetaText}>{site.city}</Text>
-              <Text style={styles.heroMetaDot}>·</Text>
-              <Text style={styles.heroMetaText}>{localized.historicalEra}</Text>
-              {site.unescoRecognized ? (
-                <View style={styles.heroBadge}>
-                  <Text style={styles.heroBadgeText}>Di sản UNESCO</Text>
-                </View>
-              ) : site.nationalSpecialMonument ? (
-                <View style={styles.heroBadgeAccent}>
-                  <Text style={styles.heroBadgeText}>Di tích QG Đặc biệt</Text>
-                </View>
-              ) : null}
-            </View>
+          <View style={styles.heroTopRow} pointerEvents="none">
+            {site.unescoRecognized ? (
+              <View style={styles.heroBadge}>
+                <Text style={styles.heroBadgeText}>Di sản UNESCO</Text>
+              </View>
+            ) : site.nationalSpecialMonument ? (
+              <View style={styles.heroBadgeAccent}>
+                <Text style={styles.heroBadgeText}>Di tích QG Đặc biệt</Text>
+              </View>
+            ) : (
+              <View />
+            )}
 
+            <View style={styles.heroRatingPill}>
+              <Star
+                size={12}
+                color={COLORS.amberStar}
+                fill={COLORS.amberStar}
+              />
+              <Text style={styles.heroRatingText}>
+                {safeRating.toFixed(1)} ({safeReviewCount.toLocaleString()})
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.heroBottom} pointerEvents="none">
+            <Text style={styles.heroEra} numberOfLines={1}>
+              {site.city}
+              {localized.historicalEra ? ` · ${localized.historicalEra}` : ''}
+            </Text>
             <Text style={styles.heroTitle} numberOfLines={2}>
               {localized.name}
             </Text>
-
             <View style={styles.heroStatsRow}>
               <View style={styles.heroStatItem}>
                 <Footprints size={13} color={COLORS.amberStar} />
                 <Text style={styles.heroStatText}>
-                  {formatWalkingDuration(estimatedWalkingSeconds)} (
-                  {formatDistance(distanceMeters)})
+                  {formatWalkingDuration(estimatedWalkingSeconds)} ·{' '}
+                  {formatDistance(distanceMeters)}
                 </Text>
               </View>
               <Text style={styles.heroMetaDot}>·</Text>
               <View style={styles.heroStatItem}>
-                <Star
-                  size={13}
-                  color={COLORS.amberStar}
-                  fill={COLORS.amberStar}
-                />
-                <Text style={styles.heroStatText}>
-                  {site.rating.toFixed(1)} ({site.reviewCount.toLocaleString()})
+                <Ticket size={13} color="#FDE68A" />
+                <Text style={styles.heroStatText} numberOfLines={1}>
+                  {site.ticketPrice || 'Miễn phí'}
                 </Text>
               </View>
             </View>
           </View>
-
-          {/* Always-on-top Back & Close controls (never blocked by heroBottom/scrim) */}
-          <View style={styles.heroTopActions} pointerEvents="box-none">
-            <TouchableOpacity
-              onPress={handleCloseModal}
-              style={styles.heroBackPill}
-              hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
-              accessibilityLabel="Quay lại danh sách"
-              activeOpacity={0.82}
-            >
-              <ArrowLeft size={16} color={COLORS.white} />
-              <Text style={styles.heroBackPillText}>Quay lại</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={handleCloseModal}
-              style={styles.heroCloseBtn}
-              hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
-              accessibilityLabel="Đóng chi tiết di tích"
-              activeOpacity={0.82}
-            >
-              <X size={20} color={COLORS.white} />
-            </TouchableOpacity>
-          </View>
         </View>
 
-        {/* Tab Bar */}
-        <View style={styles.tabsBar}>
-          {(
-            [
-              { id: 'overview', label: 'Thuyết minh', icon: Volume2 },
-              {
-                id: 'media',
-                label: `Tư liệu (${site.mediaGallery.length})`,
-                icon: ImageIcon,
-              },
-              {
-                id: 'dining',
-                label: `Ẩm thực (${site.nearbyRestaurants.length})`,
-                icon: Utensils,
-              },
-            ] as const
-          ).map((tab) => {
-            const active = activeTab === tab.id;
-            const IconComponent = tab.icon;
-            return (
-              <TouchableOpacity
-                key={tab.id}
-                onPress={() => setActiveTab(tab.id)}
-                style={[styles.tabBtn, active && styles.tabBtnActive]}
-                activeOpacity={0.75}
-              >
-                <IconComponent
-                  size={14}
-                  color={active ? COLORS.ink : COLORS.inkMuted}
-                />
-                <Text
-                  style={[styles.tabLabel, active && styles.tabLabelActive]}
-                  numberOfLines={1}
-                >
-                  {tab.label}
+        {/* TAB 1: TỔNG QUAN, THUYẾT MINH & ẨM THỰC GẦN ĐÓ */}
+        {activeTab === 'overview' && (
+          <View style={styles.tabSection}>
+            <AudioGuidePlayer
+              site={site}
+              selectedLanguage={selectedLanguage}
+              onLanguageChange={onLanguageChange}
+            />
+
+            {/* Quick Facts Grid */}
+            <View style={styles.quickFactsGrid}>
+              <View style={styles.quickFactCard}>
+                <View style={styles.quickFactIcon}>
+                  <Clock size={14} color={COLORS.accent} />
+                </View>
+                <Text style={styles.quickFactLabel}>Giờ mở cửa</Text>
+                <Text style={styles.quickFactValue} numberOfLines={2}>
+                  {localized.openingHours || '07:00 – 18:00'}
                 </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
+              </View>
 
-        {/* Scrollable Body */}
-        <ScrollView
-          style={styles.bodyScroll}
-          contentContainerStyle={styles.bodyContent}
-          showsVerticalScrollIndicator={false}
-        >
-          {/* TAB 1: THUYẾT MINH & BẢN ĐỒ */}
-          {activeTab === 'overview' && (
-            <View style={styles.tabSection}>
-              <AudioGuidePlayer
-                site={site}
-                selectedLanguage={selectedLanguage}
-                onLanguageChange={onLanguageChange}
-              />
-
-              {onAskAiAboutSite && (
-                <TouchableOpacity
-                  onPress={() => onAskAiAboutSite(site)}
-                  style={styles.askAiCard}
-                  activeOpacity={0.85}
-                >
-                  <View style={styles.askAiIconWrap}>
-                    <Sparkles size={16} color={COLORS.white} />
-                  </View>
-                  <View style={styles.askAiTextCol}>
-                    <Text style={styles.askAiTitle}>Hỏi AI về di tích này</Text>
-                    <Text style={styles.askAiDesc} numberOfLines={2}>
-                      Trợ lý RAG đa ngôn ngữ giải đáp lịch sử, kiến trúc & ẩm
-                      thực quanh {localized.name}
-                    </Text>
-                  </View>
-                  <View style={styles.askAiCtaPill}>
-                    <Text style={styles.askAiCtaText}>Hỏi AI</Text>
-                  </View>
-                </TouchableOpacity>
-              )}
-
-              {/* Historical Summary & Highlights */}
-              <View style={styles.card}>
-                <Text style={styles.cardEyebrow}>
-                  GIỚI THIỆU & ĐIỂM NHẤN KIẾN TRÚC
+              <View style={styles.quickFactCard}>
+                <View style={styles.quickFactIcon}>
+                  <Ticket size={14} color={COLORS.accent} />
+                </View>
+                <Text style={styles.quickFactLabel}>Giá vé tham khảo</Text>
+                <Text style={styles.quickFactValue} numberOfLines={2}>
+                  {site.ticketPrice || 'Miễn phí tham quan'}
                 </Text>
-                <Text style={styles.summaryText}>{localized.shortSummary}</Text>
+              </View>
+            </View>
 
+            {/* Address Row */}
+            <View style={styles.addressCard}>
+              <MapPin size={15} color={COLORS.accent} />
+              <View style={styles.infoTextWrap}>
+                <Text style={styles.infoLabel}>Địa chỉ & Tọa độ</Text>
+                {site.address ? (
+                  <Text style={styles.infoValue}>{site.address}</Text>
+                ) : null}
+                <Text style={styles.infoCoords}>
+                  {site.lat.toFixed(4)}°N, {site.lng.toFixed(4)}°E
+                </Text>
+              </View>
+            </View>
+
+            {/* Historical Summary & Highlights */}
+            <View style={styles.card}>
+              <Text style={styles.cardEyebrow}>
+                GIỚI THIỆU & ĐIỂM NHẤN KIẾN TRÚC
+              </Text>
+              <Text style={styles.summaryText}>{localized.shortSummary}</Text>
+
+              {safeHighlights.length > 0 && (
                 <View style={styles.highlightsList}>
-                  {localized.architecturalHighlights.map((item, idx) => (
+                  {safeHighlights.map((item, idx) => (
                     <View key={idx} style={styles.highlightRow}>
-                      <Text style={styles.highlightIndex}>
-                        0{idx + 1}
-                      </Text>
+                      <Text style={styles.highlightIndex}>0{idx + 1}</Text>
                       <Text style={styles.highlightText}>{item}</Text>
                     </View>
                   ))}
                 </View>
-              </View>
+              )}
+            </View>
 
-              {/* Visitor Info */}
-              <View style={styles.cardMuted}>
-                <Text style={styles.cardEyebrow}>THÔNG TIN KHÁCH THAM QUAN</Text>
-
-                <View style={styles.infoRow}>
-                  <Clock size={15} color={COLORS.inkMuted} />
-                  <View style={styles.infoTextWrap}>
-                    <Text style={styles.infoLabel}>Giờ mở cửa</Text>
-                    <Text style={styles.infoValue}>
-                      {localized.openingHours}
+            {/* Nearby Dining Preview right on Overview tab */}
+            {previewRestaurants.length > 0 && (
+              <View style={styles.card}>
+                <View style={styles.sectionHeaderRow}>
+                  <View style={styles.sectionHeaderLeft}>
+                    <Utensils size={14} color={COLORS.accent} />
+                    <Text style={styles.cardEyebrowDark}>
+                      QUÁN ĂN & ĐỒ UỐNG GẦN ĐÂY ({safeRestaurants.length})
                     </Text>
                   </View>
-                </View>
-
-                <View style={styles.infoRow}>
-                  <Ticket size={15} color={COLORS.inkMuted} />
-                  <View style={styles.infoTextWrap}>
-                    <Text style={styles.infoLabel}>Giá vé tham khảo</Text>
-                    <Text style={styles.infoValue}>{site.ticketPrice}</Text>
-                  </View>
-                </View>
-
-                <View style={styles.infoRow}>
-                  <MapPin size={15} color={COLORS.inkMuted} />
-                  <View style={styles.infoTextWrap}>
-                    <Text style={styles.infoLabel}>
-                      {site.address ? 'Địa chỉ & Tọa độ' : 'Tọa độ GPS'}
-                    </Text>
-                    {site.address ? (
-                      <Text style={styles.infoValue}>{site.address}</Text>
-                    ) : null}
-                    <Text style={styles.infoCoords}>
-                      {site.lat.toFixed(4)}°N, {site.lng.toFixed(4)}°E
-                    </Text>
-                  </View>
-                </View>
-              </View>
-
-              {/* Embedded SiteMiniMap */}
-              <View style={styles.miniMapSection}>
-                <View style={styles.miniMapHeader}>
-                  <Text style={styles.cardEyebrow}>
-                    BẢN ĐỒ DI TÍCH & ẨM THỰC XUNG QUANH
-                  </Text>
                   <TouchableOpacity
-                    onPress={() => onStartNavigation(site)}
-                    style={styles.miniMapNavLink}
+                    onPress={() => setActiveTab('dining')}
+                    style={styles.seeAllLink}
                     activeOpacity={0.75}
                   >
-                    <Navigation size={12} color={COLORS.accent} />
-                    <Text style={styles.miniMapNavLinkText}>Mở bản đồ lớn</Text>
+                    <Text style={styles.seeAllLinkText}>Xem tất cả</Text>
+                    <ChevronRight size={14} color={COLORS.accent} />
                   </TouchableOpacity>
                 </View>
-                <SiteMiniMap
-                  site={site}
-                  userLocation={userLocation}
-                  restaurants={topRestaurants}
-                  onSelectRestaurant={(res) =>
-                    onNavigateToRestaurant(res, site)
-                  }
-                  height={220}
-                />
+
+                <View style={styles.previewFoodList}>
+                  {previewRestaurants.map((res) => (
+                    <View key={res.id} style={styles.previewFoodItem}>
+                      <Image
+                        source={{ uri: res.imageUrl || FALLBACK_FOOD_IMG }}
+                        style={styles.previewFoodThumb}
+                        resizeMode="cover"
+                      />
+                      <View style={styles.previewFoodInfo}>
+                        <Text style={styles.previewFoodName} numberOfLines={1}>
+                          {res.name}
+                        </Text>
+                        <Text style={styles.previewFoodMeta} numberOfLines={1}>
+                          ★ {(res.rating ?? 4.5).toFixed(1)} ·{' '}
+                          {formatDistance(res.distanceMeters)} ·{' '}
+                          {res.priceRange || res.cuisine}
+                        </Text>
+                        {Array.isArray(res.specialtyDishes) &&
+                        res.specialtyDishes.length > 0 ? (
+                          <Text
+                            style={styles.previewFoodDish}
+                            numberOfLines={1}
+                          >
+                            {res.specialtyDishes.slice(0, 2).join(' · ')}
+                          </Text>
+                        ) : null}
+                      </View>
+                      <TouchableOpacity
+                        onPress={() => onNavigateToRestaurant(res, site)}
+                        style={styles.previewFoodGoBtn}
+                        activeOpacity={0.8}
+                      >
+                        <Navigation size={13} color={COLORS.white} />
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                </View>
               </View>
+            )}
+
+            {onAskAiAboutSite && (
+              <TouchableOpacity
+                onPress={() => onAskAiAboutSite(site)}
+                style={styles.askAiCard}
+                activeOpacity={0.85}
+              >
+                <View style={styles.askAiIconWrap}>
+                  <Sparkles size={16} color={COLORS.white} />
+                </View>
+                <View style={styles.askAiTextCol}>
+                  <Text style={styles.askAiTitle}>Hỏi AI về di tích này</Text>
+                  <Text style={styles.askAiDesc} numberOfLines={2}>
+                    Trợ lý RAG đa ngôn ngữ giải đáp lịch sử, kiến trúc & ẩm thực
+                    quanh {localized.name}
+                  </Text>
+                </View>
+                <View style={styles.askAiCtaPill}>
+                  <Text style={styles.askAiCtaText}>Hỏi AI</Text>
+                </View>
+              </TouchableOpacity>
+            )}
+
+            {/* Embedded SiteMiniMap */}
+            <View style={styles.miniMapSection}>
+              <View style={styles.miniMapHeader}>
+                <Text style={styles.cardEyebrow}>
+                  BẢN ĐỒ DI TÍCH & ẨM THỰC XUNG QUANH
+                </Text>
+                <TouchableOpacity
+                  onPress={() => onStartNavigation(site)}
+                  style={styles.miniMapNavLink}
+                  activeOpacity={0.75}
+                >
+                  <Navigation size={12} color={COLORS.accent} />
+                  <Text style={styles.miniMapNavLinkText}>Mở bản đồ lớn</Text>
+                </TouchableOpacity>
+              </View>
+              <SiteMiniMap
+                site={site}
+                userLocation={userLocation}
+                restaurants={topRestaurants}
+                onSelectRestaurant={(res) => onNavigateToRestaurant(res, site)}
+                height={215}
+              />
             </View>
-          )}
+          </View>
+        )}
 
-          {/* TAB 2: TƯ LIỆU ẢNH & VIDEO */}
-          {activeTab === 'media' && (
-            <View style={styles.tabSection}>
-              <View style={styles.sectionIntro}>
-                <Text style={styles.sectionTitle}>
-                  Tư liệu Ảnh & Phim tài liệu lịch sử
-                </Text>
-                <Text style={styles.sectionSubtitle}>
-                  Chạm vào ảnh để xem toàn màn hình hoặc phát video tư liệu về{' '}
-                  {localized.name}.
+        {/* TAB 2: ẨM THỰC GẦN ĐÓ */}
+        {activeTab === 'dining' && (
+          <View style={styles.tabSection}>
+            <View style={styles.sectionIntro}>
+              <Text style={styles.sectionTitle}>
+                Quán ăn & Đồ uống quanh {localized.name}
+              </Text>
+              <Text style={styles.sectionSubtitle}>
+                Sắp xếp theo đánh giá cao nhất và khoảng cách đi bộ từ địa điểm.
+              </Text>
+            </View>
+
+            {/* Rating Filter Chips */}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.filterRow}
+            >
+              {[
+                { value: 0, label: 'Tất cả (xếp theo ★)' },
+                { value: 4.5, label: '≥ 4.5 ★' },
+                { value: 4.7, label: '≥ 4.7 ★' },
+                { value: 4.8, label: '≥ 4.8 ★' },
+              ].map((opt) => {
+                const active = minRatingFilter === opt.value;
+                return (
+                  <TouchableOpacity
+                    key={opt.value}
+                    onPress={() => setMinRatingFilter(opt.value)}
+                    style={[
+                      styles.filterChip,
+                      active && styles.filterChipActive,
+                    ]}
+                    activeOpacity={0.75}
+                  >
+                    <Text
+                      style={[
+                        styles.filterChipText,
+                        active && styles.filterChipTextActive,
+                      ]}
+                    >
+                      {opt.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+
+            {/* Mini map showing nearby restaurants */}
+            <SiteMiniMap
+              site={site}
+              userLocation={userLocation}
+              restaurants={topRestaurants}
+              onSelectRestaurant={(res) => onNavigateToRestaurant(res, site)}
+              height={195}
+            />
+
+            {topRestaurants.length === 0 ? (
+              <View style={styles.emptyDiningCard}>
+                <Text style={styles.emptyDiningText}>
+                  Không có quán ăn nào đạt mức ≥ {minRatingFilter} ★. Hãy chọn
+                  mức lọc thấp hơn.
                 </Text>
               </View>
+            ) : (
+              <View style={styles.diningList}>
+                {topRestaurants.map((res) => (
+                  <View key={res.id} style={styles.restaurantCard}>
+                    <View style={styles.restaurantTop}>
+                      <Image
+                        source={{ uri: res.imageUrl || FALLBACK_FOOD_IMG }}
+                        style={styles.restaurantThumb}
+                        resizeMode="cover"
+                      />
+                      <View style={styles.restaurantMain}>
+                        <View style={styles.restaurantTitleRow}>
+                          <Text
+                            style={styles.restaurantName}
+                            numberOfLines={2}
+                          >
+                            {res.name}
+                          </Text>
+                          <View style={styles.ratingBadge}>
+                            <Star
+                              size={11}
+                              color={COLORS.accent}
+                              fill={COLORS.accent}
+                            />
+                            <Text style={styles.ratingBadgeText}>
+                              {(res.rating ?? 4.5).toFixed(1)}
+                            </Text>
+                            <Text style={styles.ratingCountText}>
+                              ({res.reviewCount ?? 0})
+                            </Text>
+                          </View>
+                        </View>
 
+                        <Text style={styles.restaurantCuisine}>
+                          {res.cuisine}
+                          {res.priceRange ? ` · ${res.priceRange}` : ''}
+                        </Text>
+
+                        {Array.isArray(res.specialtyDishes) &&
+                        res.specialtyDishes.length > 0 ? (
+                          <Text
+                            style={styles.restaurantDishes}
+                            numberOfLines={2}
+                          >
+                            Món nổi bật: {res.specialtyDishes.join(' · ')}
+                          </Text>
+                        ) : null}
+                      </View>
+                    </View>
+
+                    <View style={styles.restaurantMetaRow}>
+                      <View style={styles.restaurantMetaLeft}>
+                        <Footprints size={12} color={COLORS.accent} />
+                        <Text style={styles.restaurantMetaText}>
+                          Cách {formatDistance(res.distanceMeters)} · ~
+                          {formatWalkingDuration(res.walkingSeconds)}
+                        </Text>
+                      </View>
+                      <Text style={styles.restaurantHours}>
+                        {res.openHours || '07:00 – 21:00'}
+                      </Text>
+                    </View>
+
+                    <TouchableOpacity
+                      onPress={() => onNavigateToRestaurant(res, site)}
+                      style={styles.navRestaurantBtn}
+                      activeOpacity={0.8}
+                    >
+                      <Navigation size={14} color={COLORS.white} />
+                      <Text style={styles.navRestaurantBtnText}>
+                        Dẫn đường tới quán
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </View>
+            )}
+          </View>
+        )}
+
+        {/* TAB 3: TƯ LIỆU ẢNH & VIDEO */}
+        {activeTab === 'media' && (
+          <View style={styles.tabSection}>
+            <View style={styles.sectionIntro}>
+              <Text style={styles.sectionTitle}>
+                Tư liệu Ảnh & Phim tài liệu lịch sử
+              </Text>
+              <Text style={styles.sectionSubtitle}>
+                Chạm vào ảnh để xem toàn màn hình hoặc phát video tư liệu về{' '}
+                {localized.name}.
+              </Text>
+            </View>
+
+            {safeGallery.length === 0 ? (
+              <View style={styles.emptyDiningCard}>
+                <Text style={styles.emptyDiningText}>
+                  Chưa có thêm ảnh tư liệu cho địa điểm này.
+                </Text>
+              </View>
+            ) : (
               <View style={styles.mediaList}>
-                {site.mediaGallery.map((media) => {
+                {safeGallery.map((media) => {
                   const captionText =
-                    media.caption[selectedLanguage] || media.caption.vi;
+                    media.caption?.[selectedLanguage] ||
+                    media.caption?.vi ||
+                    localized.name;
                   return (
                     <View key={media.id} style={styles.mediaCard}>
                       {media.type === 'video' ? (
@@ -540,7 +821,7 @@ export const HeritageDetailModal: React.FC<HeritageDetailModalProps> = ({
                             setLightboxMedia({
                               url: media.url,
                               caption: captionText,
-                              source: media.yearOrSource,
+                              source: media.yearOrSource || 'Tư liệu di sản',
                             })
                           }
                           style={styles.imageBtnWrap}
@@ -551,7 +832,10 @@ export const HeritageDetailModal: React.FC<HeritageDetailModalProps> = ({
                             style={styles.mediaImage}
                             resizeMode="cover"
                           />
-                          <View style={styles.mediaTypeBadge}>
+                          <View
+                            style={styles.mediaTypeBadge}
+                            pointerEvents="none"
+                          >
                             <ImageIcon size={11} color={COLORS.white} />
                             <Text style={styles.mediaTypeBadgeText}>
                               Chạm để phóng to
@@ -563,353 +847,167 @@ export const HeritageDetailModal: React.FC<HeritageDetailModalProps> = ({
                       <View style={styles.mediaBody}>
                         <Text style={styles.mediaCaption}>{captionText}</Text>
                         <Text style={styles.mediaSource}>
-                          {media.yearOrSource}
+                          {media.yearOrSource || 'Tư liệu lịch sử'}
                         </Text>
                       </View>
                     </View>
                   );
                 })}
               </View>
-            </View>
-          )}
+            )}
+          </View>
+        )}
+      </ScrollView>
 
-          {/* TAB 3: ẨM THỰC GẦN ĐÓ */}
-          {activeTab === 'dining' && (
-            <View style={styles.tabSection}>
-              <View style={styles.sectionIntro}>
-                <Text style={styles.sectionTitle}>
-                  Ẩm thực nổi bật quanh {localized.name}
-                </Text>
-                <Text style={styles.sectionSubtitle}>
-                  Sắp xếp theo đánh giá cao nhất và khoảng cách đi bộ từ di tích.
-                </Text>
-              </View>
-
-              {/* Rating Filter Chips */}
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.filterRow}
-              >
-                {[
-                  { value: 0, label: 'Tất cả (xếp theo ★)' },
-                  { value: 4.5, label: '≥ 4.5 ★' },
-                  { value: 4.7, label: '≥ 4.7 ★' },
-                  { value: 4.8, label: '≥ 4.8 ★' },
-                ].map((opt) => {
-                  const active = minRatingFilter === opt.value;
-                  return (
-                    <TouchableOpacity
-                      key={opt.value}
-                      onPress={() => setMinRatingFilter(opt.value)}
-                      style={[
-                        styles.filterChip,
-                        active && styles.filterChipActive,
-                      ]}
-                      activeOpacity={0.75}
-                    >
-                      <Text
-                        style={[
-                          styles.filterChipText,
-                          active && styles.filterChipTextActive,
-                        ]}
-                      >
-                        {opt.label}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </ScrollView>
-
-              {/* Mini map showing nearby restaurants */}
-              <SiteMiniMap
-                site={site}
-                userLocation={userLocation}
-                restaurants={topRestaurants}
-                onSelectRestaurant={(res) => onNavigateToRestaurant(res, site)}
-                height={195}
-              />
-
-              {topRestaurants.length === 0 ? (
-                <View style={styles.emptyDiningCard}>
-                  <Text style={styles.emptyDiningText}>
-                    Không có quán ăn nào đạt mức ≥ {minRatingFilter} ★. Hãy chọn
-                    mức lọc thấp hơn.
-                  </Text>
-                </View>
-              ) : (
-                <View style={styles.diningList}>
-                  {topRestaurants.map((res) => (
-                    <View key={res.id} style={styles.restaurantCard}>
-                      <View style={styles.restaurantTop}>
-                        <Image
-                          source={{ uri: res.imageUrl }}
-                          style={styles.restaurantThumb}
-                        />
-                        <View style={styles.restaurantMain}>
-                          <View style={styles.restaurantTitleRow}>
-                            <Text
-                              style={styles.restaurantName}
-                              numberOfLines={2}
-                            >
-                              {res.name}
-                            </Text>
-                            <View style={styles.ratingBadge}>
-                              <Star
-                                size={11}
-                                color={COLORS.accent}
-                                fill={COLORS.accent}
-                              />
-                              <Text style={styles.ratingBadgeText}>
-                                {res.rating.toFixed(1)}
-                              </Text>
-                              <Text style={styles.ratingCountText}>
-                                ({res.reviewCount})
-                              </Text>
-                            </View>
-                          </View>
-
-                          <Text style={styles.restaurantCuisine}>
-                            {res.cuisine} · {res.priceRange}
-                          </Text>
-
-                          <Text
-                            style={styles.restaurantDishes}
-                            numberOfLines={2}
-                          >
-                            Món nổi bật: {res.specialtyDishes.join(' · ')}
-                          </Text>
-                        </View>
-                      </View>
-
-                      <View style={styles.restaurantMetaRow}>
-                        <View style={styles.restaurantMetaLeft}>
-                          <Footprints size={12} color={COLORS.accent} />
-                          <Text style={styles.restaurantMetaText}>
-                            Cách {formatDistance(res.distanceMeters)} · ~
-                            {formatWalkingDuration(res.walkingSeconds)}
-                          </Text>
-                        </View>
-                        <Text style={styles.restaurantHours}>
-                          {res.openHours}
-                        </Text>
-                      </View>
-
-                      <TouchableOpacity
-                        onPress={() => onNavigateToRestaurant(res, site)}
-                        style={styles.navRestaurantBtn}
-                        activeOpacity={0.8}
-                      >
-                        <Navigation size={14} color={COLORS.white} />
-                        <Text style={styles.navRestaurantBtnText}>
-                          Dẫn đường tới quán
-                        </Text>
-                      </TouchableOpacity>
-                    </View>
-                  ))}
-                </View>
-              )}
-            </View>
-          )}
-        </ScrollView>
-
-        {/* Sticky Footer Actions */}
-        <View style={styles.footer}>
-          <TouchableOpacity
-            onPress={() => onStartNavigation(site)}
-            style={styles.footerPrimaryBtn}
-            activeOpacity={0.85}
-          >
-            <Navigation size={16} color={COLORS.white} />
-            <Text style={styles.footerPrimaryText}>Dẫn đường</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            onPress={() => onOpenPhotoCheckIn(site)}
-            style={styles.footerSecondaryBtn}
-            activeOpacity={0.8}
-          >
-            <Camera size={16} color={COLORS.ink} />
-            <Text style={styles.footerSecondaryText}>Chụp ảnh lưu niệm</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Fullscreen Image Lightbox Modal */}
-        <Modal
-          visible={Boolean(lightboxMedia)}
-          transparent
-          animationType="fade"
-          onRequestClose={() => setLightboxMedia(null)}
+      {/* Sticky Footer Actions */}
+      <View style={styles.footer}>
+        <TouchableOpacity
+          onPress={() => onStartNavigation(site)}
+          style={styles.footerPrimaryBtn}
+          activeOpacity={0.85}
         >
-          <SafeAreaView
-            style={styles.lightboxBackdrop}
-            edges={['top', 'bottom']}
+          <Navigation size={16} color={COLORS.white} />
+          <Text style={styles.footerPrimaryText}>Dẫn đường</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          onPress={() => onOpenPhotoCheckIn(site)}
+          style={styles.footerSecondaryBtn}
+          activeOpacity={0.8}
+        >
+          <Camera size={16} color={COLORS.ink} />
+          <Text style={styles.footerSecondaryText}>Chụp ảnh Check-in</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Non-nested Inline Fullscreen Image Lightbox (NO nested <Modal> bugs!) */}
+      {lightboxMedia && (
+        <View style={styles.lightboxOverlay}>
+          <View style={styles.lightboxTopBar}>
+            <Text style={styles.lightboxSource} numberOfLines={1}>
+              {lightboxMedia.source}
+            </Text>
+            <Pressable
+              onPress={() => setLightboxMedia(null)}
+              style={styles.lightboxCloseBtn}
+              hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
+              accessibilityRole="button"
+              accessibilityLabel="Đóng ảnh phóng to"
+            >
+              <X size={20} color={COLORS.white} />
+            </Pressable>
+          </View>
+
+          <Pressable
+            style={styles.lightboxBody}
+            onPress={() => setLightboxMedia(null)}
           >
-            <View style={styles.lightboxTopBar}>
-              <Text style={styles.lightboxSource} numberOfLines={1}>
-                {lightboxMedia?.source || 'Ảnh tư liệu'}
-              </Text>
-              <TouchableOpacity
-                onPress={() => setLightboxMedia(null)}
-                style={styles.lightboxCloseBtn}
-                accessibilityLabel="Đóng ảnh phóng to"
-                activeOpacity={0.75}
-              >
-                <X size={20} color={COLORS.white} />
-              </TouchableOpacity>
-            </View>
+            <Image
+              source={{ uri: lightboxMedia.url }}
+              style={styles.lightboxImg}
+              resizeMode="contain"
+            />
+          </Pressable>
 
-            <View style={styles.lightboxBody}>
-              {lightboxMedia && (
-                <Image
-                  source={{ uri: lightboxMedia.url }}
-                  style={styles.lightboxImg}
-                  resizeMode="contain"
-                />
-              )}
+          {lightboxMedia.caption ? (
+            <View style={styles.lightboxFooter}>
+              <Text style={styles.lightboxCaption}>{lightboxMedia.caption}</Text>
             </View>
+          ) : null}
+        </View>
+      )}
+    </View>
+  );
 
-            {lightboxMedia?.caption ? (
-              <View style={styles.lightboxFooter}>
-                <Text style={styles.lightboxCaption}>
-                  {lightboxMedia.caption}
-                </Text>
-              </View>
-            ) : null}
-          </SafeAreaView>
-        </Modal>
-      </SafeAreaView>
+  // Trên Web dùng fixed overlay trực tiếp để tránh hoàn toàn lỗi kẹt portal/click của RNW <Modal>
+  if (Platform.OS === 'web') {
+    return <View style={styles.webFixedPortal}>{modalBody}</View>;
+  }
+
+  return (
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="fullScreen"
+      onRequestClose={handleCloseModal}
+    >
+      {modalBody}
     </Modal>
   );
 };
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: COLORS.bg,
-  },
-  heroWrap: {
-    height: 205,
-    width: '100%',
-    backgroundColor: COLORS.ink,
-    position: 'relative',
-  },
-  heroImage: {
-    width: '100%',
-    height: '100%',
-    opacity: 0.85,
-  },
-  heroScrim: {
-    position: 'absolute',
+  webFixedPortal: {
+    position: 'fixed' as unknown as 'absolute',
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(20, 20, 19, 0.48)',
+    zIndex: 9999,
+    backgroundColor: COLORS.bg,
   },
-  heroTopActions: {
-    position: 'absolute',
-    top: SPACING.md,
-    left: SPACING.md,
-    right: SPACING.md,
-    zIndex: 30,
-    elevation: 12,
+  rootContainer: {
+    flex: 1,
+    backgroundColor: COLORS.bg,
+    position: 'relative',
+  },
+  topNavBar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    gap: SPACING.sm,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: 10,
+    backgroundColor: COLORS.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+    zIndex: 20,
   },
-  heroBackPill: {
+  topBackBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
     paddingHorizontal: 12,
-    height: 36,
+    height: 38,
     borderRadius: RADII.pill,
-    backgroundColor: 'rgba(20, 20, 19, 0.72)',
+    backgroundColor: COLORS.surfaceMuted,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.24)',
+    borderColor: COLORS.border,
   },
-  heroBackPillText: {
-    fontSize: 12.5,
+  topBackText: {
+    fontSize: 13,
     fontWeight: '700',
-    color: COLORS.white,
+    color: COLORS.ink,
   },
-  heroCloseBtn: {
+  topTitleCol: {
+    flex: 1,
+    minWidth: 0,
+    alignItems: 'center',
+  },
+  topTitle: {
+    fontFamily: SERIF_FONT,
+    fontSize: 15,
+    fontWeight: '700',
+    color: COLORS.ink,
+  },
+  topSub: {
+    fontSize: 11,
+    color: COLORS.inkMuted,
+    marginTop: 1,
+  },
+  topCloseBtn: {
     width: 38,
     height: 38,
     borderRadius: RADII.pill,
-    backgroundColor: 'rgba(20, 20, 19, 0.72)',
+    backgroundColor: COLORS.surfaceMuted,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.24)',
+    borderColor: COLORS.border,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  heroBottom: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    paddingHorizontal: SPACING.lg,
-    paddingVertical: SPACING.md,
-    backgroundColor: 'rgba(20, 20, 19, 0.56)',
-    gap: 5,
-  },
-  heroMetaRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    gap: 6,
-  },
-  heroMetaText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: 'rgba(255,255,255,0.9)',
-  },
-  heroMetaDot: {
-    fontSize: 11,
-    color: 'rgba(255,255,255,0.65)',
-  },
-  heroBadge: {
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    borderRadius: RADII.xs,
-    backgroundColor: 'rgba(255,255,255,0.22)',
-  },
-  heroBadgeAccent: {
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    borderRadius: RADII.xs,
-    backgroundColor: COLORS.accent,
-  },
-  heroBadgeText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: COLORS.white,
-  },
-  heroTitle: {
-    fontFamily: SERIF_FONT,
-    fontSize: 21,
-    fontWeight: '700',
-    color: COLORS.white,
-    lineHeight: 26,
-  },
-  heroStatsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    gap: 8,
-    marginTop: 2,
-  },
-  heroStatItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-  },
-  heroStatText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: COLORS.white,
-    fontVariant: ['tabular-nums'],
+  topBtnPressed: {
+    opacity: 0.7,
+    transform: [{ scale: 0.96 }],
   },
   tabsBar: {
     flexDirection: 'row',
@@ -924,12 +1022,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 5,
-    paddingVertical: 12,
+    paddingVertical: 11,
     borderBottomWidth: 2,
     borderBottomColor: 'transparent',
   },
   tabBtnActive: {
-    borderBottomColor: COLORS.ink,
+    borderBottomColor: COLORS.accent,
   },
   tabLabel: {
     fontSize: 12,
@@ -944,34 +1042,185 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   bodyContent: {
-    padding: SPACING.lg,
-    paddingBottom: SPACING.xxl,
+    padding: SPACING.md + 2,
+    paddingBottom: SPACING.xxl + 8,
+    gap: SPACING.md,
+  },
+  heroCard: {
+    height: 190,
+    width: '100%',
+    borderRadius: 18,
+    overflow: 'hidden',
+    backgroundColor: COLORS.ink,
+    position: 'relative',
+    ...SHADOWS.card,
+  },
+  heroImage: {
+    width: '100%',
+    height: '100%',
+    opacity: 0.88,
+  },
+  heroScrim: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(20, 20, 19, 0.36)',
+  },
+  heroTopRow: {
+    position: 'absolute',
+    top: 12,
+    left: 12,
+    right: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  heroBadge: {
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: RADII.pill,
+    backgroundColor: 'rgba(20, 20, 19, 0.72)',
+  },
+  heroBadgeAccent: {
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: RADII.pill,
+    backgroundColor: COLORS.accent,
+  },
+  heroBadgeText: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    color: COLORS.white,
+  },
+  heroRatingPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: RADII.pill,
+    backgroundColor: 'rgba(250, 249, 246, 0.94)',
+  },
+  heroRatingText: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: COLORS.ink,
+    fontVariant: ['tabular-nums'],
+  },
+  heroBottom: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    backgroundColor: 'rgba(20, 20, 19, 0.62)',
+    gap: 4,
+  },
+  heroEra: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: 'rgba(255, 255, 255, 0.88)',
+  },
+  heroTitle: {
+    fontFamily: SERIF_FONT,
+    fontSize: 19,
+    fontWeight: '700',
+    color: COLORS.white,
+    lineHeight: 24,
+  },
+  heroStatsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: 7,
+    marginTop: 2,
+  },
+  heroStatItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  heroStatText: {
+    fontSize: 11.5,
+    fontWeight: '600',
+    color: COLORS.white,
+    fontVariant: ['tabular-nums'],
+  },
+  heroMetaDot: {
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.65)',
   },
   tabSection: {
     gap: SPACING.md,
+  },
+  quickFactsGrid: {
+    flexDirection: 'row',
+    gap: SPACING.sm + 2,
+  },
+  quickFactCard: {
+    flex: 1,
+    backgroundColor: COLORS.surface,
+    borderRadius: RADII.lg,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    padding: 12,
+    gap: 4,
+    ...SHADOWS.card,
+  },
+  quickFactIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: RADII.md,
+    backgroundColor: COLORS.accentSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 2,
+  },
+  quickFactLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: COLORS.inkMuted,
+  },
+  quickFactValue: {
+    fontSize: 12.5,
+    fontWeight: '700',
+    color: COLORS.ink,
+    lineHeight: 17,
+  },
+  addressCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    backgroundColor: COLORS.surfaceTint,
+    borderRadius: RADII.lg,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    padding: 12,
   },
   card: {
     backgroundColor: COLORS.surface,
     borderRadius: RADII.lg,
     borderWidth: 1,
     borderColor: COLORS.border,
-    padding: SPACING.md,
-    gap: SPACING.sm + 2,
+    padding: 14,
+    gap: 10,
     ...SHADOWS.card,
   },
-  cardMuted: {
-    backgroundColor: COLORS.surfaceTint,
-    borderRadius: RADII.lg,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    padding: SPACING.md,
-    gap: SPACING.sm + 2,
-  },
   cardEyebrow: {
-    fontSize: 10,
+    fontSize: 10.5,
     fontWeight: '700',
-    letterSpacing: 0.8,
+    letterSpacing: 0.7,
     color: COLORS.inkMuted,
+  },
+  cardEyebrowDark: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    color: COLORS.ink,
   },
   summaryText: {
     fontSize: 14,
@@ -1000,17 +1249,13 @@ const styles = StyleSheet.create({
     lineHeight: 19,
     color: COLORS.inkSecondary,
   },
-  infoRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: SPACING.sm + 2,
-  },
   infoTextWrap: {
     flex: 1,
     gap: 2,
   },
   infoLabel: {
     fontSize: 11,
+    fontWeight: '600',
     color: COLORS.inkMuted,
   },
   infoValue: {
@@ -1023,6 +1268,74 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: COLORS.inkSecondary,
     fontVariant: ['tabular-nums'],
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  sectionHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flex: 1,
+  },
+  seeAllLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+  },
+  seeAllLinkText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.accent,
+  },
+  previewFoodList: {
+    gap: 10,
+  },
+  previewFoodItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: COLORS.bg,
+    borderRadius: RADII.md,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    padding: 8,
+  },
+  previewFoodThumb: {
+    width: 48,
+    height: 48,
+    borderRadius: 10,
+    backgroundColor: COLORS.surfaceMuted,
+  },
+  previewFoodInfo: {
+    flex: 1,
+    minWidth: 0,
+    gap: 2,
+  },
+  previewFoodName: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: COLORS.ink,
+  },
+  previewFoodMeta: {
+    fontSize: 11.5,
+    fontWeight: '600',
+    color: COLORS.accent,
+  },
+  previewFoodDish: {
+    fontSize: 11,
+    color: COLORS.inkSecondary,
+  },
+  previewFoodGoBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: RADII.pill,
+    backgroundColor: COLORS.ink,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   miniMapSection: {
     gap: SPACING.sm,
@@ -1197,7 +1510,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   emptyDiningText: {
-    fontSize: 12,
+    fontSize: 12.5,
     color: COLORS.inkSecondary,
     textAlign: 'center',
     lineHeight: 18,
@@ -1263,7 +1576,7 @@ const styles = StyleSheet.create({
     color: COLORS.inkMuted,
   },
   restaurantCuisine: {
-    fontSize: 11,
+    fontSize: 11.5,
     fontWeight: '600',
     color: COLORS.accent,
   },
@@ -1277,7 +1590,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: SPACING.sm,
-    paddingTop: 2,
+    paddingTop: 4,
     borderTopWidth: 1,
     borderTopColor: COLORS.surfaceMuted,
   },
@@ -1288,7 +1601,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   restaurantMetaText: {
-    fontSize: 11,
+    fontSize: 11.5,
     fontWeight: '600',
     color: COLORS.inkSecondary,
     fontVariant: ['tabular-nums'],
@@ -1316,7 +1629,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: SPACING.sm,
     paddingHorizontal: SPACING.lg,
-    paddingVertical: SPACING.md,
+    paddingVertical: 12,
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
     backgroundColor: COLORS.surface,
@@ -1329,7 +1642,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
     paddingVertical: 12,
-    borderRadius: RADII.md,
+    borderRadius: RADII.pill,
     backgroundColor: COLORS.accent,
   },
   footerPrimaryText: {
@@ -1344,7 +1657,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
     paddingVertical: 12,
-    borderRadius: RADII.md,
+    borderRadius: RADII.pill,
     borderWidth: 1,
     borderColor: COLORS.borderStrong,
     backgroundColor: COLORS.bg,
@@ -1354,8 +1667,14 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: COLORS.ink,
   },
-  lightboxBackdrop: {
-    flex: 1,
+  lightboxOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 999,
+    elevation: 40,
     backgroundColor: 'rgba(14, 14, 13, 0.96)',
   },
   lightboxTopBar: {
@@ -1373,10 +1692,10 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   lightboxCloseBtn: {
-    width: 38,
-    height: 38,
+    width: 40,
+    height: 40,
     borderRadius: RADII.pill,
-    backgroundColor: 'rgba(255,255,255,0.16)',
+    backgroundColor: 'rgba(255,255,255,0.18)',
     alignItems: 'center',
     justifyContent: 'center',
   },

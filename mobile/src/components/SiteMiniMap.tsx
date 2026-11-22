@@ -69,10 +69,10 @@ function buildMiniMapHtml(
   const safeToken = JSON.stringify(mapboxToken);
 
   const glCss = useMapbox
-    ? 'https://api.mapbox.com/mapbox-gl-js/v3.7.0/mapbox-gl.css'
+    ? 'https://api.mapbox.com/mapbox-gl-js/v3.10.0/mapbox-gl.css'
     : 'https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.css';
   const glJs = useMapbox
-    ? 'https://api.mapbox.com/mapbox-gl-js/v3.7.0/mapbox-gl.js'
+    ? 'https://api.mapbox.com/mapbox-gl-js/v3.10.0/mapbox-gl.js'
     : 'https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.js';
 
   return `<!DOCTYPE html>
@@ -82,17 +82,20 @@ function buildMiniMapHtml(
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <link rel="stylesheet" href="${glCss}" />
   <style>
-    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; font-family: "Times New Roman", Times, serif; }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     html, body, #minimap {
       margin: 0;
       padding: 0;
       width: 100%;
       height: 100%;
-      background: #F2F0EA;
+      background: #F4F2EC;
       overflow: hidden;
-      font-family: "Times New Roman", Times, serif;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
     }
-    .mapboxgl-map, .maplibregl-map, .leaflet-container { background: #F2F0EA; font-family: "Times New Roman", Times, serif !important; }
+    .mapboxgl-map, .maplibregl-map, .leaflet-container {
+      background: #F4F2EC;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+    }
     .mapboxgl-ctrl-attrib, .maplibregl-ctrl-attrib {
       font-size: 8.5px !important;
       background: rgba(255, 255, 255, 0.8) !important;
@@ -164,25 +167,36 @@ function buildMiniMapHtml(
 
       function applyStylePolish(map) {
         if (USE_MAPBOX) {
-          try {
-            map.setConfigProperty('basemap', 'lightPreset', 'day');
-            map.setConfigProperty('basemap', 'show3dObjects', true);
-          } catch (e) {}
+          var setCfg = function(k, v) { try { map.setConfigProperty('basemap', k, v); } catch (e) {} };
+          setCfg('theme', 'faded');
+          setCfg('lightPreset', 'day');
+          setCfg('colorMotorways', '#E8E3D9');
+          setCfg('colorTrunks', '#EFECE4');
+          setCfg('colorRoads', '#FFFFFF');
+          setCfg('show3dObjects', true);
           return;
         }
         var setPaint = function(id, prop, val) {
           try { if (map.getLayer(id)) map.setPaintProperty(id, prop, val); } catch (e) {}
         };
-        setPaint('background', 'background-color', '#F1F3F4');
-        setPaint('water', 'fill-color', '#AADAFF');
-        setPaint('park', 'fill-color', '#C8E6C9');
-        setPaint('road_motorway', 'line-color', '#FCD6A4');
-        setPaint('road_trunk_primary', 'line-color', '#FFE89E');
-        setPaint('road_secondary_tertiary', 'line-color', '#FFFFFF');
-        setPaint('road_minor', 'line-color', '#FFFFFF');
-        setPaint('building', 'fill-color', '#E8EAED');
+        setPaint('background', 'background-color', '#F6F4EF');
+        setPaint('water', 'fill-color', '#D2E2EE');
+        setPaint('park', 'fill-color', '#DCE7D4');
+        setPaint('building', 'fill-color', '#EBE7DF');
         setPaint('building-3d', 'fill-extrusion-color', '#E0DBD1');
         setPaint('building-3d', 'fill-extrusion-opacity', 0.88);
+        var style = map.getStyle();
+        if (style && Array.isArray(style.layers)) {
+          for (var i = 0; i < style.layers.length; i++) {
+            var lyr = style.layers[i];
+            if (lyr.type !== 'line') continue;
+            var lower = (lyr.id || '').toLowerCase();
+            if (lower.indexOf('road') === -1 && lower.indexOf('bridge') === -1 && lower.indexOf('tunnel') === -1) continue;
+            var isCase = lower.indexOf('case') !== -1 || lower.indexOf('casing') !== -1;
+            var isMajor = lower.indexOf('motorway') !== -1 || lower.indexOf('trunk') !== -1 || lower.indexOf('primary') !== -1;
+            setPaint(lyr.id, 'line-color', isCase ? '#D6D0C4' : (isMajor ? '#F1EEE7' : '#FFFFFF'));
+          }
+        }
       }
 
       function initGlMiniMap() {
