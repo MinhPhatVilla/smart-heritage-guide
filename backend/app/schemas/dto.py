@@ -324,6 +324,12 @@ class AiChatResponse(BaseModel):
     mode: Literal["gemini", "fallback"]
 
 
+class TtsSynthesizeRequest(BaseModel):
+    text: str = Field(..., min_length=1, max_length=2500)
+    language: SupportedLanguage = "vi"
+    voice_gender: Literal["female", "male"] = "female"
+
+
 # ---------------------------------------------------------------------------
 # Smart AI Pillar 3: Vision AI & Anti-Fake Verifier
 # ---------------------------------------------------------------------------

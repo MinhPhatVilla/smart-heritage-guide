@@ -9,9 +9,9 @@ Endpoints:
 
 from __future__ import annotations
 
-from typing import Optional
+from typing import Literal, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
@@ -22,13 +22,16 @@ from app.schemas.dto import (
     AiChatResponse,
     RecommendationRequest,
     RecommendationResponse,
+    SupportedLanguage,
     TourPlanRequest,
     TourPlanResponse,
+    TtsSynthesizeRequest,
     VisionIdentifyRequest,
     VisionIdentifyResponse,
 )
 from app.services.rag_service import answer_heritage_question
 from app.services.recommendation_service import get_recommendations, plan_walking_tour
+from app.services.tts_service import NEURAL_VOICES, synthesize_speech_mp3
 from app.services.vision_service import identify_site_from_request
 
 router = APIRouter(prefix="/ai", tags=["Smart AI"])
@@ -96,3 +99,68 @@ async def ai_vision_identify(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(exc),
         ) from exc
+
+
+@router.get(
+    "/tts/voices",
+    summary="Danh sách giọng đọc AI Neural tự nhiên (5 ngôn ngữ · Nữ/Nam)",
+)
+async def ai_tts_voices() -> dict[str, dict[str, dict[str, str]]]:
+    """Return curated natural Microsoft Neural voices for VI, EN, FR, ZH, and JA."""
+    return NEURAL_VOICES
+
+
+@router.post(
+    "/tts",
+    summary="Tạo âm thanh thuyết minh AI Neural tự nhiên (MP3 có cache)",
+    responses={200: {"content": {"audio/mpeg": {}}}},
+)
+async def ai_tts_post(payload: TtsSynthesizeRequest) -> Response:
+    """Synthesize warm, human-like Neural speech MP3 with server-side caching."""
+    try:
+        audio_bytes, voice_id, cache_hit = await synthesize_speech_mp3(
+            text=payload.text,
+            language=payload.language,
+            gender=payload.voice_gender,
+        )
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
+    except RuntimeError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=str(exc),
+        ) from exc
+
+    return Response(
+        content=audio_bytes,
+        media_type="audio/mpeg",
+        headers={
+            "Cache-Control": "public, max-age=604800",
+            "X-TTS-Provider": "edge-neural",
+            "X-TTS-Voice": voice_id,
+            "X-TTS-Cache": "hit" if cache_hit else "miss",
+        },
+    )
+
+
+@router.get(
+    "/tts",
+    summary="Stream trực tiếp âm thanh thuyết minh AI Neural (MP3 URL cho Native Audio)",
+    responses={200: {"content": {"audio/mpeg": {}}}},
+)
+async def ai_tts_get(
+    text: str = Query(..., min_length=1, max_length=1800),
+    language: SupportedLanguage = Query(default="vi"),
+    voice_gender: Literal["female", "male"] = Query(default="female"),
+) -> Response:
+    """GET variant allowing direct audio player URL streaming on iOS/Android/Web."""
+    return await ai_tts_post(
+        TtsSynthesizeRequest(
+            text=text,
+            language=language,
+            voice_gender=voice_gender,
+        )
+    )
