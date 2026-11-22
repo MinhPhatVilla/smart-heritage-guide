@@ -461,7 +461,12 @@ function buildExplorerMapHtml(
             paint: { 'raster-opacity': 0.96 }
           });
         }
-        return { version: 8, sources: sources, layers: layers };
+        return {
+          version: 8,
+          glyphs: 'https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf',
+          sources: sources,
+          layers: layers
+        };
       }
 
       function resolveGlStyle(tileCfg) {
@@ -483,8 +488,9 @@ function buildExplorerMapHtml(
 
         if (site.isSelected) {
           var shortLabel = site.label.length > 20 ? site.label.slice(0, 18) + '…' : site.label;
+          el.style.willChange = 'transform';
           el.innerHTML = '<div class="shg-pin-badge" style="display:inline-flex;flex-direction:column;align-items:center;user-select:none;">'
-            + '<div style="display:inline-flex;align-items:center;gap:7px;padding:4px 11px 4px 4px;border-radius:999px;background:rgba(250,249,246,0.96);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1.5px solid ' + accent + ';box-shadow:0 10px 26px rgba(20,20,19,0.20),0 2px 6px rgba(185,56,21,0.14);">'
+            + '<div style="display:inline-flex;align-items:center;gap:7px;padding:4px 11px 4px 4px;border-radius:999px;background:rgba(250,249,246,0.98);border:1.5px solid ' + accent + ';box-shadow:0 8px 22px rgba(20,20,19,0.22);">'
             + '<div style="width:26px;height:26px;border-radius:999px;overflow:hidden;flex-shrink:0;background:#F3F1EC;border:1px solid rgba(20,20,19,0.08);">'
             + '<img src="' + escapeHtml(site.coverImage) + '" alt="" style="width:26px;height:26px;object-fit:cover;display:block;" />'
             + '</div>'
@@ -590,19 +596,92 @@ function buildExplorerMapHtml(
         return el;
       }
 
-      function applyMapboxOrOsmEnhancements(map, tileCfg, is3D, lightPreset) {
-        // 1. Mapbox Standard 3D (v3): bảng màu Faded hiện đại đồng bộ tông ấm app + giữ đủ POI dịu mắt
-        if (USE_MAPBOX && tileCfg.id === 'mapbox_standard') {
+      function recolorAllRoadsAndBridges(map) {
+        var style = map.getStyle();
+        if (!style || !Array.isArray(style.layers)) return;
+        for (var i = 0; i < style.layers.length; i++) {
+          var lyr = style.layers[i];
+          var id = lyr.id || '';
+          if (!id || id.indexOf('shg-') === 0) continue;
+          var lower = id.toLowerCase();
+          if (
+            lower.indexOf('rail') !== -1 ||
+            lower.indexOf('ferry') !== -1 ||
+            lower.indexOf('aerial') !== -1 ||
+            lower.indexOf('water') !== -1 ||
+            lower.indexOf('boundary') !== -1 ||
+            lower.indexOf('contour') !== -1
+          ) {
+            continue;
+          }
+          if (lyr.type === 'fill' && lower.indexOf('bridge') !== -1) {
+            try { map.setPaintProperty(id, 'fill-color', '#E7E2D8'); } catch (e) {}
+            continue;
+          }
+          if (lyr.type !== 'line') continue;
+          var isTransport =
+            lower.indexOf('road') !== -1 ||
+            lower.indexOf('bridge') !== -1 ||
+            lower.indexOf('tunnel') !== -1 ||
+            lower.indexOf('highway') !== -1 ||
+            lower.indexOf('motorway') !== -1 ||
+            lower.indexOf('trunk') !== -1 ||
+            lower.indexOf('primary') !== -1 ||
+            lower.indexOf('secondary') !== -1 ||
+            lower.indexOf('tertiary') !== -1 ||
+            lower.indexOf('street') !== -1;
+          if (!isTransport) continue;
+
+          var isCasing =
+            lower.indexOf('case') !== -1 ||
+            lower.indexOf('casing') !== -1 ||
+            lower.indexOf('outline') !== -1;
+          var isMajor =
+            lower.indexOf('motorway') !== -1 ||
+            lower.indexOf('trunk') !== -1 ||
+            lower.indexOf('primary') !== -1 ||
+            lower.indexOf('expressway') !== -1;
+          var isPath =
+            lower.indexOf('path') !== -1 ||
+            lower.indexOf('pedestrian') !== -1 ||
+            lower.indexOf('footway') !== -1 ||
+            lower.indexOf('cycle') !== -1 ||
+            lower.indexOf('steps') !== -1;
+
           try {
-            map.setConfigProperty('basemap', 'theme', 'faded');
-            map.setConfigProperty('basemap', 'lightPreset', lightPreset || 'day');
-            map.setConfigProperty('basemap', 'showPointOfInterestLabels', true);
-            map.setConfigProperty('basemap', 'showRoadLabels', true);
-            map.setConfigProperty('basemap', 'showTransitLabels', true);
-            map.setConfigProperty('basemap', 'show3dObjects', is3D);
+            if (isCasing) {
+              map.setPaintProperty(id, 'line-color', isMajor ? '#D6D0C4' : '#E5E0D7');
+            } else if (isPath) {
+              map.setPaintProperty(id, 'line-color', '#EAE5DB');
+            } else if (isMajor) {
+              // Đồng màu kem đá trung tính cho cả đường lớn lẫn cầu vượt / cầu sông — không còn vệt vàng!
+              map.setPaintProperty(id, 'line-color', '#F1EEE7');
+            } else {
+              map.setPaintProperty(id, 'line-color', '#FFFFFF');
+            }
+          } catch (e) {}
+        }
+      }
+
+      function applyMapboxOrOsmEnhancements(map, tileCfg, is3D, lightPreset) {
+        // 1. Mapbox Standard 3D (v3): bảng màu Faded hiện đại + ép đường cao tốc/quốc lộ/cầu đồng màu trung tính (không bị vàng)
+        if (USE_MAPBOX && tileCfg.id === 'mapbox_standard') {
+          var isNight = lightPreset === 'night';
+          var isDusk = lightPreset === 'dusk';
+          var setBasemapCfg = function(prop, val) {
+            try { map.setConfigProperty('basemap', prop, val); } catch (e) {}
+          };
+          setBasemapCfg('theme', 'faded');
+          setBasemapCfg('lightPreset', lightPreset || 'day');
+          setBasemapCfg('colorMotorways', isNight ? '#333B4C' : (isDusk ? '#D8CEC0' : '#E8E3D9'));
+          setBasemapCfg('colorTrunks', isNight ? '#2B3242' : (isDusk ? '#E2D9CC' : '#EFECE4'));
+          setBasemapCfg('colorRoads', isNight ? '#222836' : (isDusk ? '#F2ECE2' : '#FFFFFF'));
+          setBasemapCfg('showPointOfInterestLabels', true);
+          setBasemapCfg('showRoadLabels', true);
+          setBasemapCfg('showTransitLabels', true);
+          setBasemapCfg('show3dObjects', is3D);
+          try {
             if (typeof map.setFog === 'function') {
-              var isNight = lightPreset === 'night';
-              var isDusk = lightPreset === 'dusk';
               map.setFog(is3D ? {
                 color: isNight ? '#0E121B' : (isDusk ? '#ECE1D4' : '#F4F2EC'),
                 'high-color': isNight ? '#05070D' : (isDusk ? '#D8C3AD' : '#E3E9EE'),
@@ -615,8 +694,11 @@ function buildExplorerMapHtml(
           return;
         }
 
-        // 2. Mapbox Streets / Outdoors / Satellite v12: khối kiến trúc 3D tông đá kem hiện đại
+        // 2. Mapbox Streets / Outdoors / Satellite v12: đồng màu toàn bộ đường + cầu + khối kiến trúc 3D
         if (USE_MAPBOX && tileCfg.renderMode === 'mapbox') {
+          if (tileCfg.id !== 'mapbox_satellite') {
+            recolorAllRoadsAndBridges(map);
+          }
           try {
             if (is3D && map.getSource('composite') && !map.getLayer('shg-mapbox-3d-buildings')) {
               var layers = (map.getStyle() && map.getStyle().layers) || [];
@@ -656,7 +738,7 @@ function buildExplorerMapHtml(
           return;
         }
 
-        // 3. OpenStreetMap Vector 3D (OpenFreeMap) — Bảng màu Kiến trúc Kem Ấm đồng bộ với toàn App
+        // 3. OpenStreetMap Vector 3D (OpenFreeMap) — Đồng màu 100% đất, nước, đường & MỌI CÂY CẦU (bridge_*)
         if (tileCfg.renderMode !== 'vector') return;
         var style = map.getStyle();
         if (!style || !Array.isArray(style.layers)) return;
@@ -681,19 +763,10 @@ function buildExplorerMapHtml(
           setPaint('landuse_commercial_area', 'fill-color', '#F4EEE4');
           setPaint('landuse_hospital', 'fill-color', '#F5EAE8');
           setPaint('landuse_school', 'fill-color', '#F4EFE3');
-          setPaint('road_motorway_casing', 'line-color', '#DDD0B6');
-          setPaint('road_motorway', 'line-color', '#EDE2CB');
-          setPaint('road_trunk_primary_casing', 'line-color', '#E2DBD0');
-          setPaint('road_trunk_primary', 'line-color', '#F8F4EA');
-          setPaint('road_secondary_tertiary_casing', 'line-color', '#E5E1D8');
-          setPaint('road_secondary_tertiary', 'line-color', '#FFFFFF');
-          setPaint('road_minor_casing', 'line-color', '#EAE6DE');
-          setPaint('road_minor', 'line-color', '#FFFFFF');
-          setPaint('road_service_track_casing', 'line-color', '#EFECE5');
-          setPaint('road_service_track', 'line-color', '#FAF9F6');
-          setPaint('road_path_pedestrian', 'line-color', '#EAE4D8');
           setPaint('building', 'fill-color', '#EBE7DF');
           setPaint('building', 'fill-outline-color', '#DED9CF');
+          // Tô đồng màu toàn bộ road_*, bridge_*, tunnel_*, highway_* (xóa triệt để màu vàng trên mọi cây cầu!)
+          recolorAllRoadsAndBridges(map);
         }
 
         if (map.getLayer('building-3d')) {
@@ -733,14 +806,16 @@ function buildExplorerMapHtml(
         var userMarker = null;
         var userMarkerEl = null;
         var destMarker = null;
-        var siteMarkers = [];
-        var restaurantMarkers = [];
+        var selectedSiteMarker = null;
         var isFollowingNav = false;
         var lastKnownHeading = null;
         var wasInNavMode = false;
         var isFocusHcmcOnly = Boolean(INITIAL_FOCUS_HCMC);
+        var loadedPhotoSprites = {};
+        var loadingPhotoSprites = {};
+        var spriteRefreshTimer = null;
 
-        var map = new gl.Map({
+        var mapInitOpts = {
           container: 'map',
           style: resolveGlStyle(INITIAL_TILE),
           center: [INITIAL_CENTER[1], INITIAL_CENTER[0]],
@@ -752,10 +827,242 @@ function buildExplorerMapHtml(
           bearing: -15,
           maxPitch: 70,
           antialias: true,
+          fadeDuration: 90,
+          maxTileCacheSize: 120,
           attributionControl: true
-        });
+        };
+        if (USE_MAPBOX && INITIAL_TILE.id === 'mapbox_standard') {
+          mapInitOpts.config = {
+            basemap: {
+              theme: 'faded',
+              lightPreset: 'day',
+              colorMotorways: '#E8E3D9',
+              colorTrunks: '#EFECE4',
+              colorRoads: '#FFFFFF',
+              showPointOfInterestLabels: true,
+              showRoadLabels: true,
+              showTransitLabels: true,
+              show3dObjects: true
+            }
+          };
+        }
+        var map = new gl.Map(mapInitOpts);
+
+        // Tối ưu độ nhạy & độ mượt khi lăn chuột / phóng to thu nhỏ
+        try {
+          if (map.scrollZoom) {
+            if (typeof map.scrollZoom.setWheelZoomRate === 'function') {
+              map.scrollZoom.setWheelZoomRate(1 / 220);
+            }
+            if (typeof map.scrollZoom.setZoomRate === 'function') {
+              map.scrollZoom.setZoomRate(1 / 85);
+            }
+          }
+        } catch (e) {}
 
         map.addControl(new gl.ScaleControl({ maxWidth: 90, unit: 'metric' }), 'bottom-left');
+
+        // =========================================================================
+        // 100% GPU WebGL HiDPI Canvas Sprites — zero DOM lag during 60-120fps zoom!
+        // =========================================================================
+        function drawPinCanvas(img, accent, badgeText) {
+          var w = 88;
+          var h = 98;
+          var canvas = document.createElement('canvas');
+          canvas.width = w;
+          canvas.height = h;
+          var ctx = canvas.getContext('2d');
+          var cx = w / 2;
+          var cy = 40;
+          var r = 32;
+
+          // Subtle ground ellipse shadow
+          ctx.save();
+          ctx.fillStyle = 'rgba(20, 20, 19, 0.22)';
+          ctx.beginPath();
+          ctx.ellipse(cx, h - 6, 13, 3.5, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+
+          // Teardrop pointer tip
+          ctx.save();
+          ctx.shadowColor = 'rgba(20, 20, 19, 0.22)';
+          ctx.shadowBlur = 10;
+          ctx.shadowOffsetY = 4;
+          ctx.fillStyle = '#FAF9F6';
+          ctx.beginPath();
+          ctx.moveTo(cx - 10, cy + r - 5);
+          ctx.lineTo(cx, h - 8);
+          ctx.lineTo(cx + 10, cy + r - 5);
+          ctx.closePath();
+          ctx.fill();
+
+          // Outer warm-ivory medallion frame
+          ctx.beginPath();
+          ctx.arc(cx, cy, r, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+
+          // Hairline rim
+          ctx.strokeStyle = 'rgba(20, 20, 19, 0.12)';
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.arc(cx, cy, r - 0.75, 0, Math.PI * 2);
+          ctx.stroke();
+
+          // Inner circular photo or warm fallback icon
+          var ir = r - 5;
+          ctx.save();
+          ctx.beginPath();
+          ctx.arc(cx, cy, ir, 0, Math.PI * 2);
+          ctx.clip();
+          if (img) {
+            var iw = img.naturalWidth || img.width || 1;
+            var ih = img.naturalHeight || img.height || 1;
+            var scale = Math.max((ir * 2) / iw, (ir * 2) / ih);
+            var dw = iw * scale;
+            var dh = ih * scale;
+            ctx.drawImage(img, cx - dw / 2, cy - dh / 2, dw, dh);
+          } else {
+            ctx.fillStyle = '#F3F1EC';
+            ctx.fillRect(cx - ir, cy - ir, ir * 2, ir * 2);
+            ctx.fillStyle = accent;
+            ctx.beginPath();
+            ctx.arc(cx, cy, 10, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          ctx.restore();
+
+          // Corner index / visited badge
+          if (badgeText) {
+            var bx = cx + 22;
+            var by = cy + 21;
+            ctx.fillStyle = accent;
+            ctx.beginPath();
+            ctx.arc(bx, by, 13, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#FAF9F6';
+            ctx.lineWidth = 2.6;
+            ctx.stroke();
+            ctx.fillStyle = '#FAF9F6';
+            ctx.font = '700 13px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(badgeText, bx, by + 0.5);
+          }
+          return ctx.getImageData(0, 0, w, h);
+        }
+
+        function drawRestaurantPillCanvas(starColor) {
+          var w = 104;
+          var h = 44;
+          var canvas = document.createElement('canvas');
+          canvas.width = w;
+          canvas.height = h;
+          var ctx = canvas.getContext('2d');
+          var x = 8;
+          var y = 6;
+          var pw = w - 16;
+          var ph = h - 14;
+          var rad = ph / 2;
+
+          ctx.save();
+          ctx.shadowColor = 'rgba(20, 20, 19, 0.16)';
+          ctx.shadowBlur = 7;
+          ctx.shadowOffsetY = 2;
+          ctx.fillStyle = 'rgba(250, 249, 246, 0.96)';
+          ctx.beginPath();
+          ctx.moveTo(x + rad, y);
+          ctx.lineTo(x + pw - rad, y);
+          ctx.arcTo(x + pw, y, x + pw, y + rad, rad);
+          ctx.arcTo(x + pw, y + ph, x + pw - rad, y + ph, rad);
+          ctx.lineTo(x + rad, y + ph);
+          ctx.arcTo(x, y + ph, x, y + ph - rad, rad);
+          ctx.arcTo(x, y, x + rad, y, rad);
+          ctx.closePath();
+          ctx.fill();
+          ctx.restore();
+
+          ctx.strokeStyle = 'rgba(20, 20, 19, 0.12)';
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+
+          // Tiny accent star dot on the left of the pill
+          ctx.fillStyle = starColor;
+          ctx.font = '700 15px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText('★', x + 17, y + ph / 2 + 0.5);
+          return ctx.getImageData(0, 0, w, h);
+        }
+
+        function ensureMarkerSprites() {
+          try {
+            if (!map.hasImage('shg-pin-default')) {
+              map.addImage('shg-pin-default', drawPinCanvas(null, '#B93815', ''), { pixelRatio: 2 });
+            }
+            if (!map.hasImage('shg-pin-visited')) {
+              map.addImage('shg-pin-visited', drawPinCanvas(null, '#047857', '✓'), { pixelRatio: 2 });
+            }
+            if (!map.hasImage('shg-res-pill-curated')) {
+              map.addImage('shg-res-pill-curated', drawRestaurantPillCanvas('#B93815'), { pixelRatio: 2 });
+            }
+            if (!map.hasImage('shg-res-pill-overture')) {
+              map.addImage('shg-res-pill-overture', drawRestaurantPillCanvas('#B45309'), { pixelRatio: 2 });
+            }
+          } catch (e) {}
+        }
+
+        function scheduleSpriteSourceRefresh() {
+          if (spriteRefreshTimer) return;
+          spriteRefreshTimer = setTimeout(function() {
+            spriteRefreshTimer = null;
+            if (styleReady && lastKnownSites.length) {
+              syncGpuMarkers(lastKnownSites, lastShowRestaurants);
+            }
+          }, 110);
+        }
+
+        function ensureSitePhotoSprite(site) {
+          var spriteId = 'shg-site-' + site.id + (site.isVisited ? '-v' : '-i' + site.index);
+          if (map.hasImage(spriteId)) {
+            loadedPhotoSprites[spriteId] = true;
+            return spriteId;
+          }
+          if (loadingPhotoSprites[spriteId] || !site.coverImage) {
+            return site.isVisited ? 'shg-pin-visited' : 'shg-pin-default';
+          }
+          loadingPhotoSprites[spriteId] = true;
+          var img = new Image();
+          img.crossOrigin = 'anonymous';
+          img.onload = function() {
+            try {
+              if (!map.hasImage(spriteId)) {
+                var accent = site.isVisited ? '#047857' : '#B93815';
+                var badge = site.isVisited ? '✓' : String(site.index);
+                map.addImage(spriteId, drawPinCanvas(img, accent, badge), { pixelRatio: 2 });
+              }
+              loadedPhotoSprites[spriteId] = true;
+              scheduleSpriteSourceRefresh();
+            } catch (err) {
+              // CORS-restricted fallback: crisp numbered badge sprite without photo
+              try {
+                if (!map.hasImage(spriteId)) {
+                  var accent2 = site.isVisited ? '#047857' : '#B93815';
+                  var badge2 = site.isVisited ? '✓' : String(site.index);
+                  map.addImage(spriteId, drawPinCanvas(null, accent2, badge2), { pixelRatio: 2 });
+                }
+                loadedPhotoSprites[spriteId] = true;
+                scheduleSpriteSourceRefresh();
+              } catch (e2) {}
+            }
+          };
+          img.onerror = function() {
+            delete loadingPhotoSprites[spriteId];
+          };
+          img.src = site.coverImage;
+          return site.isVisited ? 'shg-pin-visited' : 'shg-pin-default';
+        }
 
         function getSpotlightTheme() {
           var isDark = currentTile.id === 'mapbox_satellite' || currentTile.id === 'satellite' || currentLightPreset === 'night';
@@ -926,6 +1233,144 @@ function buildExplorerMapHtml(
                 'line-opacity': 0.95
               }
             }, slotProps));
+          }
+
+          // =========================================================================
+          // GPU-Accelerated Native WebGL Layers for Restaurants (250+) & Heritage Sites
+          // =========================================================================
+          ensureMarkerSprites();
+          var gpuTextFontProps = (USE_MAPBOX && currentTile.renderMode === 'mapbox')
+            ? (currentTile.id === 'mapbox_standard' ? {} : { 'text-font': ['DIN Pro Bold', 'Arial Unicode MS Bold'] })
+            : { 'text-font': ['Noto Sans Bold'] };
+
+          if (!map.getSource('shg-restaurants-src')) {
+            map.addSource('shg-restaurants-src', {
+              type: 'geojson',
+              data: { type: 'FeatureCollection', features: [] }
+            });
+            // District zoom (12.8 - 14.8): ultra-fast GPU dots smoothly fading & scaling in real time during zoom
+            map.addLayer(Object.assign({
+              id: 'shg-res-dots',
+              type: 'circle',
+              source: 'shg-restaurants-src',
+              minzoom: 12.8,
+              maxzoom: 14.9,
+              filter: ['!=', ['get', 'isSelectedSite'], 1],
+              paint: {
+                'circle-radius': ['interpolate', ['linear'], ['zoom'], 12.8, 3.2, 14.5, 5.2],
+                'circle-color': ['case', ['==', ['get', 'isOverture'], 1], '#B45309', '#B93815'],
+                'circle-stroke-width': 1.8,
+                'circle-stroke-color': '#FAF9F6',
+                'circle-opacity': ['interpolate', ['linear'], ['zoom'], 12.8, 0, 13.3, 0.92, 14.5, 0.92, 14.9, 0],
+                'circle-stroke-opacity': ['interpolate', ['linear'], ['zoom'], 12.8, 0, 13.3, 0.95, 14.5, 0.95, 14.9, 0]
+              }
+            }, topSlotProps));
+            // Street zoom (>= 14.5): crisp GPU Warm-Ivory Rating Pills with automatic WebGL collision detection!
+            map.addLayer(Object.assign({
+              id: 'shg-res-pills',
+              type: 'symbol',
+              source: 'shg-restaurants-src',
+              minzoom: 14.5,
+              filter: ['!=', ['get', 'isSelectedSite'], 1],
+              layout: Object.assign({
+                'icon-image': ['case', ['==', ['get', 'isOverture'], 1], 'shg-res-pill-overture', 'shg-res-pill-curated'],
+                'icon-allow-overlap': false,
+                'icon-padding': 4,
+                'text-field': ['get', 'ratingText'],
+                'text-size': 10,
+                'text-offset': [0.62, -0.05],
+                'text-anchor': 'center',
+                'text-allow-overlap': false,
+                'symbol-sort-key': ['*', -1, ['get', 'rating']]
+              }, gpuTextFontProps),
+              paint: {
+                'text-color': '#141413'
+              }
+            }, topSlotProps));
+            // Selected site's nearby restaurants ALWAYS appear immediately at any zoom
+            map.addLayer(Object.assign({
+              id: 'shg-res-selected-pills',
+              type: 'symbol',
+              source: 'shg-restaurants-src',
+              minzoom: 9,
+              filter: ['==', ['get', 'isSelectedSite'], 1],
+              layout: Object.assign({
+                'icon-image': ['case', ['==', ['get', 'isOverture'], 1], 'shg-res-pill-overture', 'shg-res-pill-curated'],
+                'icon-allow-overlap': false,
+                'icon-padding': 3,
+                'text-field': ['get', 'ratingText'],
+                'text-size': 10,
+                'text-offset': [0.62, -0.05],
+                'text-anchor': 'center',
+                'text-allow-overlap': false
+              }, gpuTextFontProps),
+              paint: {
+                'text-color': '#141413'
+              }
+            }, topSlotProps));
+          }
+
+          if (!map.getSource('shg-sites-src')) {
+            map.addSource('shg-sites-src', {
+              type: 'geojson',
+              data: { type: 'FeatureCollection', features: [] },
+              cluster: true,
+              clusterMaxZoom: 13,
+              clusterRadius: 42,
+              clusterProperties: {
+                visitedCount: ['+', ['get', 'isVisited']]
+              }
+            });
+            map.addLayer(Object.assign({
+              id: 'shg-sites-cluster-halo',
+              type: 'circle',
+              source: 'shg-sites-src',
+              filter: ['has', 'point_count'],
+              paint: {
+                'circle-color': ['case', ['==', ['get', 'visitedCount'], ['get', 'point_count']], 'rgba(4, 120, 87, 0.16)', 'rgba(185, 56, 21, 0.16)'],
+                'circle-radius': ['step', ['get', 'point_count'], 21, 8, 24, 18, 27]
+              }
+            }, topSlotProps));
+            map.addLayer(Object.assign({
+              id: 'shg-sites-cluster-circle',
+              type: 'circle',
+              source: 'shg-sites-src',
+              filter: ['has', 'point_count'],
+              paint: {
+                'circle-color': ['case', ['==', ['get', 'visitedCount'], ['get', 'point_count']], '#047857', '#B93815'],
+                'circle-radius': ['step', ['get', 'point_count'], 15, 8, 17.5, 18, 20],
+                'circle-stroke-width': 2.4,
+                'circle-stroke-color': '#FAF9F6'
+              }
+            }, topSlotProps));
+            map.addLayer(Object.assign({
+              id: 'shg-sites-cluster-count',
+              type: 'symbol',
+              source: 'shg-sites-src',
+              filter: ['has', 'point_count'],
+              layout: Object.assign({
+                'text-field': ['get', 'point_count_abbreviated'],
+                'text-size': 12,
+                'text-allow-overlap': true
+              }, gpuTextFontProps),
+              paint: {
+                'text-color': '#FAF9F6'
+              }
+            }, topSlotProps));
+            map.addLayer(Object.assign({
+              id: 'shg-sites-unclustered',
+              type: 'symbol',
+              source: 'shg-sites-src',
+              filter: ['!', ['has', 'point_count']],
+              layout: {
+                'icon-image': ['get', 'iconName'],
+                'icon-size': ['interpolate', ['linear'], ['zoom'], 8.5, 0.72, 13, 0.88, 15.5, 1.0],
+                'icon-anchor': 'bottom',
+                'icon-allow-overlap': true,
+                'icon-ignore-placement': true,
+                'symbol-sort-key': ['get', 'index']
+              }
+            }, topSlotProps));
           }
         }
 
@@ -1099,21 +1544,89 @@ function buildExplorerMapHtml(
         }
 
         var lastShowRestaurants = true;
-        var lastMarkerZoomBucket = '';
 
-        function getMarkerZoomBucket(z) {
-          if (z < 11.2) return 'region_' + Math.round(z * 2);
-          if (z < 13.4) return 'city_' + Math.round(z * 2);
-          if (z < 14.8) return 'district';
-          return 'street';
+        function syncGpuMarkers(sites, showRestaurants) {
+          if (!styleReady) return;
+          ensureMarkerSprites();
+
+          var siteFeatures = [];
+          var resFeatures = [];
+          var selectedSiteObj = null;
+
+          sites.forEach(function(site) {
+            if (site.isSelected) {
+              selectedSiteObj = site;
+            }
+            var iconName = ensureSitePhotoSprite(site);
+            siteFeatures.push({
+              type: 'Feature',
+              geometry: { type: 'Point', coordinates: [site.lng, site.lat] },
+              properties: {
+                id: site.id,
+                index: site.index,
+                isVisited: site.isVisited ? 1 : 0,
+                isSelected: site.isSelected ? 1 : 0,
+                iconName: iconName
+              }
+            });
+
+            if (showRestaurants && Array.isArray(site.restaurants)) {
+              site.restaurants.forEach(function(res) {
+                var ratingNum = Number(res.rating) || 4.5;
+                resFeatures.push({
+                  type: 'Feature',
+                  geometry: { type: 'Point', coordinates: [res.lng, res.lat] },
+                  properties: {
+                    id: res.id,
+                    siteId: site.id,
+                    rating: ratingNum,
+                    ratingText: ratingNum.toFixed(1),
+                    isOverture: res.source === 'overture' ? 1 : 0,
+                    isSelectedSite: site.isSelected ? 1 : 0
+                  }
+                });
+              });
+            }
+          });
+
+          try {
+            if (map.getSource('shg-sites-src')) {
+              map.getSource('shg-sites-src').setData({
+                type: 'FeatureCollection',
+                features: siteFeatures
+              });
+            }
+            if (map.getSource('shg-restaurants-src')) {
+              map.getSource('shg-restaurants-src').setData({
+                type: 'FeatureCollection',
+                features: resFeatures
+              });
+            }
+          } catch (e) {}
+
+          // Chỉ dùng đúng 1 DOM marker nổi duy nhất cho địa điểm đang chọn
+          if (selectedSiteMarker) {
+            selectedSiteMarker.remove();
+            selectedSiteMarker = null;
+          }
+          if (selectedSiteObj) {
+            var selEl = createSiteMarkerElement(selectedSiteObj, false);
+            selEl.addEventListener('click', function(ev) {
+              ev.stopPropagation();
+              postToHost({ type: 'SITE_CLICK', siteId: selectedSiteObj.id });
+            });
+            selectedSiteMarker = new gl.Marker({
+              element: selEl,
+              anchor: 'bottom'
+            })
+              .setLngLat([selectedSiteObj.lng, selectedSiteObj.lat])
+              .addTo(map);
+          }
         }
 
         function renderSites(sites, showRestaurants, forceRedraw) {
           lastShowRestaurants = !!showRestaurants;
-          var z = (typeof map.getZoom === 'function') ? map.getZoom() : 15.6;
-          var zoomBucket = getMarkerZoomBucket(z);
           var sig = JSON.stringify({
-            zoomBucket: zoomBucket,
             showRestaurants: lastShowRestaurants,
             sites: sites.map(function(s) {
               return [s.id, s.label, s.index, s.isVisited, s.isSelected];
@@ -1121,172 +1634,22 @@ function buildExplorerMapHtml(
           });
           if (!forceRedraw && sig === lastSitesSignature) return;
           lastSitesSignature = sig;
-          lastMarkerZoomBucket = zoomBucket;
-
-          siteMarkers.forEach(function(m) { m.remove(); });
-          siteMarkers = [];
-          restaurantMarkers.forEach(function(m) { m.remove(); });
-          restaurantMarkers = [];
-
-          var compactMode = z < 13.4;
-          var shouldCluster = z < 13.4 && typeof map.project === 'function';
-
-          function addSingleSiteMarker(site, isCompact) {
-            var el = createSiteMarkerElement(site, isCompact);
-            el.addEventListener('click', function(ev) {
-              ev.stopPropagation();
-              postToHost({ type: 'SITE_CLICK', siteId: site.id });
-              map.easeTo({
-                center: [site.lng, site.lat],
-                zoom: Math.max(map.getZoom(), 15.8),
-                duration: 550
-              });
-            });
-            var m = new gl.Marker({
-              element: el,
-              anchor: isCompact && !site.isSelected ? 'center' : 'bottom'
-            })
-              .setLngLat([site.lng, site.lat])
-              .addTo(map);
-            siteMarkers.push(m);
-          }
-
-          if (shouldCluster) {
-            // Smart screen-space clustering keeps regional/city view ultra-clean without removing a single site
-            var clusterRadiusPx = z < 11.2 ? 42 : 36;
-            var clusters = [];
-            sites.forEach(function(site) {
-              if (site.isSelected) {
-                addSingleSiteMarker(site, false);
-                return;
-              }
-              var pt = map.project([site.lng, site.lat]);
-              var placed = false;
-              for (var ci = 0; ci < clusters.length; ci++) {
-                var c = clusters[ci];
-                var dx = pt.x - c.px;
-                var dy = pt.y - c.py;
-                if (dx * dx + dy * dy <= clusterRadiusPx * clusterRadiusPx) {
-                  c.items.push(site);
-                  c.sumLng += site.lng;
-                  c.sumLat += site.lat;
-                  c.px = (c.px * (c.items.length - 1) + pt.x) / c.items.length;
-                  c.py = (c.py * (c.items.length - 1) + pt.y) / c.items.length;
-                  placed = true;
-                  break;
-                }
-              }
-              if (!placed) {
-                clusters.push({
-                  items: [site],
-                  sumLng: site.lng,
-                  sumLat: site.lat,
-                  px: pt.x,
-                  py: pt.y
-                });
-              }
-            });
-
-            clusters.forEach(function(cluster) {
-              if (cluster.items.length === 1) {
-                addSingleSiteMarker(cluster.items[0], true);
-                return;
-              }
-              var avgLng = cluster.sumLng / cluster.items.length;
-              var avgLat = cluster.sumLat / cluster.items.length;
-              var allVisited = cluster.items.every(function(item) { return item.isVisited; });
-              var cEl = createClusterMarkerElement(cluster.items.length, allVisited);
-              cEl.addEventListener('click', function(ev) {
-                ev.stopPropagation();
-                map.easeTo({
-                  center: [avgLng, avgLat],
-                  zoom: Math.min(Math.max(map.getZoom() + 2.4, 14.2), 16.2),
-                  duration: 550
-                });
-              });
-              var cm = new gl.Marker({ element: cEl, anchor: 'center' })
-                .setLngLat([avgLng, avgLat])
-                .addTo(map);
-              siteMarkers.push(cm);
-            });
-          } else {
-            sites.forEach(function(site) {
-              addSingleSiteMarker(site, false);
-            });
-          }
-
-          // Zoom-progressive restaurant rendering + screen-space anti-overlap (zero visual clutter!)
-          if (lastShowRestaurants) {
-            var resMode = z >= 14.8 ? 'pill' : (z >= 13.6 ? 'dot' : 'selected-only');
-            var placedResPts = [];
-            var minResGap = resMode === 'pill' ? 30 : 14;
-
-            sites.forEach(function(site) {
-              if (!Array.isArray(site.restaurants) || site.restaurants.length === 0) return;
-              if (resMode === 'selected-only' && !site.isSelected) return;
-              var sortedRes = site.restaurants.slice().sort(function(a, b) {
-                return (Number(b.rating) || 0) - (Number(a.rating) || 0);
-              });
-              sortedRes.forEach(function(res) {
-                var showAsPill = site.isSelected || resMode === 'pill';
-                if (typeof map.project === 'function' && !site.isSelected) {
-                  var rpt = map.project([res.lng, res.lat]);
-                  var tooClose = false;
-                  for (var ri = 0; ri < placedResPts.length; ri++) {
-                    var dx = rpt.x - placedResPts[ri][0];
-                    var dy = rpt.y - placedResPts[ri][1];
-                    if (dx * dx + dy * dy < minResGap * minResGap) {
-                      tooClose = true;
-                      break;
-                    }
-                  }
-                  if (tooClose) return;
-                  placedResPts.push([rpt.x, rpt.y]);
-                }
-
-                var rEl = createRestaurantMarkerElement(res, !showAsPill);
-                rEl.addEventListener('click', function(ev) {
-                  ev.stopPropagation();
-                  postToHost({
-                    type: 'RESTAURANT_CLICK',
-                    restaurantId: res.id,
-                    siteId: site.id
-                  });
-                  map.easeTo({
-                    center: [res.lng, res.lat],
-                    zoom: Math.max(map.getZoom(), 16.5),
-                    duration: 500
-                  });
-                });
-
-                var rm = new gl.Marker({ element: rEl, anchor: 'center' })
-                  .setLngLat([res.lng, res.lat])
-                  .addTo(map);
-                restaurantMarkers.push(rm);
-              });
-            });
-          }
+          syncGpuMarkers(sites, lastShowRestaurants);
         }
-
-        map.on('zoomend', function() {
-          if (!lastKnownSites.length) return;
-          var nextBucket = getMarkerZoomBucket(map.getZoom());
-          if (nextBucket !== lastMarkerZoomBucket) {
-            renderSites(lastKnownSites, lastShowRestaurants, true);
-          }
-        });
 
         function setTileConfig(cfg) {
           if (!cfg || currentStyleId === cfg.id) return;
           currentStyleId = cfg.id;
           currentTile = cfg;
           styleReady = false;
+          loadedPhotoSprites = {};
+          loadingPhotoSprites = {};
 
           var is3DCapable = cfg.renderMode === 'mapbox' || cfg.renderMode === 'vector';
           if (!is3DCapable) {
-            map.easeTo({ pitch: 0, bearing: 0, duration: 400 });
+            map.easeTo({ pitch: 0, bearing: 0, duration: 350 });
           } else if (is3DEnabled) {
-            map.easeTo({ pitch: 45, duration: 450 });
+            map.easeTo({ pitch: 45, duration: 400 });
           }
 
           map.setStyle(resolveGlStyle(cfg));
@@ -1294,11 +1657,16 @@ function buildExplorerMapHtml(
 
         map.on('style.load', function() {
           styleReady = true;
+          loadedPhotoSprites = {};
+          loadingPhotoSprites = {};
           applyMapboxOrOsmEnhancements(map, currentTile, is3DEnabled, currentLightPreset);
           ensureCustomOverlayLayers();
           syncHcmcFocusLayer(isFocusHcmcOnly, false);
           syncRadiusLayer(lastKnownUser, lastRadiusMeters);
           syncRouteLayer(lastRouteData, false);
+          if (lastKnownSites.length) {
+            syncGpuMarkers(lastKnownSites, lastShowRestaurants);
+          }
         });
 
         var fallbackTriggered = false;
@@ -1324,17 +1692,103 @@ function buildExplorerMapHtml(
           }
         });
 
+        var interactiveGpuLayers = [
+          'shg-sites-unclustered',
+          'shg-sites-cluster-circle',
+          'shg-res-selected-pills',
+          'shg-res-pills',
+          'shg-res-dots'
+        ];
+
+        map.on('mousemove', function(e) {
+          if (!styleReady || (typeof map.isMoving === 'function' && map.isMoving())) return;
+          try {
+            var activeLayers = interactiveGpuLayers.filter(function(id) { return !!map.getLayer(id); });
+            if (!activeLayers.length) return;
+            var hit = map.queryRenderedFeatures(e.point, { layers: activeLayers });
+            map.getCanvas().style.cursor = hit.length ? 'pointer' : '';
+          } catch (err) {}
+        });
+
         map.on('click', function(e) {
+          // 1. Ưu tiên xử lý chạm vào điểm di tích, cụm di tích hoặc quán ăn trên lớp GPU WebGL
+          if (styleReady) {
+            try {
+              var activeLayers = interactiveGpuLayers.filter(function(id) { return !!map.getLayer(id); });
+              if (activeLayers.length) {
+                var hits = map.queryRenderedFeatures(e.point, { layers: activeLayers });
+                if (hits && hits.length > 0) {
+                  var top = hits[0];
+                  var lid = top.layer && top.layer.id;
+                  var props = top.properties || {};
+                  if (lid === 'shg-sites-unclustered' && props.id) {
+                    var coords = top.geometry && top.geometry.coordinates;
+                    postToHost({ type: 'SITE_CLICK', siteId: String(props.id) });
+                    if (coords && coords.length >= 2) {
+                      map.easeTo({
+                        center: [coords[0], coords[1]],
+                        zoom: Math.max(map.getZoom(), 15.8),
+                        duration: 420
+                      });
+                    }
+                    return;
+                  }
+                  if (lid === 'shg-sites-cluster-circle' && typeof props.cluster_id !== 'undefined') {
+                    var cCoords = top.geometry && top.geometry.coordinates;
+                    var src = map.getSource('shg-sites-src');
+                    if (src && typeof src.getClusterExpansionZoom === 'function') {
+                      src.getClusterExpansionZoom(props.cluster_id, function(err, zoom) {
+                        if (err) return;
+                        map.easeTo({
+                          center: cCoords,
+                          zoom: Math.min(Math.max(zoom + 0.6, 13.8), 16.2),
+                          duration: 380
+                        });
+                      });
+                    } else if (cCoords) {
+                      map.easeTo({
+                        center: cCoords,
+                        zoom: Math.min(map.getZoom() + 2.4, 15.5),
+                        duration: 380
+                      });
+                    }
+                    return;
+                  }
+                  if (
+                    (lid === 'shg-res-selected-pills' || lid === 'shg-res-pills' || lid === 'shg-res-dots') &&
+                    props.id &&
+                    props.siteId
+                  ) {
+                    var rCoords = top.geometry && top.geometry.coordinates;
+                    postToHost({
+                      type: 'RESTAURANT_CLICK',
+                      restaurantId: String(props.id),
+                      siteId: String(props.siteId)
+                    });
+                    if (rCoords && rCoords.length >= 2) {
+                      map.easeTo({
+                        center: [rCoords[0], rCoords[1]],
+                        zoom: Math.max(map.getZoom(), 16.2),
+                        duration: 380
+                      });
+                    }
+                    return;
+                  }
+                }
+              }
+            } catch (err) {}
+          }
+
           var placeName = '';
           var placeCategory = '';
           try {
             var feats = map.queryRenderedFeatures(e.point);
             for (var i = 0; i < feats.length; i++) {
-              var props = feats[i].properties || {};
-              var candidate = props['name_vi'] || props['name:vi'] || props.name || props['name_en'] || '';
+              var fprops = feats[i].properties || {};
+              var candidate = fprops['name_vi'] || fprops['name:vi'] || fprops.name || fprops['name_en'] || '';
               if (candidate) {
                 placeName = String(candidate);
-                placeCategory = String(props.category_en || props.subclass || props.class || '');
+                placeCategory = String(fprops.category_en || fprops.subclass || fprops.class || '');
                 break;
               }
             }
