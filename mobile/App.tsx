@@ -23,7 +23,12 @@ import {
   BookOpen,
   Check,
   ChevronDown,
+  Cloud,
+  CloudLightning,
+  CloudRain,
+  CloudSun,
   Compass,
+  Droplets,
   Footprints,
   Globe,
   LocateFixed,
@@ -36,10 +41,14 @@ import {
   SlidersHorizontal,
   Sparkles,
   Star,
+  Sun,
   Trophy,
+  Umbrella,
   User,
   Utensils,
   Volume2,
+  VolumeX,
+  Wind,
   X,
 } from 'lucide-react-native';
 import {
@@ -169,6 +178,7 @@ function SmartHeritageAppContent() {
   // Compact bottom sheets (replaces cluttered stacked toolbars)
   const [filterSheetVisible, setFilterSheetVisible] = useState<boolean>(false);
   const [langSheetVisible, setLangSheetVisible] = useState<boolean>(false);
+  const [weatherSheetVisible, setWeatherSheetVisible] = useState<boolean>(false);
 
   const [selectedSite, setSelectedSite] = useState<HeritageSite | null>(null);
   const [quickAudioSite, setQuickAudioSite] = useState<HeritageSite | null>(
@@ -1307,6 +1317,69 @@ function SmartHeritageAppContent() {
           </TouchableOpacity>
 
           <View style={styles.headerActions}>
+            {/* Live Weather Compact Pill (accessible directly on Map & all tabs) */}
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={() => {
+                setWeatherSheetVisible(true);
+                triggerHaptic('selection');
+              }}
+              style={[
+                styles.headerWeatherBtn,
+                weather?.aiTourAdvice.comfortLevel === 'rain_alert' &&
+                  styles.headerWeatherBtnRain,
+              ]}
+              accessibilityLabel="Xem thời tiết trực tiếp (nhiệt độ, độ ẩm, khả năng mưa)"
+            >
+              {weather?.conditionKind === 'sunny' ? (
+                <Sun size={13} color="#D97706" />
+              ) : weather?.conditionKind === 'cloudy' ? (
+                <Cloud size={13} color={COLORS.inkSecondary} />
+              ) : weather?.conditionKind === 'rain' ? (
+                <CloudRain size={13} color={COLORS.gpsBlue} />
+              ) : weather?.conditionKind === 'storm' ? (
+                <CloudLightning size={13} color={COLORS.accent} />
+              ) : (
+                <CloudSun size={13} color={COLORS.accent} />
+              )}
+              <Text style={styles.headerWeatherText}>
+                {weather ? `${Math.round(weather.temperatureC)}°` : '--°'}
+              </Text>
+            </TouchableOpacity>
+
+            {/* 1-Tap Auto Audio Guide Toggle Icon (right next to Language) */}
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={() => {
+                setAutoAudioGuide((prev) => {
+                  const next = !prev;
+                  setToastMessage(
+                    next
+                      ? 'Đã bật tự động thuyết minh khi đến gần di tích (< 150m).'
+                      : 'Đã tắt tự động thuyết minh.'
+                  );
+                  return next;
+                });
+                triggerHaptic('selection');
+              }}
+              style={[
+                styles.headerAudioBtn,
+                autoAudioGuide && styles.headerAudioBtnActive,
+              ]}
+              accessibilityLabel={
+                autoAudioGuide
+                  ? 'Tắt tự động thuyết minh khi đến gần'
+                  : 'Bật tự động thuyết minh khi đến gần'
+              }
+            >
+              {autoAudioGuide ? (
+                <Volume2 size={14} color={COLORS.accent} />
+              ) : (
+                <VolumeX size={14} color={COLORS.inkMuted} />
+              )}
+              {autoAudioGuide && <View style={styles.audioActiveDot} />}
+            </TouchableOpacity>
+
             {/* Compact Language Pill (opens clean 5-language sheet instead of cramming 5 buttons) */}
             <TouchableOpacity
               activeOpacity={0.8}
@@ -2062,6 +2135,139 @@ function SmartHeritageAppContent() {
         </TouchableOpacity>
       </Modal>
 
+      {/* Live Weather Detail Bottom Sheet (opened from Header Weather Pill on Map or any tab) */}
+      <Modal
+        visible={weatherSheetVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setWeatherSheetVisible(false)}
+      >
+        <TouchableOpacity
+          activeOpacity={1}
+          onPress={() => setWeatherSheetVisible(false)}
+          style={styles.sheetBackdrop}
+        >
+          <TouchableOpacity
+            activeOpacity={1}
+            onPress={() => {}}
+            style={[
+              styles.sheetCard,
+              { paddingBottom: Math.max(insets.bottom, 16) + 8 },
+            ]}
+          >
+            <View style={styles.sheetHandle} />
+            <View style={styles.sheetHeader}>
+              <Text style={styles.sheetTitle}>Thời tiết trực tiếp</Text>
+              <TouchableOpacity
+                onPress={() => setWeatherSheetVisible(false)}
+                style={styles.sheetCloseBtn}
+              >
+                <X size={18} color={COLORS.inkSecondary} />
+              </TouchableOpacity>
+            </View>
+
+            {weather ? (
+              <View style={styles.weatherSheetBody}>
+                <View style={styles.weatherSheetTop}>
+                  <View>
+                    <Text style={styles.weatherSheetTemp}>
+                      {Math.round(weather.temperatureC)}°C
+                    </Text>
+                    <Text style={styles.weatherSheetCond}>
+                      {weather.conditionLabelVi} · Cảm giác{' '}
+                      {Math.round(weather.apparentTemperatureC)}°C
+                    </Text>
+                    <Text style={styles.weatherSheetLoc}>{activeCityLabel}</Text>
+                  </View>
+                  <View style={styles.weatherSheetLivePill}>
+                    <View style={styles.gpsDot} />
+                    <Text style={styles.weatherSheetLiveText}>
+                      Tự động cập nhật
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={styles.weatherSheetMetrics}>
+                  <View style={styles.weatherSheetMetricBox}>
+                    <Droplets size={15} color={COLORS.gpsBlue} />
+                    <Text style={styles.weatherSheetMetricVal}>
+                      {weather.humidityPercent}%
+                    </Text>
+                    <Text style={styles.weatherSheetMetricLbl}>Độ ẩm</Text>
+                  </View>
+                  <View style={styles.weatherSheetMetricBox}>
+                    <Umbrella size={15} color={COLORS.accent} />
+                    <Text style={styles.weatherSheetMetricVal}>
+                      {weather.rainProbabilityPercent}%
+                    </Text>
+                    <Text style={styles.weatherSheetMetricLbl}>
+                      Khả năng mưa
+                    </Text>
+                  </View>
+                  <View style={styles.weatherSheetMetricBox}>
+                    <Wind size={15} color={COLORS.inkSecondary} />
+                    <Text style={styles.weatherSheetMetricVal}>
+                      {weather.windSpeedKmh} km/h
+                    </Text>
+                    <Text style={styles.weatherSheetMetricLbl}>Gió</Text>
+                  </View>
+                </View>
+
+                {weather.hourlyPreview.length > 0 && (
+                  <View style={styles.weatherSheetHourlyRow}>
+                    {weather.hourlyPreview.map((slot, idx) => (
+                      <View
+                        key={`${slot.isoTime}-${idx}`}
+                        style={styles.weatherSheetHourlyCell}
+                      >
+                        <Text style={styles.weatherSheetHourlyTime}>
+                          {slot.hourLabel}
+                        </Text>
+                        <Text style={styles.weatherSheetHourlyTemp}>
+                          {slot.temperatureC}°
+                        </Text>
+                        <Text style={styles.weatherSheetHourlyRain}>
+                          {slot.rainProbabilityPercent}% mưa
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
+
+                <View style={styles.weatherSheetAdviceCard}>
+                  <Sparkles size={14} color={COLORS.accent} />
+                  <View style={{ flex: 1, gap: 2 }}>
+                    <Text style={styles.weatherSheetAdviceTitle}>
+                      {weather.aiTourAdvice.headlineVi}
+                    </Text>
+                    <Text style={styles.weatherSheetAdviceDesc}>
+                      {weather.aiTourAdvice.detailVi}
+                    </Text>
+                  </View>
+                </View>
+
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  onPress={() => {
+                    setWeatherSheetVisible(false);
+                    setSmartTourVisible(true);
+                  }}
+                  style={styles.sheetApplyBtn}
+                >
+                  <Text style={styles.sheetApplyText}>
+                    Lập lịch trình AI theo thời tiết này
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <Text style={styles.weatherSheetCond}>
+                Đang tự động cập nhật dữ liệu thời tiết…
+              </Text>
+            )}
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
+
       {/* Language Picker Bottom Sheet */}
       <Modal
         visible={langSheetVisible}
@@ -2279,14 +2485,61 @@ const styles = StyleSheet.create({
   headerActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
+  },
+  headerWeatherBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    height: 34,
+    paddingHorizontal: 9,
+    borderRadius: RADII.pill,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  headerWeatherBtnRain: {
+    backgroundColor: COLORS.gpsBlueSoft,
+    borderColor: '#BFDBFE',
+  },
+  headerWeatherText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.ink,
+    fontVariant: ['tabular-nums'],
+  },
+  headerAudioBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: RADII.pill,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  headerAudioBtnActive: {
+    backgroundColor: COLORS.accentSoft,
+    borderColor: COLORS.accentBorder,
+  },
+  audioActiveDot: {
+    position: 'absolute',
+    top: 2,
+    right: 2,
+    width: 7,
+    height: 7,
+    borderRadius: RADII.pill,
+    backgroundColor: COLORS.visitedDot,
+    borderWidth: 1.5,
+    borderColor: COLORS.surface,
   },
   weatherHeaderPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    height: 36,
-    paddingHorizontal: 10,
+    height: 34,
+    paddingHorizontal: 9,
     borderRadius: RADII.pill,
     backgroundColor: COLORS.surface,
     borderWidth: 1,
@@ -2301,22 +2554,22 @@ const styles = StyleSheet.create({
   langPillBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
-    height: 36,
-    paddingHorizontal: 11,
+    gap: 4,
+    height: 34,
+    paddingHorizontal: 9,
     borderRadius: RADII.pill,
     backgroundColor: COLORS.surface,
     borderWidth: 1,
     borderColor: COLORS.border,
   },
   langPillText: {
-    fontSize: 12,
+    fontSize: 11.5,
     fontWeight: '700',
     color: COLORS.ink,
   },
   avatarBtn: {
-    width: 36,
-    height: 36,
+    width: 34,
+    height: 34,
     borderRadius: RADII.pill,
     backgroundColor: COLORS.surface,
     borderWidth: 1,
@@ -3214,6 +3467,123 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     fontSize: 14,
     fontWeight: '700',
+  },
+  weatherSheetBody: {
+    gap: 12,
+  },
+  weatherSheetTop: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  weatherSheetTemp: {
+    fontSize: 32,
+    fontWeight: '800',
+    color: COLORS.ink,
+    fontVariant: ['tabular-nums'],
+    letterSpacing: -0.6,
+  },
+  weatherSheetCond: {
+    fontSize: 13.5,
+    fontWeight: '600',
+    color: COLORS.inkSecondary,
+    marginTop: 2,
+  },
+  weatherSheetLoc: {
+    fontSize: 12,
+    color: COLORS.inkMuted,
+    marginTop: 2,
+  },
+  weatherSheetLivePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: COLORS.bg,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: RADII.pill,
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+  },
+  weatherSheetLiveText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: COLORS.inkSecondary,
+  },
+  weatherSheetMetrics: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  weatherSheetMetricBox: {
+    flex: 1,
+    alignItems: 'center',
+    backgroundColor: COLORS.bg,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    paddingVertical: 10,
+    gap: 3,
+  },
+  weatherSheetMetricVal: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: COLORS.ink,
+    fontVariant: ['tabular-nums'],
+  },
+  weatherSheetMetricLbl: {
+    fontSize: 11,
+    color: COLORS.inkMuted,
+  },
+  weatherSheetHourlyRow: {
+    flexDirection: 'row',
+    gap: 7,
+  },
+  weatherSheetHourlyCell: {
+    flex: 1,
+    alignItems: 'center',
+    backgroundColor: COLORS.bg,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: COLORS.surfaceMuted,
+    paddingVertical: 7,
+    gap: 2,
+  },
+  weatherSheetHourlyTime: {
+    fontSize: 10.5,
+    fontWeight: '600',
+    color: COLORS.inkMuted,
+  },
+  weatherSheetHourlyTemp: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: COLORS.ink,
+    fontVariant: ['tabular-nums'],
+  },
+  weatherSheetHourlyRain: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: COLORS.inkSecondary,
+  },
+  weatherSheetAdviceCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: COLORS.surfaceTint,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.accentBorder,
+    padding: 11,
+  },
+  weatherSheetAdviceTitle: {
+    fontSize: 12.5,
+    fontWeight: '700',
+    color: COLORS.ink,
+  },
+  weatherSheetAdviceDesc: {
+    fontSize: 11.5,
+    color: COLORS.inkSecondary,
+    lineHeight: 16.5,
   },
   langList: {
     gap: 6,
