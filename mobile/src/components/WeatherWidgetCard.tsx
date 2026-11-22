@@ -14,11 +14,9 @@ import {
   CloudRain,
   CloudSun,
   Droplets,
-  RefreshCw,
   Sparkles,
   Sun,
   Umbrella,
-  Wind,
 } from 'lucide-react-native';
 import {
   WeatherConditionKind,
@@ -30,7 +28,6 @@ export interface WeatherWidgetCardProps {
   weather: WeatherSnapshot | null;
   locationLabel: string;
   isLoading: boolean;
-  onRefresh: () => void;
   onPlanTourWithWeather: () => void;
 }
 
@@ -66,7 +63,6 @@ export const WeatherWidgetCard: React.FC<WeatherWidgetCardProps> = ({
   weather,
   locationLabel,
   isLoading,
-  onRefresh,
   onPlanTourWithWeather,
 }) => {
   const [expanded, setExpanded] = useState<boolean>(false);
@@ -76,7 +72,7 @@ export const WeatherWidgetCard: React.FC<WeatherWidgetCardProps> = ({
       <View style={styles.compactBar}>
         <ActivityIndicator size="small" color={COLORS.accent} />
         <Text style={styles.loadingText} numberOfLines={1}>
-          Đang cập nhật thời tiết tại {locationLabel}…
+          Đang tự động cập nhật thời tiết tại {locationLabel}…
         </Text>
       </View>
     );
@@ -90,7 +86,7 @@ export const WeatherWidgetCard: React.FC<WeatherWidgetCardProps> = ({
 
   return (
     <View style={styles.card}>
-      {/* Compact 1-Line Live Weather Summary (Temp · Humidity · Rain % — always visible, zero clutter!) */}
+      {/* Compact 1-Line Live Auto-Updating Weather Summary */}
       <TouchableOpacity
         activeOpacity={0.82}
         onPress={() => setExpanded((prev) => !prev)}
@@ -135,9 +131,17 @@ export const WeatherWidgetCard: React.FC<WeatherWidgetCardProps> = ({
               </Text>
             </View>
             <Text style={styles.dot}>·</Text>
-            <Text style={styles.updatedTiny}>
-              {formatUpdatedClock(weather.fetchedAt)}
-            </Text>
+            <View style={styles.autoClockWrap}>
+              <View
+                style={[
+                  styles.liveDot,
+                  !weather.isLive && styles.liveDotOffline,
+                ]}
+              />
+              <Text style={styles.updatedTiny}>
+                {isLoading ? 'Đang cập nhật…' : formatUpdatedClock(weather.fetchedAt)}
+              </Text>
+            </View>
           </View>
         </View>
 
@@ -150,36 +154,25 @@ export const WeatherWidgetCard: React.FC<WeatherWidgetCardProps> = ({
         </View>
       </TouchableOpacity>
 
-      {/* Expandable Details: 4h Forecast + Wind/Feels-Like + AI Weather Tour Planning */}
+      {/* Expandable Details: 4h Forecast + Feels-Like/Wind + AI Weather Tour Planning */}
       {expanded && (
         <View style={styles.expandedBody}>
           <View style={styles.extraMetaRow}>
-            <View style={styles.extraMetaLeft}>
+            <Text style={styles.extraMetaText}>
+              Cảm giác {Math.round(weather.apparentTemperatureC)}°C · Gió{' '}
+              {weather.windSpeedKmh} km/h
+            </Text>
+            <View style={styles.autoStatusPill}>
               <View
                 style={[
                   styles.liveDot,
                   !weather.isLive && styles.liveDotOffline,
                 ]}
               />
-              <Text style={styles.extraMetaText}>
-                Cảm giác {Math.round(weather.apparentTemperatureC)}°C · Gió{' '}
-                {weather.windSpeedKmh} km/h
+              <Text style={styles.autoStatusText}>
+                {weather.isLive ? 'Tự động cập nhật' : 'Dự phòng offline'}
               </Text>
             </View>
-
-            <TouchableOpacity
-              activeOpacity={0.75}
-              onPress={onRefresh}
-              disabled={isLoading}
-              style={styles.refreshMiniBtn}
-            >
-              {isLoading ? (
-                <ActivityIndicator size={11} color={COLORS.inkSecondary} />
-              ) : (
-                <RefreshCw size={11} color={COLORS.inkSecondary} />
-              )}
-              <Text style={styles.refreshMiniText}>Làm mới</Text>
-            </TouchableOpacity>
           </View>
 
           {weather.hourlyPreview.length > 0 && (
@@ -313,6 +306,11 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: COLORS.borderStrong,
   },
+  autoClockWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
   updatedTiny: {
     fontSize: 10.5,
     color: COLORS.inkMuted,
@@ -341,12 +339,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: 8,
   },
-  extraMetaLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    flex: 1,
-  },
   liveDot: {
     width: 6,
     height: 6,
@@ -360,20 +352,21 @@ const styles = StyleSheet.create({
     fontSize: 11.5,
     fontWeight: '600',
     color: COLORS.inkSecondary,
+    flex: 1,
   },
-  refreshMiniBtn: {
+  autoStatusPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 5,
     paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingVertical: 3,
     borderRadius: RADII.pill,
     backgroundColor: COLORS.surface,
     borderWidth: 1,
     borderColor: COLORS.border,
   },
-  refreshMiniText: {
-    fontSize: 10.5,
+  autoStatusText: {
+    fontSize: 10,
     fontWeight: '600',
     color: COLORS.inkSecondary,
   },

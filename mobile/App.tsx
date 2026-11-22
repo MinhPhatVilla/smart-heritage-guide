@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  AppState,
   FlatList,
   Image,
   Modal,
@@ -19,6 +20,7 @@ import {
   useSafeAreaInsets,
 } from 'react-native-safe-area-context';
 import {
+  BookOpen,
   Check,
   ChevronDown,
   Compass,
@@ -102,7 +104,7 @@ import { AdminDashboardView } from './src/components/AdminDashboardView';
 import { WeatherWidgetCard } from './src/components/WeatherWidgetCard';
 import { COLORS, RADII, SERIF_FONT, SHADOWS, SPACING } from './src/theme';
 
-type MainTab = 'explore' | 'map' | 'journey' | 'admin';
+type MainTab = 'explore' | 'map' | 'journey' | 'ranking' | 'admin';
 
 const PROXIMITY_TRIGGER_METERS = 150;
 const PROXIMITY_RESET_METERS = 220;
@@ -307,7 +309,7 @@ function SmartHeritageAppContent() {
     []
   );
 
-  // Tự động cập nhật thời tiết khi đổi vị trí (> 1.5km) và làm mới liên tục mỗi 5 phút
+  // Tự động cập nhật thời tiết khi đổi vị trí (> 1.5km), mỗi 5 phút & khi quay lại ứng dụng
   useEffect(() => {
     const prev = lastWeatherCoordsRef.current;
     const movedEnough =
@@ -327,7 +329,39 @@ function SmartHeritageAppContent() {
       void refreshLiveWeather(userLocation[0], userLocation[1], true);
     }, 5 * 60 * 1000);
 
-    return () => clearInterval(interval);
+    const appSub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') {
+        void refreshLiveWeather(userLocation[0], userLocation[1], true);
+      }
+    });
+
+    let removeVisibility: (() => void) | undefined;
+    if (Platform.OS === 'web') {
+      const doc = (
+        globalThis as unknown as {
+          document?: {
+            visibilityState?: string;
+            addEventListener?: (ev: string, fn: () => void) => void;
+            removeEventListener?: (ev: string, fn: () => void) => void;
+          };
+        }
+      ).document;
+      if (doc?.addEventListener && doc.removeEventListener) {
+        const onVis = () => {
+          if (doc.visibilityState === 'visible') {
+            void refreshLiveWeather(userLocation[0], userLocation[1], true);
+          }
+        };
+        doc.addEventListener('visibilitychange', onVis);
+        removeVisibility = () => doc.removeEventListener?.('visibilitychange', onVis);
+      }
+    }
+
+    return () => {
+      clearInterval(interval);
+      appSub.remove();
+      removeVisibility?.();
+    };
   }, [userLocation, refreshLiveWeather]);
 
   const stopWalkSimulation = useCallback(() => {
@@ -885,6 +919,29 @@ function SmartHeritageAppContent() {
     }
   }, [authState.isAuthenticated, isSyncingCloud, visitedRecords]);
 
+  const autoSyncAttemptedKeyRef = useRef<string>('');
+
+  // Tự động đồng bộ ngầm các hành trình offline lên Cloud ngay khi người dùng đã đăng nhập
+  useEffect(() => {
+    if (!authState.isAuthenticated || isSyncingCloud) return;
+    const unsyncedIds = visitedRecords
+      .filter((r) => !r.cloudJourneyId)
+      .map((r) => r.id)
+      .sort()
+      .join(',');
+    if (!unsyncedIds) return;
+    const key = `${authState.profile?.id || 'user'}|${unsyncedIds}`;
+    if (autoSyncAttemptedKeyRef.current === key) return;
+    autoSyncAttemptedKeyRef.current = key;
+    void handleSyncOfflineJourneys();
+  }, [
+    authState.isAuthenticated,
+    authState.profile?.id,
+    isSyncingCloud,
+    visitedRecords,
+    handleSyncOfflineJourneys,
+  ]);
+
   const handleOpenGlobalAiChat = useCallback(() => {
     setAiChatContextSite(null);
     setAiChatVisible(true);
@@ -1034,14 +1091,11 @@ function SmartHeritageAppContent() {
   // Scrollable list header: Ultra-clean Compact Weather Bar + Quick AI Pills + Segmented Switcher
   const exploreListHeader = (
     <View style={styles.listHeaderWrap}>
-      {/* Compact Expandable Live Weather Bar (1 line by default, expands on tap) */}
+      {/* Compact Expandable Live Auto-Updating Weather Bar */}
       <WeatherWidgetCard
         weather={weather}
         locationLabel={activeCityLabel}
         isLoading={isWeatherLoading}
-        onRefresh={() =>
-          void refreshLiveWeather(userLocation[0], userLocation[1], true)
-        }
         onPlanTourWithWeather={() => {
           setSmartTourVisible(true);
           triggerHaptic('light');
@@ -1578,6 +1632,7 @@ function SmartHeritageAppContent() {
         {activeTab === 'journey' && (
           <View style={styles.tabContainer}>
             <JourneyAndRankingView
+              viewMode="journey"
               records={visitedRecords}
               allSites={catalogSites}
               userLocation={userLocation}
@@ -1593,7 +1648,29 @@ function SmartHeritageAppContent() {
                 if (target) setPhotoCaptureSite(target);
               }}
               onOpenAuthModal={() => setAuthModalVisible(true)}
-              onSyncNow={handleSyncOfflineJourneys}
+            />
+          </View>
+        )}
+
+        {activeTab === 'ranking' && (
+          <View style={styles.tabContainer}>
+            <JourneyAndRankingView
+              viewMode="ranking"
+              records={visitedRecords}
+              allSites={catalogSites}
+              userLocation={userLocation}
+              selectedLanguage={selectedLanguage}
+              authState={authState}
+              isSyncing={isSyncingCloud}
+              onSelectSiteById={(siteId) => {
+                const target = catalogSites.find((s) => s.id === siteId);
+                if (target) setSelectedSite(target);
+              }}
+              onOpenCaptureForSite={(siteId) => {
+                const target = catalogSites.find((s) => s.id === siteId);
+                if (target) setPhotoCaptureSite(target);
+              }}
+              onOpenAuthModal={() => setAuthModalVisible(true)}
             />
           </View>
         )}
@@ -1712,7 +1789,7 @@ function SmartHeritageAppContent() {
           accessibilityState={{ selected: activeTab === 'journey' }}
         >
           <View style={styles.tabIconBox}>
-            <Trophy
+            <BookOpen
               size={21}
               strokeWidth={activeTab === 'journey' ? 2.2 : 1.7}
               color={activeTab === 'journey' ? COLORS.ink : COLORS.inkMuted}
@@ -1732,6 +1809,31 @@ function SmartHeritageAppContent() {
             ]}
           >
             Hành trình
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          activeOpacity={0.8}
+          onPress={() => {
+            setActiveTab('ranking');
+            triggerHaptic('selection');
+          }}
+          style={styles.tabItem}
+          accessibilityRole="tab"
+          accessibilityState={{ selected: activeTab === 'ranking' }}
+        >
+          <Trophy
+            size={21}
+            strokeWidth={activeTab === 'ranking' ? 2.2 : 1.7}
+            color={activeTab === 'ranking' ? COLORS.ink : COLORS.inkMuted}
+          />
+          <Text
+            style={[
+              styles.tabLabel,
+              activeTab === 'ranking' && styles.tabLabelActive,
+            ]}
+          >
+            Xếp hạng
           </Text>
         </TouchableOpacity>
 
