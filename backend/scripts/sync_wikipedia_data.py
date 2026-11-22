@@ -286,6 +286,243 @@ WIKI_MAPPING: dict[str, dict[str, Any]] = {
         "en": "District 12, Ho Chi Minh City",
         "commons": ["Tu vien Khanh An", "District 12 Ho Chi Minh City", "Pagoda Ho Chi Minh City"],
     },
+    # Binh Duong (Merged HCMC)
+    "chua-hoi-khanh-thu-dau-mot": {
+        "vi": "Chùa Hội Khánh",
+        "en": "Hội Khánh Temple",
+        "commons": ["Hoi Khanh Pagoda Binh Duong", "Reclining Buddha Hoi Khanh Temple"],
+    },
+    "chua-ba-thien-hau-thu-dau-mot": {
+        "vi": "Miếu Bà Thiên Hậu (Thủ Dầu Một)",
+        "en": "Thủ Dầu Một",
+        "commons": ["Chùa Bà Bình Dương", "Miếu Bà Thiên Hậu Thủ Dầu Một"],
+    },
+    "nha-tu-phu-loi-thu-dau-mot": {
+        "vi": "Nhà tù Phú Lợi",
+        "en": "Phú Lợi prison",
+        "commons": ["Nha tu Phu Loi", "Nhà tù Phú Lợi"],
+    },
+    "khu-du-lich-dai-nam-binh-duong": {
+        "vi": "Khu du lịch Đại Nam",
+        "en": "Đại Nam Văn Hiến",
+        "commons": ["Dai Nam Van Hien", "Khu Du lịch Đại Nam"],
+    },
+    "nha-co-tran-van-ho-thu-dau-mot": {
+        "vi": "Thủ Dầu Một",
+        "en": "Thủ Dầu Một",
+        "commons": ["Nhà cổ Đốc phủ Đẩu", "Chợ Thủ Dầu Một"],
+    },
+    "lang-gom-lai-thieu-thuan-an": {
+        "vi": "Lái Thiêu",
+        "en": "Lái Thiêu",
+        "commons": ["Lái Thiêu Thuận An", "Chợ Lái Thiêu"],
+    },
+    "chua-chau-thoi-di-an": {
+        "vi": "Chùa Châu Thới",
+        "en": "Dĩ An",
+        "commons": ["Núi Châu Thới", "Chùa Châu Thới"],
+    },
+    "dia-dao-tam-giac-sat-ben-cat": {
+        "vi": "Địa đạo Tây Nam Bến Cát",
+        "en": "Bến Cát",
+        "commons": ["Bến Cát Bình Dương", "Bình Dương"],
+    },
+    # Ba Ria - Vung Tau & Con Dao (Merged HCMC)
+    "tuong-chua-kito-vua-vung-tau": {
+        "vi": "Tượng Chúa Kitô Vua (Vũng Tàu)",
+        "en": "Christ of Vũng Tàu",
+        "commons": ["Christ of Vung Tau", "Statue of Jesus in Vung Tau"],
+    },
+    "bach-dinh-vung-tau": {
+        "vi": "Bạch Dinh",
+        "en": "Bạch Dinh",
+        "commons": ["Vung Tau Bach Dinh", "Villa Blanche Vung Tau"],
+    },
+    "hai-dang-vung-tau": {
+        "vi": "Hải đăng Vũng Tàu",
+        "en": "Vũng Tàu Lighthouse",
+        "commons": ["Vung Tau lighthouse", "Hải đăng Vũng Tàu"],
+    },
+    "thich-ca-phat-dai-vung-tau": {
+        "vi": "Thích Ca Phật Đài",
+        "en": "Vũng Tàu",
+        "commons": ["Thích Ca Phật Đài", "Chùa Thiền Lâm Tự Vũng Tàu"],
+    },
+    "mieu-hon-ba-vung-tau": {
+        "vi": "Hòn Bà (Vũng Tàu)",
+        "en": "Vũng Tàu",
+        "commons": ["Vung Tau Hon Ba", "Mũi Nghinh Phong"],
+    },
+    "dinh-than-thang-tam-vung-tau": {
+        "vi": "Đình Thắng Tam",
+        "en": "Vũng Tàu",
+        "commons": ["Đình Thắng Tam", "Lăng Ông Nam Hải Vũng Tàu"],
+    },
+    "linh-son-co-tu-vung-tau": {
+        "vi": "Linh Sơn Cổ Tự",
+        "en": "Vũng Tàu",
+        "commons": ["Linh Sơn Cổ Tự Vũng Tàu", "Vung Tau pagoda"],
+    },
+    "niet-ban-tinh-xa-vung-tau": {
+        "vi": "Niết Bàn Tịnh Xá",
+        "en": "Vũng Tàu",
+        "commons": ["Vung Tau Niet Ban Tinh Xa"],
+    },
+    "bao-tang-vu-khi-co-robert-taylor": {
+        "vi": "Bảo tàng Vũ khí cổ Robert Taylor",
+        "en": "Worldwide Arms Museum",
+        "commons": ["Worldwide Arms Museum Vung Tau", "Ba Ria Vung Tau museum"],
+    },
+    "mui-nghinh-phong-cong-troi": {
+        "vi": "Mũi Nghinh Phong",
+        "en": "Vũng Tàu",
+        "commons": ["Mũi Nghinh Phong", "Vung Tau Hon Ba"],
+    },
+    "ho-may-park-nui-lon-vung-tau": {
+        "vi": "Núi Lớn",
+        "en": "Vũng Tàu",
+        "commons": ["Cáp treo Vũng Tàu", "Hồ Mây Vũng Tàu"],
+    },
+    "bao-tang-ba-ria-vung-tau": {
+        "vi": "Bãi Trước",
+        "en": "Bà Rịa–Vũng Tàu province",
+        "commons": ["Ba Ria - Vung Tau museum", "Bai Truoc Vung Tau"],
+    },
+    "nha-lon-long-son-den-ong-tran": {
+        "vi": "Nhà Lớn Long Sơn",
+        "en": "Long Sơn Island",
+        "commons": ["Nhà Lớn Long Sơn", "Long Son Vung Tau"],
+    },
+    "thap-tam-thang-quang-truong-bai-sau": {
+        "vi": "Tháp Tam Thắng",
+        "en": "Vũng Tàu",
+        "commons": ["Tháp Tam Thắng", "Sau Beach in Vungtau"],
+    },
+    "doi-con-heo-vung-tau": {
+        "vi": "Núi Nhỏ",
+        "en": "Vũng Tàu",
+        "commons": ["Bờ biển Vũng Tàu", "Sau Beach in Vungtau"],
+    },
+    "bai-sau-thuy-van-vung-tau": {
+        "vi": "Bãi Sau",
+        "en": "Vũng Tàu",
+        "commons": ["Sau Beach in Vungtau", "Bãi biển Vũng Tàu"],
+    },
+    "cong-vien-bai-truoc-vung-tau": {
+        "vi": "Bãi Trước",
+        "en": "Vũng Tàu",
+        "commons": ["Bai Truoc Vung Tau", "Công Viên Bãi Trước"],
+    },
+    "bai-dua-lang-du-vung-tau": {
+        "vi": "Bãi Dứa",
+        "en": "Vũng Tàu",
+        "commons": ["Ha Long Road in Vungtau", "Vung Tau Niet Ban Tinh Xa"],
+    },
+    "hem-107-tran-phu-vung-tau": {
+        "vi": "Vũng Tàu",
+        "en": "Vũng Tàu",
+        "commons": ["Trần Phú Vũng Tàu", "Bai Truoc Vung Tau"],
+    },
+    "den-thanh-duc-me-bai-dau": {
+        "vi": "Đền Thánh Đức Mẹ Bãi Dâu",
+        "en": "Vũng Tàu",
+        "commons": ["Đức Mẹ Bãi Dâu"],
+    },
+    "cho-hai-san-xom-luoi-vung-tau": {
+        "vi": "Vũng Tàu",
+        "en": "Vũng Tàu",
+        "commons": ["Vung Tau Beach", "Bai Truoc Vung Tau"],
+    },
+    "ben-du-thuyen-vung-tau-marina": {
+        "vi": "Sông Dinh (Bà Rịa – Vũng Tàu)",
+        "en": "Vũng Tàu",
+        "commons": ["Vung Tau harbour", "Long Son Vung Tau"],
+    },
+    "nha-tron-ba-ria": {
+        "vi": "Nhà Tròn Bà Rịa",
+        "en": "Bà Rịa",
+        "commons": ["Nhà tròn Bà Rịa"],
+    },
+    "dia-dao-long-phuoc-ba-ria": {
+        "vi": "Địa đạo Long Phước",
+        "en": "Bà Rịa",
+        "commons": ["Long Hai hills", "Núi Dinh Bà Rịa"],
+    },
+    "can-cu-minh-dam-long-hai": {
+        "vi": "Căn cứ Minh Đạm",
+        "en": "Long Hải",
+        "commons": ["Long Hai hills", "Bãi biển Long Hải"],
+    },
+    "nha-luu-niem-vo-thi-sau-dat-do": {
+        "vi": "Võ Thị Sáu",
+        "en": "Võ Thị Sáu",
+        "commons": ["Vo Thi Sau memorial", "Mộ Võ Thị Sáu"],
+    },
+    "nui-dinh-chua-hang-phu-my": {
+        "vi": "Núi Dinh",
+        "en": "Phú Mỹ, Bà Rịa–Vũng Tàu",
+        "commons": ["Suối Đá núi Dinh Bà Rịa", "Núi Dinh Bà Rịa"],
+    },
+    "ho-da-xanh-phu-my": {
+        "vi": "Núi Dinh",
+        "en": "Phú Mỹ, Bà Rịa–Vũng Tàu",
+        "commons": ["Suối Đá 5 hồ núi Dinh", "Suối Đá núi Dinh Bà Rịa"],
+    },
+    "doi-cuu-suoi-nghe-chau-duc": {
+        "vi": "Suối Nghệ",
+        "en": "Châu Đức district",
+        "commons": ["Phước Bửu Xuyên Mộc", "Núi Dinh Bà Rịa"],
+    },
+    "dinh-co-long-hai": {
+        "vi": "Dinh Cô",
+        "en": "Long Hải",
+        "commons": ["Dinh Cô", "Bãi biển Long Hải"],
+    },
+    "deo-nuoc-ngot-phuoc-hai": {
+        "vi": "Phước Hải (thị trấn)",
+        "en": "Long Hải",
+        "commons": ["Biển Long Hải", "Long Hải Bà Rịa"],
+    },
+    "ben-tau-khong-so-loc-an": {
+        "vi": "Đường Hồ Chí Minh trên biển",
+        "en": "Xuyên Mộc district",
+        "commons": ["Ho Tram Beach", "Biển ở Hồ Cóc"],
+    },
+    "bien-ho-tram-hamptons-pier": {
+        "vi": "Hồ Tràm",
+        "en": "Hồ Tràm",
+        "commons": ["Ho Tram Beach", "The Grand Ho Tram Strip"],
+    },
+    "bien-ho-coc-xuyen-moc": {
+        "vi": "Hồ Cốc",
+        "en": "Hồ Cốc",
+        "commons": ["Biển ở Hồ Cóc", "Ho coc beach"],
+    },
+    "suoi-khoang-nong-binh-chau": {
+        "vi": "Khu bảo tồn thiên nhiên Bình Châu – Phước Bửu",
+        "en": "Bình Châu-Phước Bửu Nature Reserve",
+        "commons": ["Phước Bửu Xuyên Mộc", "Bình Châu"],
+    },
+    "nha-tu-con-dao": {
+        "vi": "Nhà tù Côn Đảo",
+        "en": "Côn Đảo Prison",
+        "commons": ["Nhà tù Côn Đảo", "Con Dao prison"],
+    },
+    "nghia-trang-hang-duong-con-dao": {
+        "vi": "Nghĩa trang Hàng Dương",
+        "en": "Hàng Dương Cemetery",
+        "commons": ["Mộ Võ Thị Sáu", "Nhà tù Côn Đảo"],
+    },
+    "chua-nui-mot-van-son-tu-con-dao": {
+        "vi": "Vân Sơn Tự",
+        "en": "Côn Đảo",
+        "commons": ["Chùa Vân Sơn ở Côn Đảo", "An Sơn Miếu ở Côn Đảo"],
+    },
+    "bai-dam-trau-vuon-quoc-gia-con-dao": {
+        "vi": "Vườn quốc gia Côn Đảo",
+        "en": "Côn Đảo National Park",
+        "commons": ["ConDao park dam", "Six Senses Côn Đảo"],
+    },
 }
 
 BAD_IMAGE_PATTERNS = (

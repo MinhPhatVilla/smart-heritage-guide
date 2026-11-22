@@ -1,10 +1,11 @@
 /**
  * Ảnh thực tế (Wikimedia Commons) & tư liệu chi tiết từ Wikipedia (VI/EN)
- * cho toàn bộ 50 di tích & điểm tham quan TP. Hồ Chí Minh.
+ * cho toàn bộ 97 di tích, danh thắng & điểm tham quan TP. Hồ Chí Minh mở rộng
+ * (gồm nội thành TP.HCM, Bình Dương, Bà Rịa – Vũng Tàu & Đặc khu Côn Đảo).
  *
- * - Synced at: 2026-11-22T07:21:22Z
- * - Ảnh thực tế: 150 ảnh phủ 50/50 địa điểm
- * - Tư liệu Wikipedia: 46/50 địa điểm
+ * - Synced at: 2026-11-22T14:27:17Z
+ * - Ảnh thực tế: 291 ảnh phủ 97/97 địa điểm
+ * - Tư liệu Wikipedia: 97/97 địa điểm
  *
  * Cập nhật lại bằng lệnh: `cd backend && python -m scripts.sync_wikipedia_data`
  */
@@ -22,7 +23,7 @@ export interface WikipediaSiteEnrichment {
   translations?: Record<SupportedLanguage, LocalizedContent>;
 }
 
-export const WIKIPEDIA_ENRICHMENT_SYNCED_AT = '2026-11-22T07:21:22Z';
+export const WIKIPEDIA_ENRICHMENT_SYNCED_AT = '2026-11-22T14:27:17Z';
 
 export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichment> = {
   "dinh-doc-lap": {
@@ -4274,11 +4275,10 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
         "yearOrSource": "Wikipedia · Wikimedia Commons"
       }
     ],
-    "wikipediaUrl": "https://en.wikipedia.org/wiki/Saigon_Central_Mosque",
-    "enWikiSummary": "The Saigon Central Mosque (Vietnamese: Nhà thờ Hồi giáo Musulman) is a mosque in Ho Chi Minh City, Vietnam and it is one of the ancient and historic Mosque in the region. It was completed in the Year 1935 since the construction began in 1934 December 21 and was led by JM Mohamed Ismael, Chief of the Muslims Congregations, Head of British Indian Muslims Community.",
+    "wikipediaUrl": "https://vi.wikipedia.org/wiki/Th%C3%A1nh_%C4%91%C6%B0%E1%BB%9Dng_H%E1%BB%93i_gi%C3%A1o_Trung_t%C3%A2m_S%C3%A0i_G%C3%B2n",
+    "enWikiSummary": "Saigon Central Mosque (Jamia Al-Musulman), inaugurated in 1935 at 66 Dong Du Street in District 1, was built by the South Indian Muslim community with elegant white-and-turquoise arches and four corner minarets.",
     "enWikiParagraphs": [
-      "The Saigon Central Mosque (Vietnamese: Nhà thờ Hồi giáo Musulman) is a mosque in Ho Chi Minh City, Vietnam and it is one of the ancient and historic Mosque in the region. It was completed in the Year 1935 since the construction began in 1934 December 21 and was led by JM Mohamed Ismael, Chief of the Muslims Congregations, Head of British Indian Muslims Community.",
-      "The mosque was established in 1935 as the India Jamia Muslim Mosque."
+      "Saigon Central Mosque (Jamia Al-Musulman), inaugurated in 1935 at 66 Dong Du Street in District 1, was built by the South Indian Muslim community with elegant white-and-turquoise arches and four corner minarets."
     ],
     "translations": {
       "vi": {
@@ -4293,7 +4293,8 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
         ],
         "audioScript": [
           "Chào mừng quý khách đến với Thánh đường Hồi giáo Jamia Al-Musulman tại số 66 Đông Du – ốc đảo yên bình giữa khu phố Đồng Khởi nhộn nhịp của Quận 1.",
-          "Xây dựng năm 1935 bởi cộng đồng người Hồi giáo gốc Nam Ấn, thánh đường gây ấn tượng bằng kiến trúc vòm cong màu trắng – xanh ngọc và hồ nước thanh tịnh, mở cửa thân thiện đón du khách mặc trang phục lịch sự."
+          "Xây dựng năm 1935 bởi cộng đồng người Hồi giáo gốc Nam Ấn, thánh đường gây ấn tượng bằng kiến trúc vòm cong màu trắng – xanh ngọc và hồ nước thanh tịnh, mở cửa thân thiện đón du khách mặc trang phục lịch sự.",
+          "Theo tư liệu bách khoa Wikipedia: Thánh đường Hồi giáo Trung tâm Sài Gòn (Jamia Al-Musulman Mosque) tọa lạc tại số 66 Đông Du, Quận 1, khánh thành năm 1935 do cộng đồng tín đồ Hồi giáo Nam Ấn Độ xây dựng trên nền một thánh đường cũ có từ cuối thế kỷ XIX. Công trình mang kiến trúc Hồi giáo Ấn Độ đặc sắc với sắc trắng – xanh ngọc chủ đạo, 4 ngọn tháp vút cao bốn góc, hệ thống vòm cung mềm mại và sân hành lễ thanh tịnh giữa khu trung tâm sầm uất nhất Sài Gòn."
         ]
       },
       "en": {
@@ -4308,7 +4309,8 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
         ],
         "audioScript": [
           "Welcome to Jamia Al-Musulman Mosque at 66 Dong Du - a peaceful oasis in the bustling Dong Khoi neighborhood of District 1.",
-          "Built in 1935 by the Muslim community of South Indian descent, the mosque impresses with its white-turquoise arched architecture and pure lake, welcoming visitors wearing polite attire."
+          "Built in 1935 by the Muslim community of South Indian descent, the mosque impresses with its white-turquoise arched architecture and pure lake, welcoming visitors wearing polite attire.",
+          "According to Wikipedia: Saigon Central Mosque (Jamia Al-Musulman), inaugurated in 1935 at 66 Dong Du Street in District 1, was built by the South Indian Muslim community with elegant white-and-turquoise arches and four corner minarets."
         ]
       },
       "fr": {
@@ -4356,7 +4358,12 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
           "南インド系イスラム教徒コミュニティによって 1935 年に建てられたこのモスクは、白ターコイズブルーのアーチ型建築と清らかな湖が印象的で、礼儀正しい服装をした訪問者を歓迎します。"
         ]
       }
-    }
+    },
+    "viWikiSummary": "Thánh đường Hồi giáo Trung tâm Sài Gòn (Jamia Al-Musulman Mosque) tọa lạc tại số 66 Đông Du, Quận 1, khánh thành năm 1935 do cộng đồng tín đồ Hồi giáo Nam Ấn Độ xây dựng trên nền một thánh đường cũ có từ cuối thế kỷ XIX.",
+    "viWikiParagraphs": [
+      "Thánh đường Hồi giáo Trung tâm Sài Gòn (Jamia Al-Musulman Mosque) tọa lạc tại số 66 Đông Du, Quận 1, khánh thành năm 1935 do cộng đồng tín đồ Hồi giáo Nam Ấn Độ xây dựng trên nền một thánh đường cũ có từ cuối thế kỷ XIX.",
+      "Công trình mang kiến trúc Hồi giáo Ấn Độ đặc sắc với sắc trắng – xanh ngọc chủ đạo, 4 ngọn tháp vút cao bốn góc, hệ thống vòm cung mềm mại và sân hành lễ thanh tịnh giữa khu trung tâm sầm uất nhất Sài Gòn."
+    ]
   },
   "nha-tho-huyen-sy": {
     "coverImage": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b1/Nh%C3%A0_th%E1%BB%9D_huy%E1%BB%87n_S%E1%BB%B9_%E1%BB%9F_HCM.jpg/1280px-Nh%C3%A0_th%E1%BB%9D_huy%E1%BB%87n_S%E1%BB%B9_%E1%BB%9F_HCM.jpg?utm_source=vi.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
@@ -4813,7 +4820,8 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
         ],
         "audioScript": [
           "Chào mừng quý khách đến với Bảo tàng Biệt động Sài Gòn – Gia Định tại số 145 Trần Quang Khải, phường Tân Định, Quận 1.",
-          "Ngôi nhà cổ xây dựng từ năm 1963 này từng là cơ sở hoạt động bí mật của lực lượng Biệt động Sài Gòn. Quý khách sẽ được tận mắt chứng kiến những vách hầm ngụy trang tài tình, bộ sưu tập hiện vật nguyên bản và thưởng thức ly cà phê vợt đậm chất Sài Gòn xưa."
+          "Ngôi nhà cổ xây dựng từ năm 1963 này từng là cơ sở hoạt động bí mật của lực lượng Biệt động Sài Gòn. Quý khách sẽ được tận mắt chứng kiến những vách hầm ngụy trang tài tình, bộ sưu tập hiện vật nguyên bản và thưởng thức ly cà phê vợt đậm chất Sài Gòn xưa.",
+          "Theo tư liệu bách khoa Wikipedia: Bảo tàng Biệt động Sài Gòn – Gia Định tại số 145 Trần Quang Khải (Quận 1) nguyên là cơ sở hoạt động bí mật của chiến sĩ Trần Văn Lai (Năm U.SOM) từ năm 1963, từng phục vụ hộp thư bí mật, nơi nuôi giấu cán bộ và chuẩn bị cho Chiến dịch Tổng tiến công Tết Mậu Thân 1968. Đây là bảo tàng tư nhân đầu tiên về lực lượng Biệt động Sài Gòn với hơn 300 hiện vật gốc quý hiếm, tái hiện không gian cà phê Đỗ Phủ – cơm tấm Đại Hàn, hầm nổi cất giấu tài liệu và thang máy gỗ cổ từ thập niên 1960."
         ]
       },
       "en": {
@@ -4828,7 +4836,8 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
         ],
         "audioScript": [
           "Welcome to the Saigon - Gia Dinh Rangers Museum at 145 Tran Quang Khai, Tan Dinh Ward, District 1.",
-          "This old house, built in 1963, was once a secret operating base for the Saigon Rangers. You will be able to see with your own eyes the cleverly camouflaged tunnel walls, the collection of original artifacts and enjoy a cup of coffee with the essence of old Saigon."
+          "This old house, built in 1963, was once a secret operating base for the Saigon Rangers. You will be able to see with your own eyes the cleverly camouflaged tunnel walls, the collection of original artifacts and enjoy a cup of coffee with the essence of old Saigon.",
+          "According to Wikipedia: The Saigon Commando Museum at 145 Tran Quang Khai preserves a 1963 covert safehouse linked to the 1968 Tet Offensive, displaying over 300 authentic artifacts, secret compartments, and historic correspondence."
         ]
       },
       "fr": {
@@ -4876,7 +4885,17 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
           "1963 年に建てられたこの古い家は、かつてサイゴンレンジャーの秘密作戦基地でした。巧妙にカモフラージュされたトンネルの壁やオリジナルの工芸品のコレクションを自分の目で見て、古いサイゴンのエッセンスを入れたコーヒーを楽しむことができます。"
         ]
       }
-    }
+    },
+    "wikipediaUrl": "https://vi.wikipedia.org/wiki/Bi%E1%BB%87t_%C4%91%E1%BB%99ng_S%C3%A0i_G%C3%B2n",
+    "viWikiSummary": "Bảo tàng Biệt động Sài Gòn – Gia Định tại số 145 Trần Quang Khải (Quận 1) nguyên là cơ sở hoạt động bí mật của chiến sĩ Trần Văn Lai (Năm U.SOM) từ năm 1963, từng phục vụ hộp thư bí mật, nơi nuôi giấu cán bộ và chuẩn bị cho Chiến dịch Tổng tiến công Tết Mậu Thân 1968.",
+    "viWikiParagraphs": [
+      "Bảo tàng Biệt động Sài Gòn – Gia Định tại số 145 Trần Quang Khải (Quận 1) nguyên là cơ sở hoạt động bí mật của chiến sĩ Trần Văn Lai (Năm U.SOM) từ năm 1963, từng phục vụ hộp thư bí mật, nơi nuôi giấu cán bộ và chuẩn bị cho Chiến dịch Tổng tiến công Tết Mậu Thân 1968.",
+      "Đây là bảo tàng tư nhân đầu tiên về lực lượng Biệt động Sài Gòn với hơn 300 hiện vật gốc quý hiếm, tái hiện không gian cà phê Đỗ Phủ – cơm tấm Đại Hàn, hầm nổi cất giấu tài liệu và thang máy gỗ cổ từ thập niên 1960."
+    ],
+    "enWikiSummary": "The Saigon Commando Museum at 145 Tran Quang Khai preserves a 1963 covert safehouse linked to the 1968 Tet Offensive, displaying over 300 authentic artifacts, secret compartments, and historic correspondence.",
+    "enWikiParagraphs": [
+      "The Saigon Commando Museum at 145 Tran Quang Khai preserves a 1963 covert safehouse linked to the 1968 Tet Offensive, displaying over 300 authentic artifacts, secret compartments, and historic correspondence."
+    ]
   },
   "hoi-quan-nghia-an-chua-ong": {
     "coverImage": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1b/Nghia_An_Hoi_Quan_Pagoda_%2810018256906%29.jpg/1280px-Nghia_An_Hoi_Quan_Pagoda_%2810018256906%29.jpg?utm_source=vi.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
@@ -5202,7 +5221,8 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
         ],
         "audioScript": [
           "Chào mừng quý khách đến với Chùa Vạn Phật tại hẻm 66 Nghĩa Thục, Quận 5 – một kho báu tâm linh ít người ngờ tới giữa lòng Chợ Lớn.",
-          "Bước lên Đại điện Quang Minh ở tầng 4, quý khách sẽ choáng ngợp trước 10.000 pho tượng Phật ánh kim phủ kín khắp bốn bức tường vây quanh tượng Phật Thích Ca trên đài sen ngàn cánh."
+          "Bước lên Đại điện Quang Minh ở tầng 4, quý khách sẽ choáng ngợp trước 10.000 pho tượng Phật ánh kim phủ kín khắp bốn bức tường vây quanh tượng Phật Thích Ca trên đài sen ngàn cánh.",
+          "Theo tư liệu bách khoa Wikipedia: Chùa Vạn Phật tọa lạc tại số 66/14 Nghĩa Thục, Phường 5, Quận 5, được hai vị Hòa thượng Thích Diệu Hoa và Thích Đức Bổn sáng lập năm 1959 theo truyền thống Phật giáo Đại thừa của cộng đồng người Hoa vùng Chợ Lớn. Điểm độc đáo nhất của ngôi chùa là Đại điện Quang Minh ở tầng 3 tôn trí tượng Phật Tỳ Lô Giá Na ngự trên tòa sen ngàn cánh, bao quanh bốn bức tường là khoảng 10.000 pho tượng Phật nhỏ rực rỡ tạo nên không gian tâm linh kỳ vĩ hiếm có."
         ]
       },
       "en": {
@@ -5217,7 +5237,8 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
         ],
         "audioScript": [
           "Welcome to Van Phat Pagoda at alley 66 Nghia Thuc, District 5 - a spiritual treasure that few people expect in the heart of Cho Lon.",
-          "Stepping up to the Quang Minh Great Hall on the 4th floor, you will be overwhelmed by 10,000 golden Buddha statues covering all four walls surrounding the Shakyamuni Buddha statue on a thousand-petalled lotus."
+          "Stepping up to the Quang Minh Great Hall on the 4th floor, you will be overwhelmed by 10,000 golden Buddha statues covering all four walls surrounding the Shakyamuni Buddha statue on a thousand-petalled lotus.",
+          "According to Wikipedia: Founded in 1959 in Cho Lon (District 5), Van Phat Pagoda is famed for its luminous third-floor sanctuary enshrining Vairocana Buddha surrounded by approximately 10,000 miniature golden Buddha statues lining every wall."
         ]
       },
       "fr": {
@@ -5265,7 +5286,17 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
           "クアン ミン大殿の 4 階に上がると、千枚の花びらをもつ釈迦如来像を囲む四方の壁を埋め尽くす 1 万体の黄金の仏像に圧倒されるでしょう。"
         ]
       }
-    }
+    },
+    "wikipediaUrl": "https://vi.wikipedia.org/wiki/Ch%C3%B9a_V%E1%BA%A1n_Ph%E1%BA%ADt",
+    "viWikiSummary": "Chùa Vạn Phật tọa lạc tại số 66/14 Nghĩa Thục, Phường 5, Quận 5, được hai vị Hòa thượng Thích Diệu Hoa và Thích Đức Bổn sáng lập năm 1959 theo truyền thống Phật giáo Đại thừa của cộng đồng người Hoa vùng Chợ Lớn.",
+    "viWikiParagraphs": [
+      "Chùa Vạn Phật tọa lạc tại số 66/14 Nghĩa Thục, Phường 5, Quận 5, được hai vị Hòa thượng Thích Diệu Hoa và Thích Đức Bổn sáng lập năm 1959 theo truyền thống Phật giáo Đại thừa của cộng đồng người Hoa vùng Chợ Lớn.",
+      "Điểm độc đáo nhất của ngôi chùa là Đại điện Quang Minh ở tầng 3 tôn trí tượng Phật Tỳ Lô Giá Na ngự trên tòa sen ngàn cánh, bao quanh bốn bức tường là khoảng 10.000 pho tượng Phật nhỏ rực rỡ tạo nên không gian tâm linh kỳ vĩ hiếm có."
+    ],
+    "enWikiSummary": "Founded in 1959 in Cho Lon (District 5), Van Phat Pagoda is famed for its luminous third-floor sanctuary enshrining Vairocana Buddha surrounded by approximately 10,000 miniature golden Buddha statues lining every wall.",
+    "enWikiParagraphs": [
+      "Founded in 1959 in Cho Lon (District 5), Van Phat Pagoda is famed for its luminous third-floor sanctuary enshrining Vairocana Buddha surrounded by approximately 10,000 miniature golden Buddha statues lining every wall."
+    ]
   },
   "nha-tho-cho-quan": {
     "coverImage": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/81/Nh%C3%A0_th%E1%BB%9D_Th%C3%A1nh_T%C3%A2m_Ch%C3%BAa_Gi%C3%AAsu%2C_Th%C3%A0nh_ph%E1%BB%91_H%E1%BB%93_Ch%C3%AD_Minh.jpg/1280px-Nh%C3%A0_th%E1%BB%9D_Th%C3%A1nh_T%C3%A2m_Ch%C3%BAa_Gi%C3%AAsu%2C_Th%C3%A0nh_ph%E1%BB%91_H%E1%BB%93_Ch%C3%AD_Minh.jpg?utm_source=vi.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
@@ -5861,7 +5892,8 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
         ],
         "audioScript": [
           "Chào mừng quý khách đến với Bảo tàng Y học Cổ truyền Việt Nam – FITO Museum tại số 41 Hoàng Dư Khương, Quận 10.",
-          "Bước qua cánh cửa gỗ chạm khắc tinh xảo, quý khách sẽ lạc vào không gian 18 phòng trưng bày mùi hương thảo mộc dịu nhẹ, khám phá lịch sử nghìn năm thuốc Nam cùng hai vị đại danh y Tuệ Tĩnh và Hải Thượng Lãn Ông."
+          "Bước qua cánh cửa gỗ chạm khắc tinh xảo, quý khách sẽ lạc vào không gian 18 phòng trưng bày mùi hương thảo mộc dịu nhẹ, khám phá lịch sử nghìn năm thuốc Nam cùng hai vị đại danh y Tuệ Tĩnh và Hải Thượng Lãn Ông.",
+          "Theo tư liệu bách khoa Wikipedia: Bảo tàng Y học cổ truyền Việt Nam (FITO Museum) tại số 41 Hoàng Dư Khương, Quận 10 là bảo tàng tư nhân đầu tiên về y học cổ truyền tại Việt Nam, mở cửa đón khách từ năm 2007 trong không gian nhà gỗ 6 tầng mang kiến trúc Bắc Bộ kết hợp cung đình Huế. Bảo tàng trưng bày gần 3.000 hiện vật quý trải dài từ thời đồ đá đến cận đại gồm dao cầu, thuyền tán thuốc, cân tiểu ly, ấm sắc thuốc gốm cổ, hàng trăm bản sách Hán – Nôm và gian thờ hai đại danh y Tuệ Tĩnh và Hải Thượng Lãn Ông Lê Hữu Trác."
         ]
       },
       "en": {
@@ -5876,7 +5908,8 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
         ],
         "audioScript": [
           "Welcome to the Museum of Vietnamese Traditional Medicine - FITO Museum at 41 Hoang Du Khuong, District 10.",
-          "Stepping through the exquisitely carved wooden door, you will be lost in the space of 18 galleries with a gentle herbal scent, discovering the thousand-year history of traditional medicine with two great physicians, Tue Tinh and Hai Thuong Lan Ong."
+          "Stepping through the exquisitely carved wooden door, you will be lost in the space of 18 galleries with a gentle herbal scent, discovering the thousand-year history of traditional medicine with two great physicians, Tue Tinh and Hai Thuong Lan Ong.",
+          "According to Wikipedia: Opened in 2007 in District 10, the FITO Museum of Traditional Vietnamese Medicine is Vietnam’s first private medical museum, housing nearly 3,000 artifacts across 18 carved timber rooms honoring legendary physicians Tue Tinh and Hai Thuong Lan Ong."
         ]
       },
       "fr": {
@@ -5924,7 +5957,17 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
           "精巧な彫刻が施された木製のドアをくぐり抜けると、優しいハーブの香りが漂う 18 のギャラリーの空間に迷い込み、二人の偉大な医師トゥ ティンとハイ トゥオン ラン オンによる伝統医学の千年の歴史を知ることができます。"
         ]
       }
-    }
+    },
+    "wikipediaUrl": "https://vi.wikipedia.org/wiki/B%E1%BA%A3o_t%C3%A0ng_Y_h%E1%BB%8Dc_c%E1%BB%95_truy%E1%BB%81n_Vi%E1%BB%87t_Nam",
+    "viWikiSummary": "Bảo tàng Y học cổ truyền Việt Nam (FITO Museum) tại số 41 Hoàng Dư Khương, Quận 10 là bảo tàng tư nhân đầu tiên về y học cổ truyền tại Việt Nam, mở cửa đón khách từ năm 2007 trong không gian nhà gỗ 6 tầng mang kiến trúc Bắc Bộ kết hợp cung đình Huế.",
+    "viWikiParagraphs": [
+      "Bảo tàng Y học cổ truyền Việt Nam (FITO Museum) tại số 41 Hoàng Dư Khương, Quận 10 là bảo tàng tư nhân đầu tiên về y học cổ truyền tại Việt Nam, mở cửa đón khách từ năm 2007 trong không gian nhà gỗ 6 tầng mang kiến trúc Bắc Bộ kết hợp cung đình Huế.",
+      "Bảo tàng trưng bày gần 3.000 hiện vật quý trải dài từ thời đồ đá đến cận đại gồm dao cầu, thuyền tán thuốc, cân tiểu ly, ấm sắc thuốc gốm cổ, hàng trăm bản sách Hán – Nôm và gian thờ hai đại danh y Tuệ Tĩnh và Hải Thượng Lãn Ông Lê Hữu Trác."
+    ],
+    "enWikiSummary": "Opened in 2007 in District 10, the FITO Museum of Traditional Vietnamese Medicine is Vietnam’s first private medical museum, housing nearly 3,000 artifacts across 18 carved timber rooms honoring legendary physicians Tue Tinh and Hai Thuong Lan Ong.",
+    "enWikiParagraphs": [
+      "Opened in 2007 in District 10, the FITO Museum of Traditional Vietnamese Medicine is Vietnam’s first private medical museum, housing nearly 3,000 artifacts across 18 carved timber rooms honoring legendary physicians Tue Tinh and Hai Thuong Lan Ong."
+    ]
   },
   "cho-hoa-pho-am-thuc-ho-thi-ky": {
     "coverImage": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1e/20180413_190400Saigon_Hotpot_Night_Food_Tour_Ho_Thi_Ky_Flower_Market.jpg/1280px-20180413_190400Saigon_Hotpot_Night_Food_Tour_Ho_Thi_Ky_Flower_Market.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
@@ -5982,7 +6025,8 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
         ],
         "audioScript": [
           "Chào mừng quý khách đến với Chợ hoa và Phố ẩm thực Hồ Thị Kỷ tại Quận 10 – nơi hòa quyện hương sắc ngàn hoa Đà Lạt cùng bản giao hưởng ẩm thực đường phố rộn rã nhất Sài Gòn.",
-          "Ban ngày quý khách có thể dạo bước chụp ảnh giữa biển hoa tươi bạt ngàn, còn từ 15 giờ chiều trở đi con phố bừng sáng với hơn trăm gian hàng ẩm thực Việt – Campuchia hấp dẫn."
+          "Ban ngày quý khách có thể dạo bước chụp ảnh giữa biển hoa tươi bạt ngàn, còn từ 15 giờ chiều trở đi con phố bừng sáng với hơn trăm gian hàng ẩm thực Việt – Campuchia hấp dẫn.",
+          "Theo tư liệu bách khoa Wikipedia: Chợ hoa Hồ Thị Kỷ (Phường 1, Quận 10) hình thành từ năm 1987 và là chợ đầu mối hoa tươi lớn nhất TP. Hồ Chí Minh, hoạt động suốt ngày đêm với nguồn hoa dồi dào từ Đà Lạt, các tỉnh miền Tây và hoa nhập khẩu. Liền kề không gian rực rỡ sắc hoa là tuyến Phố ẩm thực Hồ Thị Kỷ – khu chợ Campuchia nổi tiếng với hàng trăm món ăn đường phố đặc sắc như bún num bò chóc, chè Campuchia, nem bò nướng sả và hải sản nướng."
         ]
       },
       "en": {
@@ -5997,7 +6041,8 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
         ],
         "audioScript": [
           "Welcome to Ho Thi Ky Flower Market and Food Street in District 10 - where the scent of thousands of Da Lat flowers blends with the busiest street food symphony in Saigon.",
-          "During the day, you can walk and take photos amid the vast sea of fresh flowers, and from 3:00 p.m. onwards, the street lights up with more than a hundred attractive Vietnamese - Cambodian cuisine stalls."
+          "During the day, you can walk and take photos amid the vast sea of fresh flowers, and from 3:00 p.m. onwards, the street lights up with more than a hundred attractive Vietnamese - Cambodian cuisine stalls.",
+          "According to Wikipedia: Established in 1987 in District 10, Ho Thi Ky is Ho Chi Minh City’s largest 24/7 wholesale flower market, seamlessly paired with a bustling street-food avenue famous for Cambodian-Vietnamese specialties."
         ]
       },
       "fr": {
@@ -6045,7 +6090,17 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
           "日中は広大な生花の海の中を散歩したり写真を撮ったりすることができ、午後3時からは花々が咲き誇ります。その後、通りには 100 軒以上の魅力的なベトナム料理やカンボジア料理の屋台が並びます。"
         ]
       }
-    }
+    },
+    "wikipediaUrl": "https://vi.wikipedia.org/wiki/Ch%E1%BB%A3_hoa_H%E1%BB%93_Th%E1%BB%8B_K%E1%BB%B7",
+    "viWikiSummary": "Chợ hoa Hồ Thị Kỷ (Phường 1, Quận 10) hình thành từ năm 1987 và là chợ đầu mối hoa tươi lớn nhất TP. Hồ Chí Minh, hoạt động suốt ngày đêm với nguồn hoa dồi dào từ Đà Lạt, các tỉnh miền Tây và hoa nhập khẩu.",
+    "viWikiParagraphs": [
+      "Chợ hoa Hồ Thị Kỷ (Phường 1, Quận 10) hình thành từ năm 1987 và là chợ đầu mối hoa tươi lớn nhất TP. Hồ Chí Minh, hoạt động suốt ngày đêm với nguồn hoa dồi dào từ Đà Lạt, các tỉnh miền Tây và hoa nhập khẩu.",
+      "Liền kề không gian rực rỡ sắc hoa là tuyến Phố ẩm thực Hồ Thị Kỷ – khu chợ Campuchia nổi tiếng với hàng trăm món ăn đường phố đặc sắc như bún num bò chóc, chè Campuchia, nem bò nướng sả và hải sản nướng."
+    ],
+    "enWikiSummary": "Established in 1987 in District 10, Ho Thi Ky is Ho Chi Minh City’s largest 24/7 wholesale flower market, seamlessly paired with a bustling street-food avenue famous for Cambodian-Vietnamese specialties.",
+    "enWikiParagraphs": [
+      "Established in 1987 in District 10, Ho Thi Ky is Ho Chi Minh City’s largest 24/7 wholesale flower market, seamlessly paired with a bustling street-food avenue famous for Cambodian-Vietnamese specialties."
+    ]
   },
   "pho-di-bo-bui-vien": {
     "coverImage": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/52/Bui_Vien_Walking_Street_1.jpg/1280px-Bui_Vien_Walking_Street_1.jpg?utm_source=vi.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
@@ -6854,5 +6909,2543 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
         ]
       }
     }
+  },
+  "chua-hoi-khanh-thu-dau-mot": {
+    "coverImage": "https://commons.wikimedia.org/wiki/Special:FilePath/Reclining_Buddha_at_Hoi_Khanh_Temple.png?width=1200",
+    "mediaGallery": [
+      {
+        "id": "wk-chuahoikhanh-1",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Reclining_Buddha_at_Hoi_Khanh_Temple.png?width=1200",
+        "caption": {
+          "vi": "Ảnh thực tế toàn cảnh Chùa Hội Khánh (Tượng Phật Nhập Niết Bàn 52m) (Wikimedia Commons)",
+          "en": "Real view of Hoi Khanh Pagoda (52m Reclining Buddha) (Wikimedia Commons)",
+          "fr": "Vue réelle de Pagode Hoi Khanh (Bouddha couché de 52 m) (Wikimedia Commons)",
+          "zh": "会庆寺（52米屋顶卧佛）实景照片（维基共享资源）",
+          "ja": "ホイカン寺（全長52mの涅槃仏）の実景写真（ウィキメディア・コモンズ）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      },
+      {
+        "id": "wk-chuahoikhanh-2",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Hoi_Khanh_Pagoda_in_Binh_Duong.jpg?width=1200",
+        "caption": {
+          "vi": "Góc nhìn kiến trúc & cảnh quan tại Chùa Hội Khánh (Tượng Phật Nhập Niết Bàn 52m) (Ảnh 2)",
+          "en": "Architecture & scenery at Hoi Khanh Pagoda (52m Reclining Buddha) (Photo 2)",
+          "fr": "Architecture et paysage à Pagode Hoi Khanh (Bouddha couché de 52 m) (Photo 2)",
+          "zh": "会庆寺（52米屋顶卧佛）建筑与风光细节（图 2）",
+          "ja": "ホイカン寺（全長52mの涅槃仏）の建築と風景（写真 2）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      },
+      {
+        "id": "wk-chuahoikhanh-3",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Ch%C3%B9a_B%C3%A0_B%C3%ACnh_D%C6%B0%C6%A1ng.jpg?width=1200",
+        "caption": {
+          "vi": "Góc nhìn kiến trúc & cảnh quan tại Chùa Hội Khánh (Tượng Phật Nhập Niết Bàn 52m) (Ảnh 3)",
+          "en": "Architecture & scenery at Hoi Khanh Pagoda (52m Reclining Buddha) (Photo 3)",
+          "fr": "Architecture et paysage à Pagode Hoi Khanh (Bouddha couché de 52 m) (Photo 3)",
+          "zh": "会庆寺（52米屋顶卧佛）建筑与风光细节（图 3）",
+          "ja": "ホイカン寺（全長52mの涅槃仏）の建築と風景（写真 3）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      }
+    ],
+    "wikipediaUrl": "https://vi.wikipedia.org/wiki/Ch%C3%B9a_H%E1%BB%99i_Kh%C3%A1nh",
+    "viWikiSummary": "Chùa Hội Khánh do Thiền sư Đại Ngạn khai sơn năm 1741 đời chúa Nguyễn Phúc Khoát, được Bộ Văn hóa xếp hạng Di tích Lịch sử – Văn hóa cấp Quốc gia năm 1993. Chùa tọa lạc trên khu đất cao rợp bóng cây cổ thụ ngay trung tâm Thủ Dầu Một.",
+    "viWikiParagraphs": [
+      "Chùa Hội Khánh do Thiền sư Đại Ngạn khai sơn năm 1741 đời chúa Nguyễn Phúc Khoát, được Bộ Văn hóa xếp hạng Di tích Lịch sử – Văn hóa cấp Quốc gia năm 1993. Chùa tọa lạc trên khu đất cao rợp bóng cây cổ thụ ngay trung tâm Thủ Dầu Một.",
+      "Giai đoạn 1923–1926, cụ Phó bảng Nguyễn Sinh Sắc (thân sinh Chủ tịch Hồ Chí Minh) từng lưu trú tại chùa, cùng Hòa thượng Từ Văn và các sĩ phu yêu nước sáng lập Hội Danh dự nhằm truyền bá tư tưởng yêu nước. Năm 2010, chùa khánh thành tượng Đức Phật nhập Niết Bàn dài 52m trên mái tòa bảo điện cao 22m, xác lập Kỷ lục châu Á năm 2013."
+    ],
+    "enWikiSummary": "Founded in 1741 by Zen Master Dai Ngan in Thu Dau Mot and recognized as a National Historical-Cultural Monument in 1993, Hoi Khanh Pagoda served as a patriotic meeting hub for Nguyen Sinh Sac (father of Ho Chi Minh) from 1923 to 1926 and houses Asia’s longest rooftop Reclining Buddha (52 meters).",
+    "enWikiParagraphs": [
+      "Founded in 1741 by Zen Master Dai Ngan in Thu Dau Mot and recognized as a National Historical-Cultural Monument in 1993, Hoi Khanh Pagoda served as a patriotic meeting hub for Nguyen Sinh Sac (father of Ho Chi Minh) from 1923 to 1926 and houses Asia’s longest rooftop Reclining Buddha (52 meters)."
+    ]
+  },
+  "chua-ba-thien-hau-thu-dau-mot": {
+    "coverImage": "https://commons.wikimedia.org/wiki/Special:FilePath/Ch%C3%B9a_B%C3%A0_B%C3%ACnh_D%C6%B0%C6%A1ng.jpg?width=1200",
+    "mediaGallery": [
+      {
+        "id": "wk-chuabathienh-1",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Ch%C3%B9a_B%C3%A0_B%C3%ACnh_D%C6%B0%C6%A1ng.jpg?width=1200",
+        "caption": {
+          "vi": "Ảnh thực tế toàn cảnh Miếu Bà Thiên Hậu Thủ Dầu Một (Wikimedia Commons)",
+          "en": "Real view of Thien Hau Temple Thu Dau Mot (Wikimedia Commons)",
+          "fr": "Vue réelle de Temple de Thien Hau à Thu Dau Mot (Wikimedia Commons)",
+          "zh": "土龙木天后宫实景照片（维基共享资源）",
+          "ja": "トゥーザウモット天后宮の実景写真（ウィキメディア・コモンズ）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      },
+      {
+        "id": "wk-chuabathienh-2",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Mi%E1%BA%BFu_B%C3%A0_Thi%C3%AAn_H%E1%BA%ADu_%E1%BB%9F_Th%E1%BB%A7_D%E1%BA%A7u_M%E1%BB%99t.jpg?width=1200",
+        "caption": {
+          "vi": "Góc nhìn kiến trúc & cảnh quan tại Miếu Bà Thiên Hậu Thủ Dầu Một (Ảnh 2)",
+          "en": "Architecture & scenery at Thien Hau Temple Thu Dau Mot (Photo 2)",
+          "fr": "Architecture et paysage à Temple de Thien Hau à Thu Dau Mot (Photo 2)",
+          "zh": "土龙木天后宫建筑与风光细节（图 2）",
+          "ja": "トゥーザウモット天后宮の建築と風景（写真 2）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      },
+      {
+        "id": "wk-chuabathienh-3",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Th%C3%A1p_%C4%91%E1%BB%93ng_h%E1%BB%93.jpg?width=1200",
+        "caption": {
+          "vi": "Góc nhìn kiến trúc & cảnh quan tại Miếu Bà Thiên Hậu Thủ Dầu Một (Ảnh 3)",
+          "en": "Architecture & scenery at Thien Hau Temple Thu Dau Mot (Photo 3)",
+          "fr": "Architecture et paysage à Temple de Thien Hau à Thu Dau Mot (Photo 3)",
+          "zh": "土龙木天后宫建筑与风光细节（图 3）",
+          "ja": "トゥーザウモット天后宮の建築と風景（写真 3）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      }
+    ],
+    "wikipediaUrl": "https://vi.wikipedia.org/wiki/Mi%E1%BA%BFu_B%C3%A0_Thi%C3%AAn_H%E1%BA%ADu_(Th%E1%BB%A7_D%E1%BA%A7u_M%E1%BB%99t)",
+    "viWikiSummary": "Miếu Bà Thiên Hậu (Chùa Bà Bình Dương) tại số 04 Nguyễn Du, phường Phú Cường do cộng đồng bốn bang người Hoa (Quảng Đông, Triều Châu, Phúc Kiến, Hẹ) tạo lập từ thế kỷ XIX và tái thiết quy mô lớn năm 1923 sau trận hỏa hoạn.",
+    "viWikiParagraphs": [
+      "Miếu Bà Thiên Hậu (Chùa Bà Bình Dương) tại số 04 Nguyễn Du, phường Phú Cường do cộng đồng bốn bang người Hoa (Quảng Đông, Triều Châu, Phúc Kiến, Hẹ) tạo lập từ thế kỷ XIX và tái thiết quy mô lớn năm 1923 sau trận hỏa hoạn.",
+      "Lễ hội Chùa Bà diễn ra từ ngày 13 đến Rằm tháng Giêng âm lịch hằng năm với nghi lễ rước kiệu Bà quanh trung tâm đất Thủ cùng hàng chục đoàn lân sư rồng là một trong những lễ hội tín ngưỡng dân gian lớn nhất vùng Đông Nam Bộ."
+    ],
+    "enWikiSummary": "Built in the 19th century and reconstructed in 1923 by four Chinese guild communities in Thu Dau Mot, Thien Hau Temple is famed for its ceramic dragon roof reliefs and its massive First Full Moon procession attracting hundreds of thousands of pilgrims annually.",
+    "enWikiParagraphs": [
+      "Built in the 19th century and reconstructed in 1923 by four Chinese guild communities in Thu Dau Mot, Thien Hau Temple is famed for its ceramic dragon roof reliefs and its massive First Full Moon procession attracting hundreds of thousands of pilgrims annually."
+    ]
+  },
+  "nha-tu-phu-loi-thu-dau-mot": {
+    "coverImage": "https://commons.wikimedia.org/wiki/Special:FilePath/Nha_tu_Phu_Loi.JPG?width=1200",
+    "mediaGallery": [
+      {
+        "id": "wk-nhatuphuloit-1",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Nha_tu_Phu_Loi.JPG?width=1200",
+        "caption": {
+          "vi": "Ảnh thực tế toàn cảnh Di tích Lịch sử Nhà tù Phú Lợi (Wikimedia Commons)",
+          "en": "Real view of Phu Loi Prison Historical Monument (Wikimedia Commons)",
+          "fr": "Vue réelle de Site historique de la prison de Phu Loi (Wikimedia Commons)",
+          "zh": "富利监狱历史遗迹实景照片（维基共享资源）",
+          "ja": "フーロイ刑務所歴史遺跡の実景写真（ウィキメディア・コモンズ）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      },
+      {
+        "id": "wk-nhatuphuloit-2",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Khu_nh%C3%A0_giam_%E1%BB%9F_Nh%C3%A0_t%C3%B9_Ph%C3%BA_L%E1%BB%A3i.JPG?width=1200",
+        "caption": {
+          "vi": "Góc nhìn kiến trúc & cảnh quan tại Di tích Lịch sử Nhà tù Phú Lợi (Ảnh 2)",
+          "en": "Architecture & scenery at Phu Loi Prison Historical Monument (Photo 2)",
+          "fr": "Architecture et paysage à Site historique de la prison de Phu Loi (Photo 2)",
+          "zh": "富利监狱历史遗迹建筑与风光细节（图 2）",
+          "ja": "フーロイ刑務所歴史遺跡の建築と風景（写真 2）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      },
+      {
+        "id": "wk-nhatuphuloit-3",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/%C4%90%E1%BB%81n_t%C6%B0%E1%BB%9Fng_ni%E1%BB%87m_n%E1%BA%A1n_nh%C3%A2n_%E1%BB%9F_Nh%C3%A0_T%C3%B9_Ph%C3%BA_L%E1%BB%A3i_1.JPG?width=1200",
+        "caption": {
+          "vi": "Góc nhìn kiến trúc & cảnh quan tại Di tích Lịch sử Nhà tù Phú Lợi (Ảnh 3)",
+          "en": "Architecture & scenery at Phu Loi Prison Historical Monument (Photo 3)",
+          "fr": "Architecture et paysage à Site historique de la prison de Phu Loi (Photo 3)",
+          "zh": "富利监狱历史遗迹建筑与风光细节（图 3）",
+          "ja": "フーロイ刑務所歴史遺跡の建築と風景（写真 3）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      }
+    ],
+    "wikipediaUrl": "https://vi.wikipedia.org/wiki/Nh%C3%A0_t%C3%B9_Ph%C3%BA_L%E1%BB%A3i",
+    "viWikiSummary": "Nhà tù Phú Lợi (tên cũ là Trung tâm Cải huấn Phú Lợi) được xây dựng năm 1957 trên diện tích 12 ha tại phường Phú Lợi, Thủ Dầu Một, từng giam giữ khoảng 6.000 tù nhân chính trị trong giai đoạn 1957–1964.",
+    "viWikiParagraphs": [
+      "Nhà tù Phú Lợi (tên cũ là Trung tâm Cải huấn Phú Lợi) được xây dựng năm 1957 trên diện tích 12 ha tại phường Phú Lợi, Thủ Dầu Một, từng giam giữ khoảng 6.000 tù nhân chính trị trong giai đoạn 1957–1964.",
+      "Di tích được Bộ Văn hóa công nhận Di tích Lịch sử cấp Quốc gia ngày 10/7/1980 nhằm tưởng niệm sự kiện đầu độc tù nhân chính trị ngày 01/12/1958, với các khu phòng giam, xà lim kỷ luật, vọng gác và tượng đài 'Phú Lợi căm thù' của điêu khắc gia Diệp Minh Châu."
+    ],
+    "enWikiSummary": "Constructed in 1957 across 12 hectares in Thu Dau Mot and designated a National Historical Monument in 1980, Phu Loi Prison preserves detention blocks, solitary confinement cells, watchtowers, and the memorial honoring political prisoners of the December 1958 tragedy.",
+    "enWikiParagraphs": [
+      "Constructed in 1957 across 12 hectares in Thu Dau Mot and designated a National Historical Monument in 1980, Phu Loi Prison preserves detention blocks, solitary confinement cells, watchtowers, and the memorial honoring political prisoners of the December 1958 tragedy."
+    ]
+  },
+  "khu-du-lich-dai-nam-binh-duong": {
+    "coverImage": "https://commons.wikimedia.org/wiki/Special:FilePath/Cong_vao_Dai_Nam_Quoc_Tu.jpg?width=1200",
+    "mediaGallery": [
+      {
+        "id": "wk-khudulichdai-1",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Cong_vao_Dai_Nam_Quoc_Tu.jpg?width=1200",
+        "caption": {
+          "vi": "Ảnh thực tế toàn cảnh Lạc Cảnh Đại Nam Văn Hiến (Kim Điện & Bảo Sơn) (Wikimedia Commons)",
+          "en": "Real view of Dai Nam Van Hien Cultural Complex (Golden Temple) (Wikimedia Commons)",
+          "fr": "Vue réelle de Complexe culturel Dai Nam Van Hien (Wikimedia Commons)",
+          "zh": "大南文献旅游区（金殿）实景照片（维基共享资源）",
+          "ja": "ダイナム文化観光公園（金殿）の実景写真（ウィキメディア・コモンズ）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      },
+      {
+        "id": "wk-khudulichdai-2",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/250624_Khu_Du_l%E1%BB%8Bch_%C4%90%E1%BA%A1i_Nam_(1).jpg?width=1200",
+        "caption": {
+          "vi": "Góc nhìn kiến trúc & cảnh quan tại Lạc Cảnh Đại Nam Văn Hiến (Kim Điện & Bảo Sơn) (Ảnh 2)",
+          "en": "Architecture & scenery at Dai Nam Van Hien Cultural Complex (Golden Temple) (Photo 2)",
+          "fr": "Architecture et paysage à Complexe culturel Dai Nam Van Hien (Photo 2)",
+          "zh": "大南文献旅游区（金殿）建筑与风光细节（图 2）",
+          "ja": "ダイナム文化観光公園（金殿）の建築と風景（写真 2）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      },
+      {
+        "id": "wk-khudulichdai-3",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/C%E1%BB%95ng_Thanh_V%C3%A2n.jpg?width=1200",
+        "caption": {
+          "vi": "Góc nhìn kiến trúc & cảnh quan tại Lạc Cảnh Đại Nam Văn Hiến (Kim Điện & Bảo Sơn) (Ảnh 3)",
+          "en": "Architecture & scenery at Dai Nam Van Hien Cultural Complex (Golden Temple) (Photo 3)",
+          "fr": "Architecture et paysage à Complexe culturel Dai Nam Van Hien (Photo 3)",
+          "zh": "大南文献旅游区（金殿）建筑与风光细节（图 3）",
+          "ja": "ダイナム文化観光公園（金殿）の建築と風景（写真 3）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      }
+    ],
+    "wikipediaUrl": "https://vi.wikipedia.org/wiki/Khu_du_l%E1%BB%8Bch_%C4%90%E1%BA%A1i_Nam",
+    "viWikiSummary": "Lạc Cảnh Đại Nam Văn Hiến khởi công năm 1999 và khánh thành năm 2008 trên tổng diện tích 450 ha tại phường Hiệp An, Thủ Dầu Một, kết hợp giữa quần thể kiến trúc văn hóa – tâm linh quy mô lớn và khu vui chơi giải trí hiện đại.",
+    "viWikiParagraphs": [
+      "Lạc Cảnh Đại Nam Văn Hiến khởi công năm 1999 và khánh thành năm 2008 trên tổng diện tích 450 ha tại phường Hiệp An, Thủ Dầu Một, kết hợp giữa quần thể kiến trúc văn hóa – tâm linh quy mô lớn và khu vui chơi giải trí hiện đại.",
+      "Điểm nhấn trung tâm là Đền thờ Đại Nam (Kim Điện) rộng 5.000 m² dát vàng 24K tôn vinh Vua Hùng, Chủ tịch Hồ Chí Minh và 1.068 dòng họ Việt Nam, liền kề dãy núi Bảo Sơn nhân tạo dài 252 m, vườn thú mở và khu biển nhân tạo rộng 22 ha."
+    ],
+    "enWikiSummary": "Built between 1999 and 2008 across 450 hectares in Thu Dau Mot, Dai Nam Van Hien Cultural Complex centers on the 24K-gilded Kim Dien Temple honoring 4,000 years of Vietnamese history alongside Vietnam’s longest artificial mountain range, an open zoo, and a wave lagoon.",
+    "enWikiParagraphs": [
+      "Built between 1999 and 2008 across 450 hectares in Thu Dau Mot, Dai Nam Van Hien Cultural Complex centers on the 24K-gilded Kim Dien Temple honoring 4,000 years of Vietnamese history alongside Vietnam’s longest artificial mountain range, an open zoo, and a wave lagoon."
+    ]
+  },
+  "nha-co-tran-van-ho-thu-dau-mot": {
+    "coverImage": "https://commons.wikimedia.org/wiki/Special:FilePath/Nh%C3%A0_c%E1%BB%95_%C4%90%E1%BB%91c_ph%E1%BB%A7_%C4%90%E1%BA%A9u.jpg?width=1200",
+    "mediaGallery": [
+      {
+        "id": "wk-nhacotranvan-1",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Nh%C3%A0_c%E1%BB%95_%C4%90%E1%BB%91c_ph%E1%BB%A7_%C4%90%E1%BA%A9u.jpg?width=1200",
+        "caption": {
+          "vi": "Ảnh thực tế toàn cảnh Nhà cổ Trần Văn Hổ (Kiến trúc gỗ Nam Bộ 1890) (Wikimedia Commons)",
+          "en": "Real view of Tran Van Ho Ancient House (1890) (Wikimedia Commons)",
+          "fr": "Vue réelle de Maison ancienne Tran Van Ho (1890) (Wikimedia Commons)",
+          "zh": "陈文虎古宅（1890年）实景照片（维基共享资源）",
+          "ja": "チャン・ヴァン・ホー古民家（1890年）の実景写真（ウィキメディア・コモンズ）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      },
+      {
+        "id": "wk-nhacotranvan-2",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Ch%E1%BB%A3_Th%E1%BB%A7_D%E1%BA%A7u_M%E1%BB%99t_1.jpg?width=1200",
+        "caption": {
+          "vi": "Góc nhìn kiến trúc & cảnh quan tại Nhà cổ Trần Văn Hổ (Kiến trúc gỗ Nam Bộ 1890) (Ảnh 2)",
+          "en": "Architecture & scenery at Tran Van Ho Ancient House (1890) (Photo 2)",
+          "fr": "Architecture et paysage à Maison ancienne Tran Van Ho (1890) (Photo 2)",
+          "zh": "陈文虎古宅（1890年）建筑与风光细节（图 2）",
+          "ja": "チャン・ヴァン・ホー古民家（1890年）の建築と風景（写真 2）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      },
+      {
+        "id": "wk-nhacotranvan-3",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/M%E1%BB%99t_g%C3%B3c_ch%E1%BB%A3_Th%E1%BB%A7_D%E1%BA%A7u_M%E1%BB%99t.jpg?width=1200",
+        "caption": {
+          "vi": "Góc nhìn kiến trúc & cảnh quan tại Nhà cổ Trần Văn Hổ (Kiến trúc gỗ Nam Bộ 1890) (Ảnh 3)",
+          "en": "Architecture & scenery at Tran Van Ho Ancient House (1890) (Photo 3)",
+          "fr": "Architecture et paysage à Maison ancienne Tran Van Ho (1890) (Photo 3)",
+          "zh": "陈文虎古宅（1890年）建筑与风光细节（图 3）",
+          "ja": "チャン・ヴァン・ホー古民家（1890年）の建築と風景（写真 3）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      }
+    ],
+    "wikipediaUrl": "https://vi.wikipedia.org/wiki/Th%E1%BB%A7_D%E1%BA%A7u_M%E1%BB%99t",
+    "viWikiSummary": "Nhà cổ Trần Văn Hổ (còn gọi là Nhà cổ Đốc phủ Đẩu) tọa lạc tại số 18 đường Bạch Đằng, phường Phú Cường, được xây dựng năm 1890 trên nền đất rộng ven sông Sài Gòn và được xếp hạng Di tích Kiến trúc Nghệ thuật cấp Quốc gia năm 1993.",
+    "viWikiParagraphs": [
+      "Nhà cổ Trần Văn Hổ (còn gọi là Nhà cổ Đốc phủ Đẩu) tọa lạc tại số 18 đường Bạch Đằng, phường Phú Cường, được xây dựng năm 1890 trên nền đất rộng ven sông Sài Gòn và được xếp hạng Di tích Kiến trúc Nghệ thuật cấp Quốc gia năm 1993.",
+      "Ngôi nhà mang kết cấu chữ Đinh 3 gian 2 chái với 36 cột gỗ quý (căm xe, gõ đỏ) liên kết mộng hoàn toàn không dùng đinh, lưu giữ tinh hoa chạm khắc gỗ và khảm xà cừ nổi tiếng của làng nghề Thủ Dầu Một cuối thế kỷ XIX."
+    ],
+    "enWikiSummary": "Constructed in 1890 along the Saigon River in Thu Dau Mot and recognized as a National Architectural Monument in 1993, Tran Van Ho Ancient House exemplifies 19th-century Southern hardwood joinery with 36 mortise-and-tenon columns and mother-of-pearl inlay altars.",
+    "enWikiParagraphs": [
+      "Constructed in 1890 along the Saigon River in Thu Dau Mot and recognized as a National Architectural Monument in 1993, Tran Van Ho Ancient House exemplifies 19th-century Southern hardwood joinery with 36 mortise-and-tenon columns and mother-of-pearl inlay altars."
+    ]
+  },
+  "lang-gom-lai-thieu-thuan-an": {
+    "coverImage": "https://commons.wikimedia.org/wiki/Special:FilePath/Ch%E1%BB%A3_L%C3%A1i_Thi%C3%AAu,_D%C4%A9_An,_B%C3%ACnh_D%C6%B0%C6%A1ng.jpg?width=1200",
+    "mediaGallery": [
+      {
+        "id": "wk-langgomlaith-1",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Ch%E1%BB%A3_L%C3%A1i_Thi%C3%AAu,_D%C4%A9_An,_B%C3%ACnh_D%C6%B0%C6%A1ng.jpg?width=1200",
+        "caption": {
+          "vi": "Ảnh thực tế toàn cảnh Làng Gốm Lái Thiêu & Vườn cây ăn trái Lái Thiêu (Wikimedia Commons)",
+          "en": "Real view of Lai Thieu Ceramic Village & Fruit Orchards (Wikimedia Commons)",
+          "fr": "Vue réelle de Village de céramique et vergers de Lai Thieu (Wikimedia Commons)",
+          "zh": "莱条古陶瓷村与百年果园实景照片（维基共享资源）",
+          "ja": "ライティエウ陶器村と果樹園の実景写真（ウィキメディア・コモンズ）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      },
+      {
+        "id": "wk-langgomlaith-2",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Tetlaithieu2.jpg?width=1200",
+        "caption": {
+          "vi": "Góc nhìn kiến trúc & cảnh quan tại Làng Gốm Lái Thiêu & Vườn cây ăn trái Lái Thiêu (Ảnh 2)",
+          "en": "Architecture & scenery at Lai Thieu Ceramic Village & Fruit Orchards (Photo 2)",
+          "fr": "Architecture et paysage à Village de céramique et vergers de Lai Thieu (Photo 2)",
+          "zh": "莱条古陶瓷村与百年果园建筑与风光细节（图 2）",
+          "ja": "ライティエウ陶器村と果樹園の建築と風景（写真 2）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      },
+      {
+        "id": "wk-langgomlaith-3",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/%C4%90%C6%B0%E1%BB%9Dng_Nguy%E1%BB%85n_Tr%C3%A3i,_L%C3%A1i_Thi%C3%AAu,_Thu%E1%BA%ADn_An.jpg?width=1200",
+        "caption": {
+          "vi": "Góc nhìn kiến trúc & cảnh quan tại Làng Gốm Lái Thiêu & Vườn cây ăn trái Lái Thiêu (Ảnh 3)",
+          "en": "Architecture & scenery at Lai Thieu Ceramic Village & Fruit Orchards (Photo 3)",
+          "fr": "Architecture et paysage à Village de céramique et vergers de Lai Thieu (Photo 3)",
+          "zh": "莱条古陶瓷村与百年果园建筑与风光细节（图 3）",
+          "ja": "ライティエウ陶器村と果樹園の建築と風景（写真 3）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      }
+    ],
+    "wikipediaUrl": "https://vi.wikipedia.org/wiki/L%C3%A1i_Thi%C3%AAu",
+    "viWikiSummary": "Lái Thiêu (Thuận An) là cái nôi của dòng gốm gia dụng Nam Bộ hình thành từ giữa thế kỷ XIX, nổi danh khắp lục tỉnh và Đông Nam Á nhờ chất men xanh – trắng mộc mạc cùng họa tiết con gà, hoa lá vẽ tay đặc trưng.",
+    "viWikiParagraphs": [
+      "Lái Thiêu (Thuận An) là cái nôi của dòng gốm gia dụng Nam Bộ hình thành từ giữa thế kỷ XIX, nổi danh khắp lục tỉnh và Đông Nam Á nhờ chất men xanh – trắng mộc mạc cùng họa tiết con gà, hoa lá vẽ tay đặc trưng.",
+      "Bên cạnh các lò gốm truyền thống và nghề sơn mài Tương Bình Hiệp kề cận, vùng đất phù sa ven sông Sài Gòn này còn trứ danh với những vườn măng cụt hơn trăm năm tuổi và món gỏi gà măng cụt đặc sản mỗi mùa hè."
+    ],
+    "enWikiSummary": "Dating back to the mid-19th century along the Saigon River, Lai Thieu in Thuan An is renowned across Southern Vietnam for its hand-painted rooster ceramic bowls, wood-fired pottery workshops, and century-old riverside mangosteen orchards.",
+    "enWikiParagraphs": [
+      "Dating back to the mid-19th century along the Saigon River, Lai Thieu in Thuan An is renowned across Southern Vietnam for its hand-painted rooster ceramic bowls, wood-fired pottery workshops, and century-old riverside mangosteen orchards."
+    ]
+  },
+  "chua-chau-thoi-di-an": {
+    "coverImage": "https://commons.wikimedia.org/wiki/Special:FilePath/N%C3%BAi_Ch%C3%A2u_Th%E1%BB%9Bi_ng%C3%A0y_nay.jpg?width=1200",
+    "mediaGallery": [
+      {
+        "id": "wk-chuachauthoi-1",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/N%C3%BAi_Ch%C3%A2u_Th%E1%BB%9Bi_ng%C3%A0y_nay.jpg?width=1200",
+        "caption": {
+          "vi": "Ảnh thực tế toàn cảnh Chùa Núi Châu Thới (Cổ tự 1612 trên đỉnh núi) (Wikimedia Commons)",
+          "en": "Real view of Chau Thoi Mountain Pagoda (1612) (Wikimedia Commons)",
+          "fr": "Vue réelle de Pagode de la montagne Chau Thoi (1612) (Wikimedia Commons)",
+          "zh": "周泰山古寺（1612年）实景照片（维基共享资源）",
+          "ja": "チャウトイ山寺（1612年創建）の実景写真（ウィキメディア・コモンズ）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      },
+      {
+        "id": "wk-chuachauthoi-2",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Ch%C3%A2u_Th%E1%BB%9Bi_ph%C3%A1p.jpg?width=1200",
+        "caption": {
+          "vi": "Góc nhìn kiến trúc & cảnh quan tại Chùa Núi Châu Thới (Cổ tự 1612 trên đỉnh núi) (Ảnh 2)",
+          "en": "Architecture & scenery at Chau Thoi Mountain Pagoda (1612) (Photo 2)",
+          "fr": "Architecture et paysage à Pagode de la montagne Chau Thoi (1612) (Photo 2)",
+          "zh": "周泰山古寺（1612年）建筑与风光细节（图 2）",
+          "ja": "チャウトイ山寺（1612年創建）の建築と風景（写真 2）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      },
+      {
+        "id": "wk-chuachauthoi-3",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Ch%C3%B9a_T%C3%A2y_T%E1%BA%A1ng_%E1%BB%9F_B%C3%ACnh_D%C6%B0%C6%A1ng.jpg?width=1200",
+        "caption": {
+          "vi": "Góc nhìn kiến trúc & cảnh quan tại Chùa Núi Châu Thới (Cổ tự 1612 trên đỉnh núi) (Ảnh 3)",
+          "en": "Architecture & scenery at Chau Thoi Mountain Pagoda (1612) (Photo 3)",
+          "fr": "Architecture et paysage à Pagode de la montagne Chau Thoi (1612) (Photo 3)",
+          "zh": "周泰山古寺（1612年）建筑与风光细节（图 3）",
+          "ja": "チャウトイ山寺（1612年創建）の建築と風景（写真 3）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      }
+    ],
+    "wikipediaUrl": "https://vi.wikipedia.org/wiki/Ch%C3%B9a_Ch%C3%A2u_Th%E1%BB%9Bi",
+    "viWikiSummary": "Chùa Núi Châu Thới (Hội Sơn tự) tọa lạc trên đỉnh núi Châu Thới cao 82m tại phường Bình An, Dĩ An, do Thiền sư Khánh Long khai sơn năm 1612 — là một trong những ngôi chùa cổ xưa nhất vùng Đông Nam Bộ và được xếp hạng Di tích Danh lam Thắng cảnh Quốc gia năm 1989.",
+    "viWikiParagraphs": [
+      "Chùa Núi Châu Thới (Hội Sơn tự) tọa lạc trên đỉnh núi Châu Thới cao 82m tại phường Bình An, Dĩ An, do Thiền sư Khánh Long khai sơn năm 1612 — là một trong những ngôi chùa cổ xưa nhất vùng Đông Nam Bộ và được xếp hạng Di tích Danh lam Thắng cảnh Quốc gia năm 1989.",
+      "Đường lên chùa đi qua 220 bậc thang đá rợp bóng cổ thụ, nổi bật với nghệ thuật gắn mảnh gốm sứ rồng phượng rực rỡ trên bờ nóc, ba pho tượng Phật cổ bằng đá thế kỷ XVIII và tượng Quan Thế Âm bằng đá ngọc bích nặng hàng trăm tấn."
+    ],
+    "enWikiSummary": "Founded in 1612 by Zen Master Khanh Long atop 82-meter Chau Thoi Mountain in Di An and designated a National Scenic Monument in 1989, Chau Thoi Pagoda is reached via 220 shaded stone steps and preserves 18th-century stone Buddha statues and ornate ceramic dragon roofs.",
+    "enWikiParagraphs": [
+      "Founded in 1612 by Zen Master Khanh Long atop 82-meter Chau Thoi Mountain in Di An and designated a National Scenic Monument in 1989, Chau Thoi Pagoda is reached via 220 shaded stone steps and preserves 18th-century stone Buddha statues and ornate ceramic dragon roofs."
+    ]
+  },
+  "dia-dao-tam-giac-sat-ben-cat": {
+    "coverImage": "https://commons.wikimedia.org/wiki/Special:FilePath/Trung_t%C3%A2m_h%C3%A0nh_ch%C3%ADnh_m%E1%BB%9Bi_B%C3%ACnh_D%C6%B0%C6%A1ng.JPG?width=1200",
+    "mediaGallery": [
+      {
+        "id": "wk-diadaotamgia-1",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Trung_t%C3%A2m_h%C3%A0nh_ch%C3%ADnh_m%E1%BB%9Bi_B%C3%ACnh_D%C6%B0%C6%A1ng.JPG?width=1200",
+        "caption": {
+          "vi": "Ảnh thực tế toàn cảnh Di tích Địa đạo Tây Nam Bến Cát (Tam Giác Sắt) (Wikimedia Commons)",
+          "en": "Real view of Iron Triangle Tunnels (Ben Cat Historic Tunnels) (Wikimedia Commons)",
+          "fr": "Vue réelle de Tunnels du Triangle de Fer (Ben Cat) (Wikimedia Commons)",
+          "zh": "铁三角地道遗迹（滨吉）实景照片（维基共享资源）",
+          "ja": "鉄の三角地帯トンネル遺跡（ベンカット）の実景写真（ウィキメディア・コモンズ）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      },
+      {
+        "id": "wk-diadaotamgia-2",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Khu_nh%C3%A0_giam_%E1%BB%9F_Nh%C3%A0_t%C3%B9_Ph%C3%BA_L%E1%BB%A3i.JPG?width=1200",
+        "caption": {
+          "vi": "Góc nhìn kiến trúc & cảnh quan tại Di tích Địa đạo Tây Nam Bến Cát (Tam Giác Sắt) (Ảnh 2)",
+          "en": "Architecture & scenery at Iron Triangle Tunnels (Ben Cat Historic Tunnels) (Photo 2)",
+          "fr": "Architecture et paysage à Tunnels du Triangle de Fer (Ben Cat) (Photo 2)",
+          "zh": "铁三角地道遗迹（滨吉）建筑与风光细节（图 2）",
+          "ja": "鉄の三角地帯トンネル遺跡（ベンカット）の建築と風景（写真 2）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      },
+      {
+        "id": "wk-diadaotamgia-3",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/%C4%90%E1%BB%81n_t%C6%B0%E1%BB%9Fng_ni%E1%BB%87m_n%E1%BA%A1n_nh%C3%A2n_%E1%BB%9F_Nh%C3%A0_T%C3%B9_Ph%C3%BA_L%E1%BB%A3i_1.JPG?width=1200",
+        "caption": {
+          "vi": "Góc nhìn kiến trúc & cảnh quan tại Di tích Địa đạo Tây Nam Bến Cát (Tam Giác Sắt) (Ảnh 3)",
+          "en": "Architecture & scenery at Iron Triangle Tunnels (Ben Cat Historic Tunnels) (Photo 3)",
+          "fr": "Architecture et paysage à Tunnels du Triangle de Fer (Ben Cat) (Photo 3)",
+          "zh": "铁三角地道遗迹（滨吉）建筑与风光细节（图 3）",
+          "ja": "鉄の三角地帯トンネル遺跡（ベンカット）の建築と風景（写真 3）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      }
+    ],
+    "wikipediaUrl": "https://vi.wikipedia.org/wiki/%C4%90%E1%BB%8Ba_%C4%91%E1%BA%A1o_T%C3%A2y_Nam_B%E1%BA%BFn_C%C3%A1t",
+    "viWikiSummary": "Địa đạo Tây Nam Bến Cát (vùng Tam Giác Sắt gồm 3 xã An Điền, An Tây, Phú An) được quân dân khởi đào từ năm 1948 trong kháng chiến chống Pháp và phát triển liên hoàn thành hệ thống đường hầm nhiều tầng xuyên suốt kháng chiến chống Mỹ.",
+    "viWikiParagraphs": [
+      "Địa đạo Tây Nam Bến Cát (vùng Tam Giác Sắt gồm 3 xã An Điền, An Tây, Phú An) được quân dân khởi đào từ năm 1948 trong kháng chiến chống Pháp và phát triển liên hoàn thành hệ thống đường hầm nhiều tầng xuyên suốt kháng chiến chống Mỹ.",
+      "Di tích được Bộ Văn hóa – Thông tin xếp hạng Di tích Lịch sử cấp Quốc gia ngày 18/3/1996, kết nối chặt chẽ về mặt địa lý và lịch sử với Địa đạo Củ Chi qua bờ sông Sài Gòn và có đền tưởng niệm trang nghiêm giữa rừng cây xanh."
+    ],
+    "enWikiSummary": "Excavated starting in 1948 across the strategic Iron Triangle (An Dien, An Tay, Phu An) in Ben Cat and recognized as a National Historical Monument in 1996, this multi-level tunnel network formed a vital corridor linked across the Saigon River to the Cu Chi Tunnels.",
+    "enWikiParagraphs": [
+      "Excavated starting in 1948 across the strategic Iron Triangle (An Dien, An Tay, Phu An) in Ben Cat and recognized as a National Historical Monument in 1996, this multi-level tunnel network formed a vital corridor linked across the Saigon River to the Cu Chi Tunnels."
+    ]
+  },
+  "tuong-chua-kito-vua-vung-tau": {
+    "coverImage": "https://commons.wikimedia.org/wiki/Special:FilePath/Statue_of_Jesus_in_Vung_Tau.jpg?width=1200",
+    "mediaGallery": [
+      {
+        "id": "wk-tuongchuakit-1",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Statue_of_Jesus_in_Vung_Tau.jpg?width=1200",
+        "caption": {
+          "vi": "Ảnh thực tế toàn cảnh Tượng Chúa Kitô Vua (Tượng Chúa Dang Tay – Núi Nhỏ) (Wikimedia Commons)",
+          "en": "Real view of Christ the King Statue (Nho Mountain, Vung Tau) (Wikimedia Commons)",
+          "fr": "Vue réelle de Statue du Christ-Roi (Montagne Nho, Vung Tau) (Wikimedia Commons)",
+          "zh": "头顿耶稣山基督像实景照片（维基共享资源）",
+          "ja": "ブンタウ巨大キリスト像（ニョー山）の実景写真（ウィキメディア・コモンズ）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      },
+      {
+        "id": "wk-tuongchuakit-2",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Vung_Tau_Thanh_Gioc_3.JPG?width=1200",
+        "caption": {
+          "vi": "Góc nhìn kiến trúc & cảnh quan tại Tượng Chúa Kitô Vua (Tượng Chúa Dang Tay – Núi Nhỏ) (Ảnh 2)",
+          "en": "Architecture & scenery at Christ the King Statue (Nho Mountain, Vung Tau) (Photo 2)",
+          "fr": "Architecture et paysage à Statue du Christ-Roi (Montagne Nho, Vung Tau) (Photo 2)",
+          "zh": "头顿耶稣山基督像建筑与风光细节（图 2）",
+          "ja": "ブンタウ巨大キリスト像（ニョー山）の建築と風景（写真 2）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      },
+      {
+        "id": "wk-tuongchuakit-3",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/T%C6%B0%E1%BB%A3ng_Ch%C3%BAa_V%C5%A9ng_T%C3%A0u.jpg?width=1200",
+        "caption": {
+          "vi": "Góc nhìn kiến trúc & cảnh quan tại Tượng Chúa Kitô Vua (Tượng Chúa Dang Tay – Núi Nhỏ) (Ảnh 3)",
+          "en": "Architecture & scenery at Christ the King Statue (Nho Mountain, Vung Tau) (Photo 3)",
+          "fr": "Architecture et paysage à Statue du Christ-Roi (Montagne Nho, Vung Tau) (Photo 3)",
+          "zh": "头顿耶稣山基督像建筑与风光细节（图 3）",
+          "ja": "ブンタウ巨大キリスト像（ニョー山）の建築と風景（写真 3）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      }
+    ],
+    "wikipediaUrl": "https://vi.wikipedia.org/wiki/T%C6%B0%E1%BB%A3ng_Ch%C3%BAa_Kit%C3%B4_Vua_(V%C5%A9ng_T%C3%A0u)",
+    "viWikiSummary": "Tượng Chúa Kitô Vua (Tượng Chúa dang tay) tọa lạc trên đỉnh Núi Nhỏ (núi Tao Phùng) ở độ cao 170m so với mực nước biển, khởi công năm 1974 và chính thức khánh thành ngày 02/12/1994.",
+    "viWikiParagraphs": [
+      "Tượng Chúa Kitô Vua (Tượng Chúa dang tay) tọa lạc trên đỉnh Núi Nhỏ (núi Tao Phùng) ở độ cao 170m so với mực nước biển, khởi công năm 1974 và chính thức khánh thành ngày 02/12/1994.",
+      "Tượng cao 32m, sải tay rộng 18,4m đặt trên bệ bê tông cao 4m chạm phù điêu Bữa Tiệc Ly; năm 2012 được Tổ chức Kỷ lục châu Á xác lập là 'Tượng Chúa Giêsu lớn nhất châu Á'. Du khách vượt qua 811 bậc thang đá và 133 bậc xoắn ốc trong lòng tượng để ngắm toàn cảnh Biển Đông từ hai bờ vai tượng."
+    ],
+    "enWikiSummary": "Standing 32 meters tall with an 18.4-meter arm span atop 170-meter Nho Mountain, Christ of Vung Tau was initiated in 1974 and completed in 1994. Recognized in 2012 as Asia’s largest statue of Jesus, its interior 133-step spiral staircase leads visitors onto open shoulder balconies.",
+    "enWikiParagraphs": [
+      "Standing 32 meters tall with an 18.4-meter arm span atop 170-meter Nho Mountain, Christ of Vung Tau was initiated in 1974 and completed in 1994. Recognized in 2012 as Asia’s largest statue of Jesus, its interior 133-step spiral staircase leads visitors onto open shoulder balconies."
+    ]
+  },
+  "bach-dinh-vung-tau": {
+    "coverImage": "https://commons.wikimedia.org/wiki/Special:FilePath/Vung_Tau_Bach_Dinh.JPG?width=1200",
+    "mediaGallery": [
+      {
+        "id": "wk-bachdinhvung-1",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Vung_Tau_Bach_Dinh.JPG?width=1200",
+        "caption": {
+          "vi": "Ảnh thực tế toàn cảnh Di tích Lịch sử – Văn hóa Bạch Dinh (Villa Blanche) (Wikimedia Commons)",
+          "en": "Real view of White Palace (Bach Dinh / Villa Blanche) (Wikimedia Commons)",
+          "fr": "Vue réelle de Villa Blanche (Bach Dinh) (Wikimedia Commons)",
+          "zh": "头顿白宫（Villa Blanche）实景照片（维基共享资源）",
+          "ja": "バックディン（白宮 / ヴィラ・ブランシュ）の実景写真（ウィキメディア・コモンズ）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      },
+      {
+        "id": "wk-bachdinhvung-2",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/VN-vungtau-bach-dinh-1.jpg?width=1200",
+        "caption": {
+          "vi": "Góc nhìn kiến trúc & cảnh quan tại Di tích Lịch sử – Văn hóa Bạch Dinh (Villa Blanche) (Ảnh 2)",
+          "en": "Architecture & scenery at White Palace (Bach Dinh / Villa Blanche) (Photo 2)",
+          "fr": "Architecture et paysage à Villa Blanche (Bach Dinh) (Photo 2)",
+          "zh": "头顿白宫（Villa Blanche）建筑与风光细节（图 2）",
+          "ja": "バックディン（白宮 / ヴィラ・ブランシュ）の建築と風景（写真 2）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      },
+      {
+        "id": "wk-bachdinhvung-3",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/C%E1%BB%ADa_s%E1%BB%95_B%E1%BA%A1ch_Dinh_nh%C3%ACn_ra_bi%E1%BB%83n.JPG?width=1200",
+        "caption": {
+          "vi": "Góc nhìn kiến trúc & cảnh quan tại Di tích Lịch sử – Văn hóa Bạch Dinh (Villa Blanche) (Ảnh 3)",
+          "en": "Architecture & scenery at White Palace (Bach Dinh / Villa Blanche) (Photo 3)",
+          "fr": "Architecture et paysage à Villa Blanche (Bach Dinh) (Photo 3)",
+          "zh": "头顿白宫（Villa Blanche）建筑与风光细节（图 3）",
+          "ja": "バックディン（白宮 / ヴィラ・ブランシュ）の建築と風景（写真 3）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      }
+    ],
+    "wikipediaUrl": "https://vi.wikipedia.org/wiki/B%E1%BA%A1ch_Dinh",
+    "viWikiSummary": "Bạch Dinh (Villa Blanche) được Toàn quyền Đông Dương Paul Doumer cho xây dựng từ năm 1898 đến năm 1902 trên nền pháo đài Phước Thắng thời vua Minh Mạng, giữa rừng hoa sứ bên sườn Núi Lớn hướng thẳng ra Bãi Trước.",
+    "viWikiParagraphs": [
+      "Bạch Dinh (Villa Blanche) được Toàn quyền Đông Dương Paul Doumer cho xây dựng từ năm 1898 đến năm 1902 trên nền pháo đài Phước Thắng thời vua Minh Mạng, giữa rừng hoa sứ bên sườn Núi Lớn hướng thẳng ra Bãi Trước.",
+      "Từ năm 1907 đến năm 1916, thực dân Pháp dùng nơi đây để giam lỏng vị vua yêu nước Thành Thái trước khi đày ông sang đảo Réunion. Được công nhận Di tích Lịch sử – Văn hóa cấp Quốc gia năm 1992, Bạch Dinh hiện trưng bày 19 khẩu thần công cổ và bộ sưu tập gốm sứ trục vớt từ tàu đắm Hòn Cau thế kỷ XVII."
+    ],
+    "enWikiSummary": "Built between 1898 and 1902 by Governor-General Paul Doumer atop the former Phuoc Thang Fortress overlooking Front Beach, Villa Blanche (White Palace) served as Emperor Thanh Thai’s place of house arrest (1907–1916) and now exhibits 17th-century Hon Cau shipwreck ceramics.",
+    "enWikiParagraphs": [
+      "Built between 1898 and 1902 by Governor-General Paul Doumer atop the former Phuoc Thang Fortress overlooking Front Beach, Villa Blanche (White Palace) served as Emperor Thanh Thai’s place of house arrest (1907–1916) and now exhibits 17th-century Hon Cau shipwreck ceramics."
+    ]
+  },
+  "hai-dang-vung-tau": {
+    "coverImage": "https://commons.wikimedia.org/wiki/Special:FilePath/H%E1%BA%A3i_%C4%91%C4%83ng_V%C5%A9ng_T%C3%A0u.JPG?width=1200",
+    "mediaGallery": [
+      {
+        "id": "wk-haidangvungt-1",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/H%E1%BA%A3i_%C4%91%C4%83ng_V%C5%A9ng_T%C3%A0u.JPG?width=1200",
+        "caption": {
+          "vi": "Ảnh thực tế toàn cảnh Ngọn Hải Đăng Vũng Tàu (1862) (Wikimedia Commons)",
+          "en": "Real view of Vung Tau Lighthouse (1862) (Wikimedia Commons)",
+          "fr": "Vue réelle de Phare de Vung Tau (1862) (Wikimedia Commons)",
+          "zh": "头顿百年灯塔（1862年）实景照片（维基共享资源）",
+          "ja": "ブンタウ灯台（1862年）の実景写真（ウィキメディア・コモンズ）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      },
+      {
+        "id": "wk-haidangvungt-2",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Vung_Tau_lighthouse.JPG?width=1200",
+        "caption": {
+          "vi": "Góc nhìn kiến trúc & cảnh quan tại Ngọn Hải Đăng Vũng Tàu (1862) (Ảnh 2)",
+          "en": "Architecture & scenery at Vung Tau Lighthouse (1862) (Photo 2)",
+          "fr": "Architecture et paysage à Phare de Vung Tau (1862) (Photo 2)",
+          "zh": "头顿百年灯塔（1862年）建筑与风光细节（图 2）",
+          "ja": "ブンタウ灯台（1862年）の建築と風景（写真 2）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      },
+      {
+        "id": "wk-haidangvungt-3",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/View_of_Vung_Tau_from_Vung_Tau_lighthouse_(August_3,_2018)_(43913501292).jpg?width=1200",
+        "caption": {
+          "vi": "Góc nhìn kiến trúc & cảnh quan tại Ngọn Hải Đăng Vũng Tàu (1862) (Ảnh 3)",
+          "en": "Architecture & scenery at Vung Tau Lighthouse (1862) (Photo 3)",
+          "fr": "Architecture et paysage à Phare de Vung Tau (1862) (Photo 3)",
+          "zh": "头顿百年灯塔（1862年）建筑与风光细节（图 3）",
+          "ja": "ブンタウ灯台（1862年）の建築と風景（写真 3）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      }
+    ],
+    "wikipediaUrl": "https://vi.wikipedia.org/wiki/H%E1%BA%A3i_%C4%91%C4%83ng_V%C5%A9ng_T%C3%A0u",
+    "viWikiSummary": "Hải đăng Vũng Tàu do người Pháp khởi dựng năm 1862 trên đỉnh Núi Nhỏ để chỉ dẫn tàu thuyền ra vào cửa biển Cần Giờ – Sài Gòn, sau đó được tái thiết kiên cố năm 1913 ở độ cao 170m so với mực nước biển.",
+    "viWikiParagraphs": [
+      "Hải đăng Vũng Tàu do người Pháp khởi dựng năm 1862 trên đỉnh Núi Nhỏ để chỉ dẫn tàu thuyền ra vào cửa biển Cần Giờ – Sài Gòn, sau đó được tái thiết kiên cố năm 1913 ở độ cao 170m so với mực nước biển.",
+      "Đây là một trong những ngọn hải đăng cổ nhất Việt Nam và Đông Nam Á với tháp trụ sơn trắng cao 18m, đường kính 3m, tầm chiếu sáng xa tới 35 hải lý cùng cung đường hoa bông gòn uốn lượn tuyệt đẹp nối lên đỉnh núi."
+    ],
+    "enWikiSummary": "Originally built by the French in 1862 and reconstructed in 1913 at 170 meters elevation atop Nho Mountain, Vung Tau Lighthouse is among the oldest lighthouses in Vietnam and Southeast Asia, projecting light up to 35 nautical miles across the East Sea.",
+    "enWikiParagraphs": [
+      "Originally built by the French in 1862 and reconstructed in 1913 at 170 meters elevation atop Nho Mountain, Vung Tau Lighthouse is among the oldest lighthouses in Vietnam and Southeast Asia, projecting light up to 35 nautical miles across the East Sea."
+    ]
+  },
+  "thich-ca-phat-dai-vung-tau": {
+    "coverImage": "https://commons.wikimedia.org/wiki/Special:FilePath/T%C6%B0%E1%BB%A3ng_Ph%E1%BA%ADt_Th%C3%ADch_Ca.jpg?width=1200",
+    "mediaGallery": [
+      {
+        "id": "wk-thichcaphatd-1",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/T%C6%B0%E1%BB%A3ng_Ph%E1%BA%ADt_Th%C3%ADch_Ca.jpg?width=1200",
+        "caption": {
+          "vi": "Ảnh thực tế toàn cảnh Thích Ca Phật Đài (Sườn Bắc Núi Lớn) (Wikimedia Commons)",
+          "en": "Real view of Thich Ca Phat Dai Buddhist Complex (Wikimedia Commons)",
+          "fr": "Vue réelle de Sanctuaire bouddhique Thich Ca Phat Dai (Wikimedia Commons)",
+          "zh": "释迦佛台（头顿大山）实景照片（维基共享资源）",
+          "ja": "ティッカー・ファット・ダイ（釈迦仏台）の実景写真（ウィキメディア・コモンズ）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      },
+      {
+        "id": "wk-thichcaphatd-2",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Ch%C3%B9a_Thi%E1%BB%81n_L%C3%A2m_T%E1%BB%B1_(c%E1%BB%95ng_v%C3%A0o_Th%C3%ADch_Ca_Ph%E1%BA%ADt_%C4%90%C3%A0i),_V%C5%A9ng_T%C3%A0u,_ng%C3%A0y_19_th%C3%A1ng_5_n%C4%83m_2014_(1).jpg?width=1200",
+        "caption": {
+          "vi": "Góc nhìn kiến trúc & cảnh quan tại Thích Ca Phật Đài (Sườn Bắc Núi Lớn) (Ảnh 2)",
+          "en": "Architecture & scenery at Thich Ca Phat Dai Buddhist Complex (Photo 2)",
+          "fr": "Architecture et paysage à Sanctuaire bouddhique Thich Ca Phat Dai (Photo 2)",
+          "zh": "释迦佛台（头顿大山）建筑与风光细节（图 2）",
+          "ja": "ティッカー・ファット・ダイ（釈迦仏台）の建築と風景（写真 2）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      },
+      {
+        "id": "wk-thichcaphatd-3",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Ch%C3%B9a_Thi%E1%BB%81n_L%C3%A2m_T%E1%BB%B1,_V%C5%A9ng_T%C3%A0u_(l%E1%BB%91i_l%C3%AAn_Th%C3%ADch_Ca_Ph%E1%BA%ADt_%C4%90%C3%A0i),_ng%C3%A0y_19_th%C3%A1ng_5_n%C4%83m_2014_(3).jpg?width=1200",
+        "caption": {
+          "vi": "Góc nhìn kiến trúc & cảnh quan tại Thích Ca Phật Đài (Sườn Bắc Núi Lớn) (Ảnh 3)",
+          "en": "Architecture & scenery at Thich Ca Phat Dai Buddhist Complex (Photo 3)",
+          "fr": "Architecture et paysage à Sanctuaire bouddhique Thich Ca Phat Dai (Photo 3)",
+          "zh": "释迦佛台（头顿大山）建筑与风光细节（图 3）",
+          "ja": "ティッカー・ファット・ダイ（釈迦仏台）の建築と風景（写真 3）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      }
+    ],
+    "wikipediaUrl": "https://vi.wikipedia.org/wiki/Th%C3%ADch_Ca_Ph%E1%BA%ADt_%C4%90%C3%A0i",
+    "viWikiSummary": "Thích Ca Phật Đài tọa lạc trên sườn Bắc Núi Lớn (608 Trần Phú), khởi dựng từ năm 1961–1963 gắn liền với chùa Thiền Lâm trên khuôn viên rừng núi rộng 28 ha và được Bộ Văn hóa xếp hạng Di tích Lịch sử – Danh thắng Quốc gia năm 1989.",
+    "viWikiParagraphs": [
+      "Thích Ca Phật Đài tọa lạc trên sườn Bắc Núi Lớn (608 Trần Phú), khởi dựng từ năm 1961–1963 gắn liền với chùa Thiền Lâm trên khuôn viên rừng núi rộng 28 ha và được Bộ Văn hóa xếp hạng Di tích Lịch sử – Danh thắng Quốc gia năm 1989.",
+      "Quần thể nổi bật với tượng Kim Thân Phật Tổ ngồi thiền trên tòa sen cao 10,2m hướng ra biển cùng Tháp Bát Giác cao 19m tôn trí 13 viên Xá Lợi Phật và hệ thống tượng điêu khắc tái hiện trọn vẹn cuộc đời Đức Phật Thích Ca."
+    ],
+    "enWikiSummary": "Spanning 28 forested hectares on the northern slope of Lon Mountain and designated a National Monument in 1989, Thich Ca Phat Dai (1961–1963) features a 10.2-meter meditating Shakyamuni Buddha and a 19-meter Octagonal Stupa enshrining sacred Buddhist relics.",
+    "enWikiParagraphs": [
+      "Spanning 28 forested hectares on the northern slope of Lon Mountain and designated a National Monument in 1989, Thich Ca Phat Dai (1961–1963) features a 10.2-meter meditating Shakyamuni Buddha and a 19-meter Octagonal Stupa enshrining sacred Buddhist relics."
+    ]
+  },
+  "mieu-hon-ba-vung-tau": {
+    "coverImage": "https://commons.wikimedia.org/wiki/Special:FilePath/Vung_Tau_Hon_Ba.JPG?width=1200",
+    "mediaGallery": [
+      {
+        "id": "wk-mieuhonbavun-1",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Vung_Tau_Hon_Ba.JPG?width=1200",
+        "caption": {
+          "vi": "Ảnh thực tế toàn cảnh Miếu Hòn Bà & Con đường rẽ biển Bãi Sau (Wikimedia Commons)",
+          "en": "Real view of Hon Ba Islet Shrine & Sea-Parting Stone Path (Wikimedia Commons)",
+          "fr": "Vue réelle de Îlot et temple de Hon Ba (Wikimedia Commons)",
+          "zh": "头顿婆岛庙（退潮海中石道）实景照片（维基共享资源）",
+          "ja": "ホンバー島廟（干潮に現れる海の道）の実景写真（ウィキメディア・コモンズ）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      },
+      {
+        "id": "wk-mieuhonbavun-2",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/M%C5%A9i_Nghinh_Phong.JPG?width=1200",
+        "caption": {
+          "vi": "Góc nhìn kiến trúc & cảnh quan tại Miếu Hòn Bà & Con đường rẽ biển Bãi Sau (Ảnh 2)",
+          "en": "Architecture & scenery at Hon Ba Islet Shrine & Sea-Parting Stone Path (Photo 2)",
+          "fr": "Architecture et paysage à Îlot et temple de Hon Ba (Photo 2)",
+          "zh": "头顿婆岛庙（退潮海中石道）建筑与风光细节（图 2）",
+          "ja": "ホンバー島廟（干潮に現れる海の道）の建築と風景（写真 2）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      },
+      {
+        "id": "wk-mieuhonbavun-3",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Sau_Beach_in_Vungtau.jpg?width=1200",
+        "caption": {
+          "vi": "Góc nhìn kiến trúc & cảnh quan tại Miếu Hòn Bà & Con đường rẽ biển Bãi Sau (Ảnh 3)",
+          "en": "Architecture & scenery at Hon Ba Islet Shrine & Sea-Parting Stone Path (Photo 3)",
+          "fr": "Architecture et paysage à Îlot et temple de Hon Ba (Photo 3)",
+          "zh": "头顿婆岛庙（退潮海中石道）建筑与风光细节（图 3）",
+          "ja": "ホンバー島廟（干潮に現れる海の道）の建築と風景（写真 3）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      }
+    ],
+    "wikipediaUrl": "https://vi.wikipedia.org/wiki/H%C3%B2n_B%C3%A0_(V%C5%A9ng_T%C3%A0u)",
+    "viWikiSummary": "Hòn Bà là đảo đá nhỏ rộng khoảng 5.000 m² nằm ngoài khơi Mũi Nghinh Phong – Bãi Sau, cách bờ khoảng 200m. Năm 1881, ông Hồ Quang Minh xây dựng Miếu Bà trên đảo để thờ Thủy Long Thần Nữ cầu cho ngư dân đi biển bình an.",
+    "viWikiParagraphs": [
+      "Hòn Bà là đảo đá nhỏ rộng khoảng 5.000 m² nằm ngoài khơi Mũi Nghinh Phong – Bãi Sau, cách bờ khoảng 200m. Năm 1881, ông Hồ Quang Minh xây dựng Miếu Bà trên đảo để thờ Thủy Long Thần Nữ cầu cho ngư dân đi biển bình an.",
+      "Điểm kỳ thú nhất của Hòn Bà là vào những ngày nước ròng sâu (thường vào rằm và mùng một âm lịch), một con đường đá hàu tự nhiên rẽ sóng dài hơn 200m lộ ra giúp du khách đi bộ vượt biển ra tận đảo."
+    ],
+    "enWikiSummary": "Hon Ba is a 5,000-square-meter rocky islet sitting 200 meters off Nghinh Phong Cape, crowned by an 1881 shrine to the Water Goddess. During low tides around the full and new moon, a natural 200-meter stone causeway emerges from the ocean allowing visitors to walk across.",
+    "enWikiParagraphs": [
+      "Hon Ba is a 5,000-square-meter rocky islet sitting 200 meters off Nghinh Phong Cape, crowned by an 1881 shrine to the Water Goddess. During low tides around the full and new moon, a natural 200-meter stone causeway emerges from the ocean allowing visitors to walk across."
+    ]
+  },
+  "dinh-than-thang-tam-vung-tau": {
+    "coverImage": "https://commons.wikimedia.org/wiki/Special:FilePath/%C4%90%C3%ACnh_Th%E1%BA%AFng_Tam_ng%C3%A0y_18_th%C3%A1ng_5_n%C4%83m_2014_(m%C3%B4_h%C3%ACnh_c%C3%A1_voi_th%E1%BB%9D_%E1%BB%9F_L%C4%83ng_%C3%94ng_Nam_H%E1%BA%A3i).jpg?width=1200",
+    "mediaGallery": [
+      {
+        "id": "wk-dinhthanthan-1",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/%C4%90%C3%ACnh_Th%E1%BA%AFng_Tam_ng%C3%A0y_18_th%C3%A1ng_5_n%C4%83m_2014_(m%C3%B4_h%C3%ACnh_c%C3%A1_voi_th%E1%BB%9D_%E1%BB%9F_L%C4%83ng_%C3%94ng_Nam_H%E1%BA%A3i).jpg?width=1200",
+        "caption": {
+          "vi": "Ảnh thực tế toàn cảnh Đình Thần Thắng Tam & Lăng Cá Ông Nam Hải (1820) (Wikimedia Commons)",
+          "en": "Real view of Thang Tam Communal House & Whale Temple (1820) (Wikimedia Commons)",
+          "fr": "Vue réelle de Maison communale Thang Tam et Temple de la Baleine (1820) (Wikimedia Commons)",
+          "zh": "胜三亭与南海鲸鱼庙（1820年）实景照片（维基共享资源）",
+          "ja": "タンタム亭・鯨廟（1820年）の実景写真（ウィキメディア・コモンズ）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      },
+      {
+        "id": "wk-dinhthanthan-2",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Sau_Beach_in_Vungtau.jpg?width=1200",
+        "caption": {
+          "vi": "Góc nhìn kiến trúc & cảnh quan tại Đình Thần Thắng Tam & Lăng Cá Ông Nam Hải (1820) (Ảnh 2)",
+          "en": "Architecture & scenery at Thang Tam Communal House & Whale Temple (1820) (Photo 2)",
+          "fr": "Architecture et paysage à Maison communale Thang Tam et Temple de la Baleine (1820) (Photo 2)",
+          "zh": "胜三亭与南海鲸鱼庙（1820年）建筑与风光细节（图 2）",
+          "ja": "タンタム亭・鯨廟（1820年）の建築と風景（写真 2）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      },
+      {
+        "id": "wk-dinhthanthan-3",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/B%E1%BB%9D_bi%E1%BB%83n_V%C5%A9ng_T%C3%A0u.JPG?width=1200",
+        "caption": {
+          "vi": "Góc nhìn kiến trúc & cảnh quan tại Đình Thần Thắng Tam & Lăng Cá Ông Nam Hải (1820) (Ảnh 3)",
+          "en": "Architecture & scenery at Thang Tam Communal House & Whale Temple (1820) (Photo 3)",
+          "fr": "Architecture et paysage à Maison communale Thang Tam et Temple de la Baleine (1820) (Photo 3)",
+          "zh": "胜三亭与南海鲸鱼庙（1820年）建筑与风光细节（图 3）",
+          "ja": "タンタム亭・鯨廟（1820年）の建築と風景（写真 3）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      }
+    ],
+    "wikipediaUrl": "https://vi.wikipedia.org/wiki/%C4%90%C3%ACnh_Th%E1%BA%AFng_Tam",
+    "viWikiSummary": "Khu di tích Đình Thần Thắng Tam (77A Hoàng Hoa Thám) khởi dựng năm 1820 thời vua Minh Mạng nhằm tưởng niệm ba vị tiền hiền Phạm Văn Dinh, Lê Văn Lộc và Ngô Văn Huyền có công khai phá lập nên ba làng Thắng Nhất, Thắng Nhì, Thắng Tam.",
+    "viWikiParagraphs": [
+      "Khu di tích Đình Thần Thắng Tam (77A Hoàng Hoa Thám) khởi dựng năm 1820 thời vua Minh Mạng nhằm tưởng niệm ba vị tiền hiền Phạm Văn Dinh, Lê Văn Lộc và Ngô Văn Huyền có công khai phá lập nên ba làng Thắng Nhất, Thắng Nhì, Thắng Tam.",
+      "Quần thể gồm Đình Thần, Miếu Bà Ngũ Hành và Lăng Ông Nam Hải lưu giữ bộ xương Cá Ông dài gần 12m cùng 12 đạo sắc phong triều Nguyễn; Lễ hội Nghinh Ông Thắng Tam (16–18/8 âm lịch) đã được ghi danh Di sản Văn hóa Phi vật thể Quốc gia."
+    ],
+    "enWikiSummary": "Founded in 1820 during Emperor Minh Mang’s reign, the Thang Tam Communal House complex honors Vung Tau’s three founding pioneers and encompasses the Nam Hai Whale Mausoleum housing a 12-meter whale skeleton—centerpiece of the National Intangible Heritage Nghinh Ong Festival.",
+    "enWikiParagraphs": [
+      "Founded in 1820 during Emperor Minh Mang’s reign, the Thang Tam Communal House complex honors Vung Tau’s three founding pioneers and encompasses the Nam Hai Whale Mausoleum housing a 12-meter whale skeleton—centerpiece of the National Intangible Heritage Nghinh Ong Festival."
+    ]
+  },
+  "linh-son-co-tu-vung-tau": {
+    "coverImage": "https://commons.wikimedia.org/wiki/Special:FilePath/Ch%C3%B9a_Thi%E1%BB%81n_L%C3%A2m_T%E1%BB%B1_(c%E1%BB%95ng_v%C3%A0o_Th%C3%ADch_Ca_Ph%E1%BA%ADt_%C4%90%C3%A0i),_V%C5%A9ng_T%C3%A0u,_ng%C3%A0y_19_th%C3%A1ng_5_n%C4%83m_2014_(1).jpg?width=1200",
+    "mediaGallery": [
+      {
+        "id": "wk-linhsoncotuv-1",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Ch%C3%B9a_Thi%E1%BB%81n_L%C3%A2m_T%E1%BB%B1_(c%E1%BB%95ng_v%C3%A0o_Th%C3%ADch_Ca_Ph%E1%BA%ADt_%C4%90%C3%A0i),_V%C5%A9ng_T%C3%A0u,_ng%C3%A0y_19_th%C3%A1ng_5_n%C4%83m_2014_(1).jpg?width=1200",
+        "caption": {
+          "vi": "Ảnh thực tế toàn cảnh Linh Sơn Cổ Tự (Ngôi chùa cổ nhất Vũng Tàu) (Wikimedia Commons)",
+          "en": "Real view of Linh Son Ancient Pagoda (Oldest Temple in Vung Tau) (Wikimedia Commons)",
+          "fr": "Vue réelle de Pagode ancienne Linh Son (Wikimedia Commons)",
+          "zh": "灵山古寺（头顿最古老寺庙）实景照片（维基共享资源）",
+          "ja": "リンソン古寺（ブンタウ最古の寺院）の実景写真（ウィキメディア・コモンズ）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      },
+      {
+        "id": "wk-linhsoncotuv-2",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/T%C6%B0%E1%BB%A3ng_Ph%E1%BA%ADt_Th%C3%ADch_Ca.jpg?width=1200",
+        "caption": {
+          "vi": "Góc nhìn kiến trúc & cảnh quan tại Linh Sơn Cổ Tự (Ngôi chùa cổ nhất Vũng Tàu) (Ảnh 2)",
+          "en": "Architecture & scenery at Linh Son Ancient Pagoda (Oldest Temple in Vung Tau) (Photo 2)",
+          "fr": "Architecture et paysage à Pagode ancienne Linh Son (Photo 2)",
+          "zh": "灵山古寺（头顿最古老寺庙）建筑与风光细节（图 2）",
+          "ja": "リンソン古寺（ブンタウ最古の寺院）の建築と風景（写真 2）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      },
+      {
+        "id": "wk-linhsoncotuv-3",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Vung_Tau_Niet_Ban_Tinh_Xa_1.JPG?width=1200",
+        "caption": {
+          "vi": "Góc nhìn kiến trúc & cảnh quan tại Linh Sơn Cổ Tự (Ngôi chùa cổ nhất Vũng Tàu) (Ảnh 3)",
+          "en": "Architecture & scenery at Linh Son Ancient Pagoda (Oldest Temple in Vung Tau) (Photo 3)",
+          "fr": "Architecture et paysage à Pagode ancienne Linh Son (Photo 3)",
+          "zh": "灵山古寺（头顿最古老寺庙）建筑与风光细节（图 3）",
+          "ja": "リンソン古寺（ブンタウ最古の寺院）の建築と風景（写真 3）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      }
+    ],
+    "wikipediaUrl": "https://vi.wikipedia.org/wiki/Linh_S%C6%A1n_C%E1%BB%95_T%E1%BB%B1",
+    "viWikiSummary": "Linh Sơn Cổ Tự (104 Hoàng Hoa Thám) là ngôi chùa cổ nhất tại Vũng Tàu, ban đầu dựng trên sườn Núi Nhỏ năm 1919 rồi dời về vị trí hiện nay, được xếp hạng Di tích Lịch sử – Văn hóa cấp Quốc gia năm 1991.",
+    "viWikiParagraphs": [
+      "Linh Sơn Cổ Tự (104 Hoàng Hoa Thám) là ngôi chùa cổ nhất tại Vũng Tàu, ban đầu dựng trên sườn Núi Nhỏ năm 1919 rồi dời về vị trí hiện nay, được xếp hạng Di tích Lịch sử – Văn hóa cấp Quốc gia năm 1991.",
+      "Báu vật vô giá tại chính điện là pho tượng Đức Phật bằng đá sa thạch cao 1,2m thếp vàng mang phong cách văn hóa Óc Eo – Phù Nam có niên đại thế kỷ VII–VIII được ngư dân phát hiện dưới chân Núi Nhỏ hơn 100 năm trước."
+    ],
+    "enWikiSummary": "Recognized as a National Historical-Cultural Monument in 1991, Linh Son Ancient Pagoda (104 Hoang Hoa Tham) is Vung Tau’s oldest Buddhist temple, enshrining a priceless 7th–8th century sandstone Buddha statue unearthed beneath Nho Mountain.",
+    "enWikiParagraphs": [
+      "Recognized as a National Historical-Cultural Monument in 1991, Linh Son Ancient Pagoda (104 Hoang Hoa Tham) is Vung Tau’s oldest Buddhist temple, enshrining a priceless 7th–8th century sandstone Buddha statue unearthed beneath Nho Mountain."
+    ]
+  },
+  "niet-ban-tinh-xa-vung-tau": {
+    "coverImage": "https://commons.wikimedia.org/wiki/Special:FilePath/Vung_Tau_Niet_Ban_Tinh_Xa_1.JPG?width=1200",
+    "mediaGallery": [
+      {
+        "id": "wk-nietbantinhx-1",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Vung_Tau_Niet_Ban_Tinh_Xa_1.JPG?width=1200",
+        "caption": {
+          "vi": "Ảnh thực tế toàn cảnh Niết Bàn Tịnh Xá – Chùa Phật Nằm Bãi Dứa (Wikimedia Commons)",
+          "en": "Real view of Niet Ban Tinh Xa (Reclining Buddha Pagoda, Bai Dua) (Wikimedia Commons)",
+          "fr": "Vue réelle de Pagode Niet Ban Tinh Xa (Bouddha couché) (Wikimedia Commons)",
+          "zh": "涅槃净舍（头顿卧佛寺）实景照片（维基共享资源）",
+          "ja": "ニエッバン・ティンサー（涅槃仏寺院）の実景写真（ウィキメディア・コモンズ）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      },
+      {
+        "id": "wk-nietbantinhx-2",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Vung_Tau_Niet_Ban_Tinh_Xa_3.JPG?width=1200",
+        "caption": {
+          "vi": "Góc nhìn kiến trúc & cảnh quan tại Niết Bàn Tịnh Xá – Chùa Phật Nằm Bãi Dứa (Ảnh 2)",
+          "en": "Architecture & scenery at Niet Ban Tinh Xa (Reclining Buddha Pagoda, Bai Dua) (Photo 2)",
+          "fr": "Architecture et paysage à Pagode Niet Ban Tinh Xa (Bouddha couché) (Photo 2)",
+          "zh": "涅槃净舍（头顿卧佛寺）建筑与风光细节（图 2）",
+          "ja": "ニエッバン・ティンサー（涅槃仏寺院）の建築と風景（写真 2）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      },
+      {
+        "id": "wk-nietbantinhx-3",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Ha_Long_Road_in_Vungtau.jpg?width=1200",
+        "caption": {
+          "vi": "Góc nhìn kiến trúc & cảnh quan tại Niết Bàn Tịnh Xá – Chùa Phật Nằm Bãi Dứa (Ảnh 3)",
+          "en": "Architecture & scenery at Niet Ban Tinh Xa (Reclining Buddha Pagoda, Bai Dua) (Photo 3)",
+          "fr": "Architecture et paysage à Pagode Niet Ban Tinh Xa (Bouddha couché) (Photo 3)",
+          "zh": "涅槃净舍（头顿卧佛寺）建筑与风光细节（图 3）",
+          "ja": "ニエッバン・ティンサー（涅槃仏寺院）の建築と風景（写真 3）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      }
+    ],
+    "wikipediaUrl": "https://vi.wikipedia.org/wiki/Ni%E1%BA%BFt_B%C3%A0n_T%E1%BB%8Bnh_X%C3%A1",
+    "viWikiSummary": "Niết Bàn Tịnh Xá (Chùa Phật Nằm) xây dựng từ năm 1969 đến năm 1974 trên sườn Núi Nhỏ hướng thẳng ra Bãi Dứa theo thiết kế hòa quyện kiến trúc Phật giáo truyền thống với đường nét hiện đại thanh thoát.",
+    "viWikiParagraphs": [
+      "Niết Bàn Tịnh Xá (Chùa Phật Nằm) xây dựng từ năm 1969 đến năm 1974 trên sườn Núi Nhỏ hướng thẳng ra Bãi Dứa theo thiết kế hòa quyện kiến trúc Phật giáo truyền thống với đường nét hiện đại thanh thoát.",
+      "Chánh điện tôn trí pho tượng Đức Phật Thích Ca nhập Niết Bàn dài 12m chạm khắc trên bệ cao 2,5m cùng quả Đại Hồng Chung nặng 3,5 tấn, chiếc thuyền Bát Nhã dài 12m ốp gốm sứ màu và cột phướn cao 21m đầy uy nghi."
+    ],
+    "enWikiSummary": "Built between 1969 and 1974 on the slope of Nho Mountain overlooking Dua Beach, Niet Ban Tinh Xa (Nirvana Vihara) is celebrated for its 12-meter Reclining Buddha statue, 3.5-ton bronze bell, and vibrant mosaic Prajna boat overlooking the ocean.",
+    "enWikiParagraphs": [
+      "Built between 1969 and 1974 on the slope of Nho Mountain overlooking Dua Beach, Niet Ban Tinh Xa (Nirvana Vihara) is celebrated for its 12-meter Reclining Buddha statue, 3.5-ton bronze bell, and vibrant mosaic Prajna boat overlooking the ocean."
+    ]
+  },
+  "bao-tang-vu-khi-co-robert-taylor": {
+    "coverImage": "https://commons.wikimedia.org/wiki/Special:FilePath/Ba_Ria_-_Vung_Tau_museum_030324.jpg?width=1200",
+    "mediaGallery": [
+      {
+        "id": "wk-baotangvukhi-1",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Ba_Ria_-_Vung_Tau_museum_030324.jpg?width=1200",
+        "caption": {
+          "vi": "Ảnh thực tế toàn cảnh Bảo tàng Vũ khí Cổ Toàn cầu (Robert Taylor Museum) (Wikimedia Commons)",
+          "en": "Real view of Worldwide Arms Museum (Robert Taylor Collection) (Wikimedia Commons)",
+          "fr": "Vue réelle de Musée mondial des armes anciennes (Robert Taylor) (Wikimedia Commons)",
+          "zh": "头顿世界古兵器博物馆（罗伯特·泰勒）实景照片（维基共享资源）",
+          "ja": "世界古兵器博物館（ロバート・テイラー博物館）の実景写真（ウィキメディア・コモンズ）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      },
+      {
+        "id": "wk-baotangvukhi-2",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Vung_Tau_Bach_Dinh.JPG?width=1200",
+        "caption": {
+          "vi": "Góc nhìn kiến trúc & cảnh quan tại Bảo tàng Vũ khí Cổ Toàn cầu (Robert Taylor Museum) (Ảnh 2)",
+          "en": "Architecture & scenery at Worldwide Arms Museum (Robert Taylor Collection) (Photo 2)",
+          "fr": "Architecture et paysage à Musée mondial des armes anciennes (Robert Taylor) (Photo 2)",
+          "zh": "头顿世界古兵器博物馆（罗伯特·泰勒）建筑与风光细节（图 2）",
+          "ja": "世界古兵器博物館（ロバート・テイラー博物館）の建築と風景（写真 2）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      },
+      {
+        "id": "wk-baotangvukhi-3",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Bai_Truoc_Vung_Tau.jpg?width=1200",
+        "caption": {
+          "vi": "Góc nhìn kiến trúc & cảnh quan tại Bảo tàng Vũ khí Cổ Toàn cầu (Robert Taylor Museum) (Ảnh 3)",
+          "en": "Architecture & scenery at Worldwide Arms Museum (Robert Taylor Collection) (Photo 3)",
+          "fr": "Architecture et paysage à Musée mondial des armes anciennes (Robert Taylor) (Photo 3)",
+          "zh": "头顿世界古兵器博物馆（罗伯特·泰勒）建筑与风光细节（图 3）",
+          "ja": "世界古兵器博物館（ロバート・テイラー博物館）の建築と風景（写真 3）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      }
+    ],
+    "wikipediaUrl": "https://vi.wikipedia.org/wiki/B%E1%BA%A3o_t%C3%A0ng_V%C5%A9_kh%C3%AD_c%E1%BB%95_Robert_Taylor",
+    "viWikiSummary": "Bảo tàng Vũ khí cổ Toàn cầu (Worldwide Arms Museum) tại số 98 Trần Hưng Đạo, Phường 1 do nhà sưu tập người Anh Robert Taylor sáng lập trong tòa biệt thự kiến trúc Pháp cổ xây từ đầu thế kỷ XX.",
+    "viWikiParagraphs": [
+      "Bảo tàng Vũ khí cổ Toàn cầu (Worldwide Arms Museum) tại số 98 Trần Hưng Đạo, Phường 1 do nhà sưu tập người Anh Robert Taylor sáng lập trong tòa biệt thự kiến trúc Pháp cổ xây từ đầu thế kỷ XX.",
+      "Bảo tàng trưng bày hơn 3.000 hiện vật gốc trải dài từ thời Cổ đại, Trung đại đến Cận – Hiện đại gồm hàng trăm bộ giáp chiến binh La Mã, Thập tự chinh, Samurai Nhật Bản, quân phục châu Âu và các khẩu súng cổ quý hiếm thế kỷ XVII–XX."
+    ],
+    "enWikiSummary": "Founded by British collector Robert Taylor inside an early 20th-century French colonial villa at 98 Tran Hung Dao, the Worldwide Arms Museum showcases over 3,000 authentic antique weapons, suits of armor, Samurai regalia, and historical military uniforms.",
+    "enWikiParagraphs": [
+      "Founded by British collector Robert Taylor inside an early 20th-century French colonial villa at 98 Tran Hung Dao, the Worldwide Arms Museum showcases over 3,000 authentic antique weapons, suits of armor, Samurai regalia, and historical military uniforms."
+    ]
+  },
+  "mui-nghinh-phong-cong-troi": {
+    "coverImage": "https://commons.wikimedia.org/wiki/Special:FilePath/M%C5%A9i_Nghinh_Phong.JPG?width=1200",
+    "mediaGallery": [
+      {
+        "id": "wk-muinghinhpho-1",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/M%C5%A9i_Nghinh_Phong.JPG?width=1200",
+        "caption": {
+          "vi": "Ảnh thực tế toàn cảnh Mũi Nghinh Phong & Cổng Trời Vũng Tàu (Wikimedia Commons)",
+          "en": "Real view of Nghinh Phong Cape & Heaven’s Gate (Wikimedia Commons)",
+          "fr": "Vue réelle de Cap Nghinh Phong et Porte du Ciel (Wikimedia Commons)",
+          "zh": "迎风角与头顿天空之门实景照片（维基共享资源）",
+          "ja": "ニンフォン岬と天空の門の実景写真（ウィキメディア・コモンズ）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      },
+      {
+        "id": "wk-muinghinhpho-2",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Vung_Tau_Hon_Ba.JPG?width=1200",
+        "caption": {
+          "vi": "Góc nhìn kiến trúc & cảnh quan tại Mũi Nghinh Phong & Cổng Trời Vũng Tàu (Ảnh 2)",
+          "en": "Architecture & scenery at Nghinh Phong Cape & Heaven’s Gate (Photo 2)",
+          "fr": "Architecture et paysage à Cap Nghinh Phong et Porte du Ciel (Photo 2)",
+          "zh": "迎风角与头顿天空之门建筑与风光细节（图 2）",
+          "ja": "ニンフォン岬と天空の門の建築と風景（写真 2）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      },
+      {
+        "id": "wk-muinghinhpho-3",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Ha_Long_Road_in_Vungtau.jpg?width=1200",
+        "caption": {
+          "vi": "Góc nhìn kiến trúc & cảnh quan tại Mũi Nghinh Phong & Cổng Trời Vũng Tàu (Ảnh 3)",
+          "en": "Architecture & scenery at Nghinh Phong Cape & Heaven’s Gate (Photo 3)",
+          "fr": "Architecture et paysage à Cap Nghinh Phong et Porte du Ciel (Photo 3)",
+          "zh": "迎风角与头顿天空之门建筑与风光细节（图 3）",
+          "ja": "ニンフォン岬と天空の門の建築と風景（写真 3）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      }
+    ],
+    "wikipediaUrl": "https://vi.wikipedia.org/wiki/M%C5%A9i_Nghinh_Phong",
+    "viWikiSummary": "Mũi Nghinh Phong là mũi đất vươn dài xa nhất về phía Nam của bán đảo Vũng Tàu, tiếp giáp chân Núi Nhỏ, tạo nên hai vịnh nước sâu và hai bãi tắm nổi tiếng là Bãi Vọng Nguyệt (Bãi Ô Quắn) và Bãi Hương Phong.",
+    "viWikiParagraphs": [
+      "Mũi Nghinh Phong là mũi đất vươn dài xa nhất về phía Nam của bán đảo Vũng Tàu, tiếp giáp chân Núi Nhỏ, tạo nên hai vịnh nước sâu và hai bãi tắm nổi tiếng là Bãi Vọng Nguyệt (Bãi Ô Quắn) và Bãi Hương Phong.",
+      "Nơi đây nổi tiếng với chiếc 'Cổng Trời' màu vàng mở thẳng tầm mắt ra đại dương xanh ngắt và đảo Hòn Bà, quanh năm lộng gió biển trong lành — là điểm đón bình minh và săn ảnh hoàng hôn hàng đầu Vũng Tàu."
+    ],
+    "enWikiSummary": "Forming the southernmost promontory of the Vung Tau peninsula beneath Nho Mountain, Nghinh Phong Cape embraces two dramatic bays and is celebrated for its sunlit coastal 'Heaven’s Gate' framing views of Hon Ba Islet and the open sea.",
+    "enWikiParagraphs": [
+      "Forming the southernmost promontory of the Vung Tau peninsula beneath Nho Mountain, Nghinh Phong Cape embraces two dramatic bays and is celebrated for its sunlit coastal 'Heaven’s Gate' framing views of Hon Ba Islet and the open sea."
+    ]
+  },
+  "ho-may-park-nui-lon-vung-tau": {
+    "coverImage": "https://commons.wikimedia.org/wiki/Special:FilePath/Nh%C3%ACn_to%C3%A0n_c%E1%BA%A3nh_TP.V%C5%A8NG_T%C3%80U_t%E1%BB%AB_C%C3%A1p_treo_V%C5%A9ng_T%C3%A0u.jpg?width=1200",
+    "mediaGallery": [
+      {
+        "id": "wk-homayparknui-1",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Nh%C3%ACn_to%C3%A0n_c%E1%BA%A3nh_TP.V%C5%A8NG_T%C3%80U_t%E1%BB%AB_C%C3%A1p_treo_V%C5%A9ng_T%C3%A0u.jpg?width=1200",
+        "caption": {
+          "vi": "Ảnh thực tế toàn cảnh Khu Du lịch Hồ Mây – Cáp treo Núi Lớn & Trận địa Pháo cổ (Wikimedia Commons)",
+          "en": "Real view of Ho May Park (Lon Mountain Cable Car & Historic Cannon Battery) (Wikimedia Commons)",
+          "fr": "Vue réelle de Parc Ho May (Téléphérique du Mont Lon et batterie historique) (Wikimedia Commons)",
+          "zh": "头顿云湖缆车景区与古炮台遗址实景照片（维基共享资源）",
+          "ja": "ホーメイ公園（ロン山ロープウェイ・古砲台跡）の実景写真（ウィキメディア・コモンズ）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      },
+      {
+        "id": "wk-homayparknui-2",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Bai_Truoc_Vung_Tau.jpg?width=1200",
+        "caption": {
+          "vi": "Góc nhìn kiến trúc & cảnh quan tại Khu Du lịch Hồ Mây – Cáp treo Núi Lớn & Trận địa Pháo cổ (Ảnh 2)",
+          "en": "Architecture & scenery at Ho May Park (Lon Mountain Cable Car & Historic Cannon Battery) (Photo 2)",
+          "fr": "Architecture et paysage à Parc Ho May (Téléphérique du Mont Lon et batterie historique) (Photo 2)",
+          "zh": "头顿云湖缆车景区与古炮台遗址建筑与风光细节（图 2）",
+          "ja": "ホーメイ公園（ロン山ロープウェイ・古砲台跡）の建築と風景（写真 2）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      },
+      {
+        "id": "wk-homayparknui-3",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/View_of_Vung_Tau_from_Vung_Tau_lighthouse_(August_3,_2018)_(43913501292).jpg?width=1200",
+        "caption": {
+          "vi": "Góc nhìn kiến trúc & cảnh quan tại Khu Du lịch Hồ Mây – Cáp treo Núi Lớn & Trận địa Pháo cổ (Ảnh 3)",
+          "en": "Architecture & scenery at Ho May Park (Lon Mountain Cable Car & Historic Cannon Battery) (Photo 3)",
+          "fr": "Architecture et paysage à Parc Ho May (Téléphérique du Mont Lon et batterie historique) (Photo 3)",
+          "zh": "头顿云湖缆车景区与古炮台遗址建筑与风光细节（图 3）",
+          "ja": "ホーメイ公園（ロン山ロープウェイ・古砲台跡）の建築と風景（写真 3）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      }
+    ],
+    "wikipediaUrl": "https://vi.wikipedia.org/wiki/N%C3%BAi_L%E1%BB%9Bn",
+    "viWikiSummary": "Khu du lịch sinh thái – văn hóa Hồ Mây Park tọa lạc trên đỉnh Núi Lớn (núi Tương Kỳ) ở độ cao hơn 210m so với mực nước biển, kết nối từ ga Bãi Trước (1A Trần Phú) bằng tuyến cáp treo ngắm toàn cảnh vịnh biển.",
+    "viWikiParagraphs": [
+      "Khu du lịch sinh thái – văn hóa Hồ Mây Park tọa lạc trên đỉnh Núi Lớn (núi Tương Kỳ) ở độ cao hơn 210m so với mực nước biển, kết nối từ ga Bãi Trước (1A Trần Phú) bằng tuyến cáp treo ngắm toàn cảnh vịnh biển.",
+      "Không chỉ là tổ hợp vui chơi giải trí trên núi hiếm có với hồ nhân tạo trên đỉnh núi, tượng Phật Di Lặc cao 30m và sân khấu nhạc nước, khu vực Núi Lớn còn bảo tồn Di tích Quốc gia Trận địa Pháo cổ Sao Mai – Cầu Đá cuối thế kỷ XIX."
+    ],
+    "enWikiSummary": "Perched over 210 meters atop Lon Mountain and reached by panoramic cable car from Front Beach, Ho May Park combines mountain lakes, a 30-meter Maitreya Buddha, family attractions, and the preserved 19th-century French coastal artillery batteries.",
+    "enWikiParagraphs": [
+      "Perched over 210 meters atop Lon Mountain and reached by panoramic cable car from Front Beach, Ho May Park combines mountain lakes, a 30-meter Maitreya Buddha, family attractions, and the preserved 19th-century French coastal artillery batteries."
+    ]
+  },
+  "bao-tang-ba-ria-vung-tau": {
+    "coverImage": "https://commons.wikimedia.org/wiki/Special:FilePath/Ba_Ria_-_Vung_Tau_museum_030324.jpg?width=1200",
+    "mediaGallery": [
+      {
+        "id": "wk-baotangbaria-1",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Ba_Ria_-_Vung_Tau_museum_030324.jpg?width=1200",
+        "caption": {
+          "vi": "Ảnh thực tế toàn cảnh Bảo tàng Bà Rịa – Vũng Tàu (Bãi Trước) (Wikimedia Commons)",
+          "en": "Real view of Ba Ria – Vung Tau Museum (Front Beach) (Wikimedia Commons)",
+          "fr": "Vue réelle de Musée de Ba Ria – Vung Tau (Wikimedia Commons)",
+          "zh": "巴地头顿博物馆实景照片（维基共享资源）",
+          "ja": "バリア・ブンタウ博物館の実景写真（ウィキメディア・コモンズ）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      },
+      {
+        "id": "wk-baotangbaria-2",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Vung_Tau_Bach_Dinh.JPG?width=1200",
+        "caption": {
+          "vi": "Góc nhìn kiến trúc & cảnh quan tại Bảo tàng Bà Rịa – Vũng Tàu (Bãi Trước) (Ảnh 2)",
+          "en": "Architecture & scenery at Ba Ria – Vung Tau Museum (Front Beach) (Photo 2)",
+          "fr": "Architecture et paysage à Musée de Ba Ria – Vung Tau (Photo 2)",
+          "zh": "巴地头顿博物馆建筑与风光细节（图 2）",
+          "ja": "バリア・ブンタウ博物館の建築と風景（写真 2）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      },
+      {
+        "id": "wk-baotangbaria-3",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Bai_Truoc,_Vung_Tau.jpg?width=1200",
+        "caption": {
+          "vi": "Góc nhìn kiến trúc & cảnh quan tại Bảo tàng Bà Rịa – Vũng Tàu (Bãi Trước) (Ảnh 3)",
+          "en": "Architecture & scenery at Ba Ria – Vung Tau Museum (Front Beach) (Photo 3)",
+          "fr": "Architecture et paysage à Musée de Ba Ria – Vung Tau (Photo 3)",
+          "zh": "巴地头顿博物馆建筑与风光细节（图 3）",
+          "ja": "バリア・ブンタウ博物館の建築と風景（写真 3）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      }
+    ],
+    "wikipediaUrl": "https://vi.wikipedia.org/wiki/B%C3%A3i_Tr%C6%B0%E1%BB%9Bc",
+    "viWikiSummary": "Bảo tàng Bà Rịa – Vũng Tàu tại số 04 Trần Phú (khu Bãi Trước) khánh thành tòa nhà mới hiện đại 4 tầng mang dáng dấp con tàu vươn khơi, trưng bày thường xuyên hơn 28.000 hiện vật, tài liệu quý giá.",
+    "viWikiParagraphs": [
+      "Bảo tàng Bà Rịa – Vũng Tàu tại số 04 Trần Phú (khu Bãi Trước) khánh thành tòa nhà mới hiện đại 4 tầng mang dáng dấp con tàu vươn khơi, trưng bày thường xuyên hơn 28.000 hiện vật, tài liệu quý giá.",
+      "Bảy không gian trưng bày chuyên đề giới thiệu trọn vẹn từ văn hóa khảo cổ Giồng Cá Vồ – Gò Lớn niên đại 3.000 năm, cổ vật tàu đắm Biển Đông, lịch sử đấu tranh cách mạng, Côn Đảo đến ngành dầu khí và kinh tế biển hiện đại."
+    ],
+    "enWikiSummary": "Overlooking Front Beach at 04 Tran Phu in a striking modern ship-inspired edifice, the Ba Ria – Vung Tau Museum curates over 28,000 artifacts spanning 3,000-year-old coastal archaeology, shipwreck ceramics, maritime heritage, and modern offshore energy history.",
+    "enWikiParagraphs": [
+      "Overlooking Front Beach at 04 Tran Phu in a striking modern ship-inspired edifice, the Ba Ria – Vung Tau Museum curates over 28,000 artifacts spanning 3,000-year-old coastal archaeology, shipwreck ceramics, maritime heritage, and modern offshore energy history."
+    ]
+  },
+  "nha-lon-long-son-den-ong-tran": {
+    "coverImage": "https://commons.wikimedia.org/wiki/Special:FilePath/Nh%C3%A0_L%E1%BB%9Bn_Long_S%C6%A1n.jpg?width=1200",
+    "mediaGallery": [
+      {
+        "id": "wk-nhalonlongso-1",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Nh%C3%A0_L%E1%BB%9Bn_Long_S%C6%A1n.jpg?width=1200",
+        "caption": {
+          "vi": "Ảnh thực tế toàn cảnh Di tích Quốc gia Nhà Lớn Long Sơn (Đền Ông Trần 1910) (Wikimedia Commons)",
+          "en": "Real view of Long Son Big House (Ong Tran Temple Complex – 1910) (Wikimedia Commons)",
+          "fr": "Vue réelle de Grande Maison de Long Son (Temple d’Ong Tran, 1910) (Wikimedia Commons)",
+          "zh": "龙山大屋（陈公庙 · 1910年）实景照片（维基共享资源）",
+          "ja": "ロンソン大屋敷（オン・チャン廟 / 1910年）の実景写真（ウィキメディア・コモンズ）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      },
+      {
+        "id": "wk-nhalonlongso-2",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/AH_17-_duon_di_dao_Long_son,_huyen_dao_Long_son,_ba_ria_Vung_tau_Vietnam_-_panoramio.jpg?width=1200",
+        "caption": {
+          "vi": "Góc nhìn kiến trúc & cảnh quan tại Di tích Quốc gia Nhà Lớn Long Sơn (Đền Ông Trần 1910) (Ảnh 2)",
+          "en": "Architecture & scenery at Long Son Big House (Ong Tran Temple Complex – 1910) (Photo 2)",
+          "fr": "Architecture et paysage à Grande Maison de Long Son (Temple d’Ong Tran, 1910) (Photo 2)",
+          "zh": "龙山大屋（陈公庙 · 1910年）建筑与风光细节（图 2）",
+          "ja": "ロンソン大屋敷（オン・チャン廟 / 1910年）の建築と風景（写真 2）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      },
+      {
+        "id": "wk-nhalonlongso-3",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/B%E1%BB%9D_bi%E1%BB%83n_V%C5%A9ng_T%C3%A0u.JPG?width=1200",
+        "caption": {
+          "vi": "Góc nhìn kiến trúc & cảnh quan tại Di tích Quốc gia Nhà Lớn Long Sơn (Đền Ông Trần 1910) (Ảnh 3)",
+          "en": "Architecture & scenery at Long Son Big House (Ong Tran Temple Complex – 1910) (Photo 3)",
+          "fr": "Architecture et paysage à Grande Maison de Long Son (Temple d’Ong Tran, 1910) (Photo 3)",
+          "zh": "龙山大屋（陈公庙 · 1910年）建筑与风光细节（图 3）",
+          "ja": "ロンソン大屋敷（オン・チャン廟 / 1910年）の建築と風景（写真 3）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      }
+    ],
+    "wikipediaUrl": "https://vi.wikipedia.org/wiki/Nh%C3%A0_L%E1%BB%9Bn_Long_S%C6%A1n",
+    "viWikiSummary": "Nhà Lớn Long Sơn (Đền Ông Trần) tọa lạc trên xã đảo Long Sơn dưới chân Núi Nứa, do cụ Lê Văn Mưu (1855–1935, thường gọi là Ông Trần) cùng bà con lưu dân khai hoang khởi dựng từ năm 1910 đến năm 1929 trên diện tích 2 ha.",
+    "viWikiParagraphs": [
+      "Nhà Lớn Long Sơn (Đền Ông Trần) tọa lạc trên xã đảo Long Sơn dưới chân Núi Nứa, do cụ Lê Văn Mưu (1855–1935, thường gọi là Ông Trần) cùng bà con lưu dân khai hoang khởi dựng từ năm 1910 đến năm 1929 trên diện tích 2 ha.",
+      "Được Bộ Văn hóa xếp hạng Di tích Lịch sử – Kiến trúc Nghệ thuật cấp Quốc gia năm 1991, quần thể bằng gỗ quý này kết hợp Nhà Thờ, Nhà Hội, trường học, chợ và kho thóc, giữ trọn truyền thống Đạo Ông Trần sống nhân nghĩa và hiếu khách đãi cơm miễn phí cho khách thập phương."
+    ],
+    "enWikiSummary": "Built between 1910 and 1929 across two hectares on Long Son Island by pioneer Le Van Muu (Ong Tran) and designated a National Monument in 1991, Long Son Big House preserves a unique timber temple-and-community complex renowned for its hospitality and nearby floating oyster farms.",
+    "enWikiParagraphs": [
+      "Built between 1910 and 1929 across two hectares on Long Son Island by pioneer Le Van Muu (Ong Tran) and designated a National Monument in 1991, Long Son Big House preserves a unique timber temple-and-community complex renowned for its hospitality and nearby floating oyster farms."
+    ]
+  },
+  "thap-tam-thang-quang-truong-bai-sau": {
+    "coverImage": "https://commons.wikimedia.org/wiki/Special:FilePath/Sau_Beach_in_Vungtau.jpg?width=1200",
+    "mediaGallery": [
+      {
+        "id": "wk-thaptamthang-1",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Sau_Beach_in_Vungtau.jpg?width=1200",
+        "caption": {
+          "vi": "Ảnh thực tế toàn cảnh Tháp Tam Thắng & Quảng trường Bãi Sau (Thùy Vân) (Wikimedia Commons)",
+          "en": "Real view of Tam Thang Tower & Back Beach Square (Thuy Van) (Wikimedia Commons)",
+          "fr": "Vue réelle de Tour Tam Thang et place de Back Beach (Thuy Van) (Wikimedia Commons)",
+          "zh": "三胜塔与后滩广场（垂云海滨新地标）实景照片（维基共享资源）",
+          "ja": "タムタン塔＆バックビーチ広場（2025年新ランドマーク）の実景写真（ウィキメディア・コモンズ）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      },
+      {
+        "id": "wk-thaptamthang-2",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/B%C3%A3i_Sau_V%C5%A9ng_t%C3%A0u-117_Th%C3%B9y_V%C3%A2n,_Th%E1%BA%AFng_Tam,_tp._V%C5%A9ng_T%C3%A0u,_B%C3%A0_R%E1%BB%8Ba_-_V%C5%A9ng_T%C3%A0u,_Vi%E1%BB%87t_Nam_-_panoramio.jpg?width=1200",
+        "caption": {
+          "vi": "Góc nhìn kiến trúc & cảnh quan tại Tháp Tam Thắng & Quảng trường Bãi Sau (Thùy Vân) (Ảnh 2)",
+          "en": "Architecture & scenery at Tam Thang Tower & Back Beach Square (Thuy Van) (Photo 2)",
+          "fr": "Architecture et paysage à Tour Tam Thang et place de Back Beach (Thuy Van) (Photo 2)",
+          "zh": "三胜塔与后滩广场（垂云海滨新地标）建筑与风光细节（图 2）",
+          "ja": "タムタン塔＆バックビーチ広場（2025年新ランドマーク）の建築と風景（写真 2）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      },
+      {
+        "id": "wk-thaptamthang-3",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/B%C3%A3i_bi%E1%BB%83n_V%C5%A9ng_T%C3%A0u_2016.jpg?width=1200",
+        "caption": {
+          "vi": "Góc nhìn kiến trúc & cảnh quan tại Tháp Tam Thắng & Quảng trường Bãi Sau (Thùy Vân) (Ảnh 3)",
+          "en": "Architecture & scenery at Tam Thang Tower & Back Beach Square (Thuy Van) (Photo 3)",
+          "fr": "Architecture et paysage à Tour Tam Thang et place de Back Beach (Thuy Van) (Photo 3)",
+          "zh": "三胜塔与后滩广场（垂云海滨新地标）建筑与风光细节（图 3）",
+          "ja": "タムタン塔＆バックビーチ広場（2025年新ランドマーク）の建築と風景（写真 3）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      }
+    ],
+    "wikipediaUrl": "https://vi.wikipedia.org/wiki/Th%C3%A1p_Tam_Th%E1%BA%AFng",
+    "viWikiSummary": "Tháp Tam Thắng và Quảng trường Tam Thắng tại giao lộ Thùy Vân – Lê Hồng Phong (Bãi Sau) chính thức khánh thành ngày 02/09/2025 nhân dịp Quốc khánh, nằm trong dự án chỉnh trang trục công viên ven biển Thùy Vân hiện đại bậc nhất cả nước.",
+    "viWikiParagraphs": [
+      "Tháp Tam Thắng và Quảng trường Tam Thắng tại giao lộ Thùy Vân – Lê Hồng Phong (Bãi Sau) chính thức khánh thành ngày 02/09/2025 nhân dịp Quốc khánh, nằm trong dự án chỉnh trang trục công viên ven biển Thùy Vân hiện đại bậc nhất cả nước.",
+      "Công trình do kiến trúc sư Ý Oliviero Godi thiết kế với 143 trụ bê tông cốt thép ốp gốm mosaic vươn cao dần từ 4,55m đến 34,25m gợi hình 3 mũi thuyền ra khơi của ba làng cổ Thắng Nhất – Thắng Nhì – Thắng Tam, kết hợp Mũi Vọng Cảnh, nhạc nước và trình diễn ánh sáng LED ban đêm."
+    ],
+    "enWikiSummary": "Inaugurated on September 2, 2025 at the Thuy Van – Le Hong Phong beachfront plaza, Tam Thang Tower was designed by Italian architect Oliviero Godi with 143 stepped mosaic columns rising up to 34.25 meters like three boat prows honoring Vung Tau’s three historic founding villages.",
+    "enWikiParagraphs": [
+      "Inaugurated on September 2, 2025 at the Thuy Van – Le Hong Phong beachfront plaza, Tam Thang Tower was designed by Italian architect Oliviero Godi with 143 stepped mosaic columns rising up to 34.25 meters like three boat prows honoring Vung Tau’s three historic founding villages."
+    ]
+  },
+  "doi-con-heo-vung-tau": {
+    "coverImage": "https://commons.wikimedia.org/wiki/Special:FilePath/B%E1%BB%9D_bi%E1%BB%83n_V%C5%A9ng_T%C3%A0u.JPG?width=1200",
+    "mediaGallery": [
+      {
+        "id": "wk-doiconheovun-1",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/B%E1%BB%9D_bi%E1%BB%83n_V%C5%A9ng_T%C3%A0u.JPG?width=1200",
+        "caption": {
+          "vi": "Ảnh thực tế toàn cảnh Đồi Con Heo (Tọa độ Ngắm Toàn cảnh Bãi Sau) (Wikimedia Commons)",
+          "en": "Real view of Con Heo Hill (Back Beach Panoramic Overlook) (Wikimedia Commons)",
+          "fr": "Vue réelle de Colline Con Heo (Panorama de Back Beach) (Wikimedia Commons)",
+          "zh": "猪山观景台（Đồi Con Heo · 头顿网红日落山丘）实景照片（维基共享资源）",
+          "ja": "コンヘオの丘（バックビーチ絶景展望スポット）の実景写真（ウィキメディア・コモンズ）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      },
+      {
+        "id": "wk-doiconheovun-2",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Vung_Tau_Hon_Ba.JPG?width=1200",
+        "caption": {
+          "vi": "Góc nhìn kiến trúc & cảnh quan tại Đồi Con Heo (Tọa độ Ngắm Toàn cảnh Bãi Sau) (Ảnh 2)",
+          "en": "Architecture & scenery at Con Heo Hill (Back Beach Panoramic Overlook) (Photo 2)",
+          "fr": "Architecture et paysage à Colline Con Heo (Panorama de Back Beach) (Photo 2)",
+          "zh": "猪山观景台（Đồi Con Heo · 头顿网红日落山丘）建筑与风光细节（图 2）",
+          "ja": "コンヘオの丘（バックビーチ絶景展望スポット）の建築と風景（写真 2）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      },
+      {
+        "id": "wk-doiconheovun-3",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Sau_Beach_in_Vungtau.jpg?width=1200",
+        "caption": {
+          "vi": "Góc nhìn kiến trúc & cảnh quan tại Đồi Con Heo (Tọa độ Ngắm Toàn cảnh Bãi Sau) (Ảnh 3)",
+          "en": "Architecture & scenery at Con Heo Hill (Back Beach Panoramic Overlook) (Photo 3)",
+          "fr": "Architecture et paysage à Colline Con Heo (Panorama de Back Beach) (Photo 3)",
+          "zh": "猪山观景台（Đồi Con Heo · 头顿网红日落山丘）建筑与风光细节（图 3）",
+          "ja": "コンヘオの丘（バックビーチ絶景展望スポット）の建築と風景（写真 3）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      }
+    ],
+    "wikipediaUrl": "https://vi.wikipedia.org/wiki/N%C3%BAi_Nh%E1%BB%8F",
+    "viWikiSummary": "Đồi Con Heo nằm trên triền Đông của Núi Nhỏ (núi Tao Phùng) ở độ cao khoảng 106m với lối lên từ hẻm 222 Phan Chu Trinh, Phường 2 — trước đây vốn là khu vực khai thác đá nên sở hữu địa hình vách đá và sỏi dăm hoang sơ độc đáo.",
+    "viWikiParagraphs": [
+      "Đồi Con Heo nằm trên triền Đông của Núi Nhỏ (núi Tao Phùng) ở độ cao khoảng 106m với lối lên từ hẻm 222 Phan Chu Trinh, Phường 2 — trước đây vốn là khu vực khai thác đá nên sở hữu địa hình vách đá và sỏi dăm hoang sơ độc đáo.",
+      "Từ đỉnh đồi, du khách có thể thu trọn vào tầm mắt toàn cảnh bãi cát cong Bãi Sau – đại lộ Thùy Vân, Quảng trường Tháp Tam Thắng, đảo Hòn Bà và cung đường ven biển Hạ Long; mùa cuối năm nơi đây còn phủ sắc hoa đỗ mai trắng hồng tuyệt đẹp."
+    ],
+    "enWikiSummary": "Rising 106 meters on the eastern flank of Nho Mountain off Alley 222 Phan Chu Trinh, Con Heo Hill is a former stone quarry turned Vung Tau’s signature panoramic cliff overlook above Back Beach, Hon Ba Islet, and Thuy Van Boulevard.",
+    "enWikiParagraphs": [
+      "Rising 106 meters on the eastern flank of Nho Mountain off Alley 222 Phan Chu Trinh, Con Heo Hill is a former stone quarry turned Vung Tau’s signature panoramic cliff overlook above Back Beach, Hon Ba Islet, and Thuy Van Boulevard."
+    ]
+  },
+  "bai-sau-thuy-van-vung-tau": {
+    "coverImage": "https://commons.wikimedia.org/wiki/Special:FilePath/B%C3%A3i_bi%E1%BB%83n_V%C5%A9ng_T%C3%A0u_2016.jpg?width=1200",
+    "mediaGallery": [
+      {
+        "id": "wk-baisauthuyva-1",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/B%C3%A3i_bi%E1%BB%83n_V%C5%A9ng_T%C3%A0u_2016.jpg?width=1200",
+        "caption": {
+          "vi": "Ảnh thực tế toàn cảnh Bãi Sau (Bãi Thùy Vân) & Công viên Ven biển (Wikimedia Commons)",
+          "en": "Real view of Back Beach (Thuy Van Beach & Seafront Park) (Wikimedia Commons)",
+          "fr": "Vue réelle de Plage de Back Beach (Thuy Van) (Wikimedia Commons)",
+          "zh": "头顿后滩（垂云海滩与海滨公园）实景照片（维基共享资源）",
+          "ja": "バックビーチ（トゥイヴァン海岸＆海浜公園）の実景写真（ウィキメディア・コモンズ）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      },
+      {
+        "id": "wk-baisauthuyva-2",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Vung_Tau_Beach_On_Holiday.jpg?width=1200",
+        "caption": {
+          "vi": "Góc nhìn kiến trúc & cảnh quan tại Bãi Sau (Bãi Thùy Vân) & Công viên Ven biển (Ảnh 2)",
+          "en": "Architecture & scenery at Back Beach (Thuy Van Beach & Seafront Park) (Photo 2)",
+          "fr": "Architecture et paysage à Plage de Back Beach (Thuy Van) (Photo 2)",
+          "zh": "头顿后滩（垂云海滩与海滨公园）建筑与风光细节（图 2）",
+          "ja": "バックビーチ（トゥイヴァン海岸＆海浜公園）の建築と風景（写真 2）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      },
+      {
+        "id": "wk-baisauthuyva-3",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Sau_Beach_in_Vungtau.jpg?width=1200",
+        "caption": {
+          "vi": "Góc nhìn kiến trúc & cảnh quan tại Bãi Sau (Bãi Thùy Vân) & Công viên Ven biển (Ảnh 3)",
+          "en": "Architecture & scenery at Back Beach (Thuy Van Beach & Seafront Park) (Photo 3)",
+          "fr": "Architecture et paysage à Plage de Back Beach (Thuy Van) (Photo 3)",
+          "zh": "头顿后滩（垂云海滩与海滨公园）建筑与风光细节（图 3）",
+          "ja": "バックビーチ（トゥイヴァン海岸＆海浜公園）の建築と風景（写真 3）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      }
+    ],
+    "wikipediaUrl": "https://vi.wikipedia.org/wiki/B%C3%A3i_Sau",
+    "viWikiSummary": "Bãi Sau (Bãi Thùy Vân) trải dài gần 8 km cát vàng mịn từ chân Núi Nhỏ qua Quảng trường Tháp Tam Thắng đến khu vực Chí Linh, được xem là bãi tắm đẹp, bằng phẳng và sôi động bậc nhất Vũng Tàu với sóng biển ôn hòa quanh năm.",
+    "viWikiParagraphs": [
+      "Bãi Sau (Bãi Thùy Vân) trải dài gần 8 km cát vàng mịn từ chân Núi Nhỏ qua Quảng trường Tháp Tam Thắng đến khu vực Chí Linh, được xem là bãi tắm đẹp, bằng phẳng và sôi động bậc nhất Vũng Tàu với sóng biển ôn hòa quanh năm.",
+      "Sau dự án chỉnh trang công viên ven biển Thùy Vân quy mô lớn giai đoạn 2024–2025, toàn bộ dải bờ biển trở thành không gian công viên mở không che chắn tầm nhìn với đường dạo bộ, quảng trường sự kiện và hệ thống dịch vụ du lịch chuẩn quốc tế."
+    ],
+    "enWikiSummary": "Stretching nearly eight kilometers from the foot of Nho Mountain to Chi Linh, Back Beach (Thuy Van Beach) is Vung Tau’s premier golden-sand swimming beach, enhanced with a spacious renovated seafront promenade park and Tam Thang Square.",
+    "enWikiParagraphs": [
+      "Stretching nearly eight kilometers from the foot of Nho Mountain to Chi Linh, Back Beach (Thuy Van Beach) is Vung Tau’s premier golden-sand swimming beach, enhanced with a spacious renovated seafront promenade park and Tam Thang Square."
+    ]
+  },
+  "cong-vien-bai-truoc-vung-tau": {
+    "coverImage": "https://commons.wikimedia.org/wiki/Special:FilePath/Bai_Truoc_Vung_Tau.jpg?width=1200",
+    "mediaGallery": [
+      {
+        "id": "wk-congvienbait-1",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Bai_Truoc_Vung_Tau.jpg?width=1200",
+        "caption": {
+          "vi": "Ảnh thực tế toàn cảnh Công viên Bãi Trước (Vịnh Tầm Dương) & Bến tàu Cánh Ngầm (Wikimedia Commons)",
+          "en": "Real view of Front Beach Park (Tam Duong Bay) & Hydrofoil Pier (Wikimedia Commons)",
+          "fr": "Vue réelle de Parc de Front Beach (Baie de Tam Duong) (Wikimedia Commons)",
+          "zh": "头顿前滩公园与高速客船码头实景照片（维基共享资源）",
+          "ja": "フロントビーチ公園＆高速船乗り場の実景写真（ウィキメディア・コモンズ）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      },
+      {
+        "id": "wk-congvienbait-2",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/C%C3%B4ng_Vi%C3%AAn_B%C3%A3i_Tr%C6%B0%E1%BB%9Bc,_Quang_Trung,_Ph%C6%B0%E1%BB%9Dng_1,_tp._V%C5%A9ng_T%C3%A0u,_B%C3%A0_R%E1%BB%8Ba_-_V%C5%A9ng_T%C3%A0u,_Vi%E1%BB%87t_Nam_-_panoramio_(1).jpg?width=1200",
+        "caption": {
+          "vi": "Góc nhìn kiến trúc & cảnh quan tại Công viên Bãi Trước (Vịnh Tầm Dương) & Bến tàu Cánh Ngầm (Ảnh 2)",
+          "en": "Architecture & scenery at Front Beach Park (Tam Duong Bay) & Hydrofoil Pier (Photo 2)",
+          "fr": "Architecture et paysage à Parc de Front Beach (Baie de Tam Duong) (Photo 2)",
+          "zh": "头顿前滩公园与高速客船码头建筑与风光细节（图 2）",
+          "ja": "フロントビーチ公園＆高速船乗り場の建築と風景（写真 2）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      },
+      {
+        "id": "wk-congvienbait-3",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Bai_Truoc,_Vung_Tau.jpg?width=1200",
+        "caption": {
+          "vi": "Góc nhìn kiến trúc & cảnh quan tại Công viên Bãi Trước (Vịnh Tầm Dương) & Bến tàu Cánh Ngầm (Ảnh 3)",
+          "en": "Architecture & scenery at Front Beach Park (Tam Duong Bay) & Hydrofoil Pier (Photo 3)",
+          "fr": "Architecture et paysage à Parc de Front Beach (Baie de Tam Duong) (Photo 3)",
+          "zh": "头顿前滩公园与高速客船码头建筑与风光细节（图 3）",
+          "ja": "フロントビーチ公園＆高速船乗り場の建築と風景（写真 3）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      }
+    ],
+    "wikipediaUrl": "https://vi.wikipedia.org/wiki/B%C3%A3i_Tr%C6%B0%E1%BB%9Bc",
+    "viWikiSummary": "Bãi Trước (còn gọi là Vịnh Tầm Dương) nằm uốn cong hình vầng trăng khuyết giữa hai ngọn Núi Lớn và Núi Nhỏ dọc theo đường Quang Trung – Trần Phú, là trung tâm đô thị biển hình thành sớm nhất của Vũng Tàu từ cuối thế kỷ XIX.",
+    "viWikiParagraphs": [
+      "Bãi Trước (còn gọi là Vịnh Tầm Dương) nằm uốn cong hình vầng trăng khuyết giữa hai ngọn Núi Lớn và Núi Nhỏ dọc theo đường Quang Trung – Trần Phú, là trung tâm đô thị biển hình thành sớm nhất của Vũng Tàu từ cuối thế kỷ XIX.",
+      "Công viên Bãi Trước rợp bóng dừa, bàng cổ thụ với vườn tượng điêu khắc nghệ thuật hướng thẳng về phía Tây đón hoàng hôn tuyệt đẹp trên biển, đồng thời là nơi đặt bến tàu cao tốc nối thẳng Bến Bạch Đằng (Quận 1) chỉ khoảng 2 giờ di chuyển."
+    ],
+    "enWikiSummary": "Curving like a crescent moon between Lon and Nho Mountains along Quang Trung Boulevard, Front Beach (Tam Duong Bay) is Vung Tau’s historic sunset promenade, home to palm-shaded sculpture gardens and the express hydrofoil pier to central Ho Chi Minh City.",
+    "enWikiParagraphs": [
+      "Curving like a crescent moon between Lon and Nho Mountains along Quang Trung Boulevard, Front Beach (Tam Duong Bay) is Vung Tau’s historic sunset promenade, home to palm-shaded sculpture gardens and the express hydrofoil pier to central Ho Chi Minh City."
+    ]
+  },
+  "bai-dua-lang-du-vung-tau": {
+    "coverImage": "https://commons.wikimedia.org/wiki/Special:FilePath/Ha_Long_Road_in_Vungtau.jpg?width=1200",
+    "mediaGallery": [
+      {
+        "id": "wk-baidualangdu-1",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Ha_Long_Road_in_Vungtau.jpg?width=1200",
+        "caption": {
+          "vi": "Ảnh thực tế toàn cảnh Bãi Dứa (Bãi Lãng Du – Cung đường Hạ Long) (Wikimedia Commons)",
+          "en": "Real view of Dua Beach (Lang Du Cove – Ha Long Coastal Road) (Wikimedia Commons)",
+          "fr": "Vue réelle de Crique de Bai Dua (Route côtière Ha Long) (Wikimedia Commons)",
+          "zh": "菠萝滩（Bãi Dứa · 下龙海滨浪漫海湾）实景照片（维基共享资源）",
+          "ja": "バイズア（ハロン海岸の隠れ家ビーチ）の実景写真（ウィキメディア・コモンズ）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      },
+      {
+        "id": "wk-baidualangdu-2",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Vung_Tau_Niet_Ban_Tinh_Xa_1.JPG?width=1200",
+        "caption": {
+          "vi": "Góc nhìn kiến trúc & cảnh quan tại Bãi Dứa (Bãi Lãng Du – Cung đường Hạ Long) (Ảnh 2)",
+          "en": "Architecture & scenery at Dua Beach (Lang Du Cove – Ha Long Coastal Road) (Photo 2)",
+          "fr": "Architecture et paysage à Crique de Bai Dua (Route côtière Ha Long) (Photo 2)",
+          "zh": "菠萝滩（Bãi Dứa · 下龙海滨浪漫海湾）建筑与风光细节（图 2）",
+          "ja": "バイズア（ハロン海岸の隠れ家ビーチ）の建築と風景（写真 2）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      },
+      {
+        "id": "wk-baidualangdu-3",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/B%E1%BB%9D_bi%E1%BB%83n_V%C5%A9ng_T%C3%A0u.JPG?width=1200",
+        "caption": {
+          "vi": "Góc nhìn kiến trúc & cảnh quan tại Bãi Dứa (Bãi Lãng Du – Cung đường Hạ Long) (Ảnh 3)",
+          "en": "Architecture & scenery at Dua Beach (Lang Du Cove – Ha Long Coastal Road) (Photo 3)",
+          "fr": "Architecture et paysage à Crique de Bai Dua (Route côtière Ha Long) (Photo 3)",
+          "zh": "菠萝滩（Bãi Dứa · 下龙海滨浪漫海湾）建筑与风光细节（图 3）",
+          "ja": "バイズア（ハロン海岸の隠れ家ビーチ）の建築と風景（写真 3）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      }
+    ],
+    "wikipediaUrl": "https://vi.wikipedia.org/wiki/B%C3%A3i_D%E1%BB%A9a",
+    "viWikiSummary": "Bãi Dứa (xưa còn gọi là Bãi Lãng Du) nằm ẩn mình dưới chân Núi Nhỏ dọc cung đường ven biển Hạ Long (đoạn số 24–26 Hạ Long), giữa Bãi Trước và Mũi Nghinh Phong — tên gọi bắt nguồn từ những bụi dứa dại mọc tự nhiên ven triền đá.",
+    "viWikiParagraphs": [
+      "Bãi Dứa (xưa còn gọi là Bãi Lãng Du) nằm ẩn mình dưới chân Núi Nhỏ dọc cung đường ven biển Hạ Long (đoạn số 24–26 Hạ Long), giữa Bãi Trước và Mũi Nghinh Phong — tên gọi bắt nguồn từ những bụi dứa dại mọc tự nhiên ven triền đá.",
+      "Nhờ các mỏm đá lớn vươn ra chắn sóng, nước biển ở Bãi Dứa đặc biệt êm ả và trong xanh, nổi tiếng với chuỗi quán cà phê sát mép nước và góc ngắm mặt trời lặn lãng mạn bậc nhất thành phố biển."
+    ],
+    "enWikiSummary": "Sheltered beneath Nho Mountain along scenic Ha Long coastal road between Front Beach and Nghinh Phong Cape, Dua Beach (Lang Du Cove) is treasured for its calm boulder-framed waters, boutique cliffside cafés, and poetic ocean sunsets.",
+    "enWikiParagraphs": [
+      "Sheltered beneath Nho Mountain along scenic Ha Long coastal road between Front Beach and Nghinh Phong Cape, Dua Beach (Lang Du Cove) is treasured for its calm boulder-framed waters, boutique cliffside cafés, and poetic ocean sunsets."
+    ]
+  },
+  "hem-107-tran-phu-vung-tau": {
+    "coverImage": "https://commons.wikimedia.org/wiki/Special:FilePath/12-2A_Tr%E1%BA%A7n_Ph%C3%BA,_Ph%C6%B0%E1%BB%9Dng_1,_tp._V%C5%A9ng_T%C3%A0u,_B%C3%A0_R%E1%BB%8Ba_-_V%C5%A9ng_T%C3%A0u,_Vietnam_-_panoramio.jpg?width=1200",
+    "mediaGallery": [
+      {
+        "id": "wk-hem107tranph-1",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/12-2A_Tr%E1%BA%A7n_Ph%C3%BA,_Ph%C6%B0%E1%BB%9Dng_1,_tp._V%C5%A9ng_T%C3%A0u,_B%C3%A0_R%E1%BB%8Ba_-_V%C5%A9ng_T%C3%A0u,_Vietnam_-_panoramio.jpg?width=1200",
+        "caption": {
+          "vi": "Ảnh thực tế toàn cảnh Hẻm 107–109 Trần Phú (Hẻm Thông Biển Sống Ảo) (Wikimedia Commons)",
+          "en": "Real view of Alley 107–109 Tran Phu (Ocean-View Photo Alley) (Wikimedia Commons)",
+          "fr": "Vue réelle de Ruelle 107–109 Tran Phu (Allée vers la mer) (Wikimedia Commons)",
+          "zh": "陈富路107号通海小巷（网红海景小巷）实景照片（维基共享资源）",
+          "ja": "チャンフー通り107番の海へ続く路地の実景写真（ウィキメディア・コモンズ）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      },
+      {
+        "id": "wk-hem107tranph-2",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Bai_Truoc,_Vung_Tau.jpg?width=1200",
+        "caption": {
+          "vi": "Góc nhìn kiến trúc & cảnh quan tại Hẻm 107–109 Trần Phú (Hẻm Thông Biển Sống Ảo) (Ảnh 2)",
+          "en": "Architecture & scenery at Alley 107–109 Tran Phu (Ocean-View Photo Alley) (Photo 2)",
+          "fr": "Architecture et paysage à Ruelle 107–109 Tran Phu (Allée vers la mer) (Photo 2)",
+          "zh": "陈富路107号通海小巷（网红海景小巷）建筑与风光细节（图 2）",
+          "ja": "チャンフー通り107番の海へ続く路地の建築と風景（写真 2）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      },
+      {
+        "id": "wk-hem107tranph-3",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/B%E1%BB%9D_bi%E1%BB%83n_V%C5%A9ng_T%C3%A0u.JPG?width=1200",
+        "caption": {
+          "vi": "Góc nhìn kiến trúc & cảnh quan tại Hẻm 107–109 Trần Phú (Hẻm Thông Biển Sống Ảo) (Ảnh 3)",
+          "en": "Architecture & scenery at Alley 107–109 Tran Phu (Ocean-View Photo Alley) (Photo 3)",
+          "fr": "Architecture et paysage à Ruelle 107–109 Tran Phu (Allée vers la mer) (Photo 3)",
+          "zh": "陈富路107号通海小巷（网红海景小巷）建筑与风光细节（图 3）",
+          "ja": "チャンフー通り107番の海へ続く路地の建築と風景（写真 3）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      }
+    ],
+    "wikipediaUrl": "https://vi.wikipedia.org/wiki/V%C5%A9ng_T%C3%A0u",
+    "viWikiSummary": "Hẻm 107–109 Trần Phú (Phường 5) nằm trên tuyến đường ven biển ôm sát sườn Tây Núi Lớn nối từ Bãi Trước qua Bãi Dâu đến Sao Mai – Bến Đình, nổi lên như một trong những tọa độ chụp ảnh đường phố ven biển nổi tiếng nhất Vũng Tàu.",
+    "viWikiParagraphs": [
+      "Hẻm 107–109 Trần Phú (Phường 5) nằm trên tuyến đường ven biển ôm sát sườn Tây Núi Lớn nối từ Bãi Trước qua Bãi Dâu đến Sao Mai – Bến Đình, nổi lên như một trong những tọa độ chụp ảnh đường phố ven biển nổi tiếng nhất Vũng Tàu.",
+      "Con hẻm nhỏ dốc nhẹ mở thẳng ra mặt biển xanh biếc, được đóng khung bởi hai bức tường vàng kem cổ điển và giàn hoa giấy rực nắng, tạo nên khung cảnh điện ảnh thơ mộng vào buổi sáng sớm và chiều hoàng hôn."
+    ],
+    "enWikiSummary": "Situated between numbers 107 and 109 along scenic Tran Phu coastal road in Ward 5, this gently sloping lane framed by warm pastel walls opens directly onto the sparkling blue sea, making it one of Vung Tau’s most photographed streetscapes.",
+    "enWikiParagraphs": [
+      "Situated between numbers 107 and 109 along scenic Tran Phu coastal road in Ward 5, this gently sloping lane framed by warm pastel walls opens directly onto the sparkling blue sea, making it one of Vung Tau’s most photographed streetscapes."
+    ]
+  },
+  "den-thanh-duc-me-bai-dau": {
+    "coverImage": "https://commons.wikimedia.org/wiki/Special:FilePath/%C4%90%E1%BB%A9c_M%E1%BA%B9_B%C3%A3i_D%C3%A2u_1.JPG?width=1200",
+    "mediaGallery": [
+      {
+        "id": "wk-denthanhducm-1",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/%C4%90%E1%BB%A9c_M%E1%BA%B9_B%C3%A3i_D%C3%A2u_1.JPG?width=1200",
+        "caption": {
+          "vi": "Ảnh thực tế toàn cảnh Đền Thánh Đức Mẹ Bãi Dâu (Tượng Đức Mẹ 25m) (Wikimedia Commons)",
+          "en": "Real view of Our Lady of Bai Dau Sanctuary (25m Virgin Mary Statue) (Wikimedia Commons)",
+          "fr": "Vue réelle de Sanctuaire Notre-Dame de Bai Dau (Wikimedia Commons)",
+          "zh": "桑滩圣母圣殿（25米白玉圣母像）实景照片（维基共享资源）",
+          "ja": "バイザウ聖母大聖堂（高さ25mの聖母像）の実景写真（ウィキメディア・コモンズ）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      },
+      {
+        "id": "wk-denthanhducm-2",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/%C4%90%E1%BB%A9c_M%E1%BA%B9_B%C3%A3i_D%C3%A2u_3.JPG?width=1200",
+        "caption": {
+          "vi": "Góc nhìn kiến trúc & cảnh quan tại Đền Thánh Đức Mẹ Bãi Dâu (Tượng Đức Mẹ 25m) (Ảnh 2)",
+          "en": "Architecture & scenery at Our Lady of Bai Dau Sanctuary (25m Virgin Mary Statue) (Photo 2)",
+          "fr": "Architecture et paysage à Sanctuaire Notre-Dame de Bai Dau (Photo 2)",
+          "zh": "桑滩圣母圣殿（25米白玉圣母像）建筑与风光细节（图 2）",
+          "ja": "バイザウ聖母大聖堂（高さ25mの聖母像）の建築と風景（写真 2）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      },
+      {
+        "id": "wk-denthanhducm-3",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/T%C6%B0%E1%BB%A3ng_th%C3%A1nh_Giuse_t%E1%BA%A1i_%C4%90%E1%BB%81n_th%C3%A1nh_%C4%90%E1%BB%A9c_M%E1%BA%B9_B%C3%A3i_D%C3%A2u.JPG?width=1200",
+        "caption": {
+          "vi": "Góc nhìn kiến trúc & cảnh quan tại Đền Thánh Đức Mẹ Bãi Dâu (Tượng Đức Mẹ 25m) (Ảnh 3)",
+          "en": "Architecture & scenery at Our Lady of Bai Dau Sanctuary (25m Virgin Mary Statue) (Photo 3)",
+          "fr": "Architecture et paysage à Sanctuaire Notre-Dame de Bai Dau (Photo 3)",
+          "zh": "桑滩圣母圣殿（25米白玉圣母像）建筑与风光细节（图 3）",
+          "ja": "バイザウ聖母大聖堂（高さ25mの聖母像）の建築と風景（写真 3）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      }
+    ],
+    "wikipediaUrl": "https://vi.wikipedia.org/wiki/%C4%90%E1%BB%81n_Th%C3%A1nh_%C4%90%E1%BB%A9c_M%E1%BA%B9_B%C3%A3i_D%C3%A2u",
+    "viWikiSummary": "Đền Thánh Đức Mẹ Bãi Dâu (140A Trần Phú, Phường 5) tọa lạc trên sườn Tây Núi Lớn hướng ra vịnh Bãi Dâu, khởi dựng từ năm 1969 và khánh thành công trình Đền Thánh mới kiến trúc cánh buồm trắng vào năm 1994.",
+    "viWikiParagraphs": [
+      "Đền Thánh Đức Mẹ Bãi Dâu (140A Trần Phú, Phường 5) tọa lạc trên sườn Tây Núi Lớn hướng ra vịnh Bãi Dâu, khởi dựng từ năm 1969 và khánh thành công trình Đền Thánh mới kiến trúc cánh buồm trắng vào năm 1994.",
+      "Điểm nhấn uy nghi giữa không gian rừng núi và biển trời là pho tượng Đức Mẹ bồng Chúa Hài Đồng cao 25m, nặng gần 500 tấn ngự ở độ cao 60m cùng 14 chặng Đàng Thánh Giá dẫn lên đỉnh Núi Lớn trang nghiêm."
+    ],
+    "enWikiSummary": "Perched on the western slope of Lon Mountain overlooking Bai Dau Bay (140A Tran Phu), Our Lady of Bai Dau Sanctuary is crowned by a 25-meter, 500-ton white statue of Mary holding the Infant Jesus and a striking 1994 sail-shaped pilgrimage church.",
+    "enWikiParagraphs": [
+      "Perched on the western slope of Lon Mountain overlooking Bai Dau Bay (140A Tran Phu), Our Lady of Bai Dau Sanctuary is crowned by a 25-meter, 500-ton white statue of Mary holding the Infant Jesus and a striking 1994 sail-shaped pilgrimage church."
+    ]
+  },
+  "cho-hai-san-xom-luoi-vung-tau": {
+    "coverImage": "https://commons.wikimedia.org/wiki/Special:FilePath/Bai_Truoc_Vung_Tau.jpg?width=1200",
+    "mediaGallery": [
+      {
+        "id": "wk-chohaisanxom-1",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Bai_Truoc_Vung_Tau.jpg?width=1200",
+        "caption": {
+          "vi": "Ảnh thực tế toàn cảnh Chợ Hải sản Xóm Lưới (Chợ Hải sản Tươi sống Vũng Tàu) (Wikimedia Commons)",
+          "en": "Real view of Xom Luoi Fresh Seafood Market (Wikimedia Commons)",
+          "fr": "Vue réelle de Marché aux fruits de mer de Xom Luoi (Wikimedia Commons)",
+          "zh": "渔网村海鲜市场（Chợ Xóm Lưới）实景照片（维基共享资源）",
+          "ja": "ソムルオイ海鮮市場（活魚・即席調理）の実景写真（ウィキメディア・コモンズ）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      },
+      {
+        "id": "wk-chohaisanxom-2",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Vung_Tau_Beach_On_Holiday.jpg?width=1200",
+        "caption": {
+          "vi": "Góc nhìn kiến trúc & cảnh quan tại Chợ Hải sản Xóm Lưới (Chợ Hải sản Tươi sống Vũng Tàu) (Ảnh 2)",
+          "en": "Architecture & scenery at Xom Luoi Fresh Seafood Market (Photo 2)",
+          "fr": "Architecture et paysage à Marché aux fruits de mer de Xom Luoi (Photo 2)",
+          "zh": "渔网村海鲜市场（Chợ Xóm Lưới）建筑与风光细节（图 2）",
+          "ja": "ソムルオイ海鮮市場（活魚・即席調理）の建築と風景（写真 2）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      },
+      {
+        "id": "wk-chohaisanxom-3",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/B%C3%A3i_bi%E1%BB%83n_V%C5%A9ng_T%C3%A0u_2016.jpg?width=1200",
+        "caption": {
+          "vi": "Góc nhìn kiến trúc & cảnh quan tại Chợ Hải sản Xóm Lưới (Chợ Hải sản Tươi sống Vũng Tàu) (Ảnh 3)",
+          "en": "Architecture & scenery at Xom Luoi Fresh Seafood Market (Photo 3)",
+          "fr": "Architecture et paysage à Marché aux fruits de mer de Xom Luoi (Photo 3)",
+          "zh": "渔网村海鲜市场（Chợ Xóm Lưới）建筑与风光细节（图 3）",
+          "ja": "ソムルオイ海鮮市場（活魚・即席調理）の建築と風景（写真 3）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      }
+    ],
+    "wikipediaUrl": "https://vi.wikipedia.org/wiki/V%C5%A9ng_T%C3%A0u",
+    "viWikiSummary": "Chợ Hải sản Xóm Lưới (góc Nguyễn Công Trứ – Phan Bội Châu, Phường 1) là khu chợ hải sản tươi sống sầm uất và lâu đời gắn liền với làng chài Bãi Trước Vũng Tàu.",
+    "viWikiParagraphs": [
+      "Chợ Hải sản Xóm Lưới (góc Nguyễn Công Trứ – Phan Bội Châu, Phường 1) là khu chợ hải sản tươi sống sầm uất và lâu đời gắn liền với làng chài Bãi Trước Vũng Tàu.",
+      "Nơi đây tập trung hàng chục vựa hải sản sống đánh bắt trong ngày như ghẹ xanh, tôm tích gạch, mực nang, ốc hương, hàu sữa với giá bình dân cùng dịch vụ hấp bia, nướng mỡ hành tại chỗ vô cùng tiện lợi cho du khách."
+    ],
+    "enWikiSummary": "Located near Front Beach at the junction of Nguyen Cong Tru and Phan Boi Chau Streets, Xom Luoi Seafood Market is Vung Tau’s busiest fishermen’s market where freshly landed crabs, mantis shrimp, squid, and sea snails are steamed or grilled to order on site.",
+    "enWikiParagraphs": [
+      "Located near Front Beach at the junction of Nguyen Cong Tru and Phan Boi Chau Streets, Xom Luoi Seafood Market is Vung Tau’s busiest fishermen’s market where freshly landed crabs, mantis shrimp, squid, and sea snails are steamed or grilled to order on site."
+    ]
+  },
+  "ben-du-thuyen-vung-tau-marina": {
+    "coverImage": "https://commons.wikimedia.org/wiki/Special:FilePath/HMAS_Derwent_in_Vung_Tau_harbour.jpg?width=1200",
+    "mediaGallery": [
+      {
+        "id": "wk-benduthuyenv-1",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/HMAS_Derwent_in_Vung_Tau_harbour.jpg?width=1200",
+        "caption": {
+          "vi": "Ảnh thực tế toàn cảnh Bến Du thuyền Vũng Tàu Marina (Vịnh Sông Dinh) (Wikimedia Commons)",
+          "en": "Real view of Vung Tau Marina (Song Dinh Yacht Club) (Wikimedia Commons)",
+          "fr": "Vue réelle de Marina de Vung Tau (Baie de Song Dinh) (Wikimedia Commons)",
+          "zh": "头顿游艇码头（Vũng Tàu Marina）实景照片（维基共享资源）",
+          "ja": "ブンタウ・マリーナ（ソンディン湾）の実景写真（ウィキメディア・コモンズ）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      },
+      {
+        "id": "wk-benduthuyenv-2",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/AH_17-_duon_di_dao_Long_son,_huyen_dao_Long_son,_ba_ria_Vung_tau_Vietnam_-_panoramio.jpg?width=1200",
+        "caption": {
+          "vi": "Góc nhìn kiến trúc & cảnh quan tại Bến Du thuyền Vũng Tàu Marina (Vịnh Sông Dinh) (Ảnh 2)",
+          "en": "Architecture & scenery at Vung Tau Marina (Song Dinh Yacht Club) (Photo 2)",
+          "fr": "Architecture et paysage à Marina de Vung Tau (Baie de Song Dinh) (Photo 2)",
+          "zh": "头顿游艇码头（Vũng Tàu Marina）建筑与风光细节（图 2）",
+          "ja": "ブンタウ・マリーナ（ソンディン湾）の建築と風景（写真 2）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      },
+      {
+        "id": "wk-benduthuyenv-3",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Bai_Truoc,_Vung_Tau.jpg?width=1200",
+        "caption": {
+          "vi": "Góc nhìn kiến trúc & cảnh quan tại Bến Du thuyền Vũng Tàu Marina (Vịnh Sông Dinh) (Ảnh 3)",
+          "en": "Architecture & scenery at Vung Tau Marina (Song Dinh Yacht Club) (Photo 3)",
+          "fr": "Architecture et paysage à Marina de Vung Tau (Baie de Song Dinh) (Photo 3)",
+          "zh": "头顿游艇码头（Vũng Tàu Marina）建筑与风光细节（图 3）",
+          "ja": "ブンタウ・マリーナ（ソンディン湾）の建築と風景（写真 3）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      }
+    ],
+    "wikipediaUrl": "https://vi.wikipedia.org/wiki/S%C3%B4ng_Dinh_(B%C3%A0_R%E1%BB%8Ba_%E2%80%93_V%C5%A9ng_T%C3%A0u)",
+    "viWikiSummary": "Bến du thuyền Vũng Tàu Marina khai trương năm 2015 bên vịnh Sông Dinh (cuối Đường số 1, KCN Đông Xuyên, phường Rạch Dừa) là bến du thuyền và câu lạc bộ thuyền buồm thể thao chuẩn quốc tế đầu tiên tại Vũng Tàu.",
+    "viWikiParagraphs": [
+      "Bến du thuyền Vũng Tàu Marina khai trương năm 2015 bên vịnh Sông Dinh (cuối Đường số 1, KCN Đông Xuyên, phường Rạch Dừa) là bến du thuyền và câu lạc bộ thuyền buồm thể thao chuẩn quốc tế đầu tiên tại Vũng Tàu.",
+      "Đối diện đảo Gò Găng và đảo Long Sơn, bến thuyền nổi bật với cây cầu gỗ dài vươn ra mặt nước, dàn thuyền buồm hai thân Catamaran rực rỡ sắc màu cùng các tuyến cano du lịch sông Dinh – cầu Chà Và – làng bè hàu."
+    ],
+    "enWikiSummary": "Opened in 2015 on Song Dinh Bay facing Long Son and Go Gang Islands, Vung Tau Marina is the city’s first international-standard yacht and sailboat club, famed for its wooden pier, colorful Catamaran sails, and speedboat island tours.",
+    "enWikiParagraphs": [
+      "Opened in 2015 on Song Dinh Bay facing Long Son and Go Gang Islands, Vung Tau Marina is the city’s first international-standard yacht and sailboat club, famed for its wooden pier, colorful Catamaran sails, and speedboat island tours."
+    ]
+  },
+  "nha-tron-ba-ria": {
+    "coverImage": "https://commons.wikimedia.org/wiki/Special:FilePath/Nh%C3%A0_tr%C3%B2n,_%C4%91%C6%B0%E1%BB%9Dng_c%C3%A1ch_m%E1%BA%A1ng_Th%C3%A1ng_t%C3%A1m,_th%E1%BB%8B_x%C3%A3_b%C3%A0_r%E1%BB%8Ba-V%C5%A9ng_t%C3%A0u,_vi%E1%BB%87t_nam_-_panoramio.jpg?width=1200",
+    "mediaGallery": [
+      {
+        "id": "wk-nhatronbaria-1",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Nh%C3%A0_tr%C3%B2n,_%C4%91%C6%B0%E1%BB%9Dng_c%C3%A1ch_m%E1%BA%A1ng_Th%C3%A1ng_t%C3%A1m,_th%E1%BB%8B_x%C3%A3_b%C3%A0_r%E1%BB%8Ba-V%C5%A9ng_t%C3%A0u,_vi%E1%BB%87t_nam_-_panoramio.jpg?width=1200",
+        "caption": {
+          "vi": "Ảnh thực tế toàn cảnh Di tích Lịch sử Nhà Tròn Bà Rịa (Tháp Nước Cổ) (Wikimedia Commons)",
+          "en": "Real view of Ba Ria Round House (Historic Water Tower) (Wikimedia Commons)",
+          "fr": "Vue réelle de Maison Ronde de Ba Ria (Château d’eau historique) (Wikimedia Commons)",
+          "zh": "巴地圆屋历史遗迹（百年水塔）实景照片（维基共享资源）",
+          "ja": "バリア円形館（歴史的給水塔）の実景写真（ウィキメディア・コモンズ）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      },
+      {
+        "id": "wk-nhatronbaria-2",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/N%C3%BAi_Dinh_B%C3%A0_R%E1%BB%8Ba_(nh%C3%ACn_t%E1%BB%AB_b%E1%BB%9D_s%C3%B4ng_Long_H%C6%B0%C6%A1ng)_-_panoramio.jpg?width=1200",
+        "caption": {
+          "vi": "Góc nhìn kiến trúc & cảnh quan tại Di tích Lịch sử Nhà Tròn Bà Rịa (Tháp Nước Cổ) (Ảnh 2)",
+          "en": "Architecture & scenery at Ba Ria Round House (Historic Water Tower) (Photo 2)",
+          "fr": "Architecture et paysage à Maison Ronde de Ba Ria (Château d’eau historique) (Photo 2)",
+          "zh": "巴地圆屋历史遗迹（百年水塔）建筑与风光细节（图 2）",
+          "ja": "バリア円形館（歴史的給水塔）の建築と風景（写真 2）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      },
+      {
+        "id": "wk-nhatronbaria-3",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Th%E1%BB%8B_tr%E1%BA%A5n_Ph%C6%B0%E1%BB%9Bc_B%E1%BB%ADu,_Xuy%C3%AAn_M%E1%BB%99c,_BR-VT.jpg?width=1200",
+        "caption": {
+          "vi": "Góc nhìn kiến trúc & cảnh quan tại Di tích Lịch sử Nhà Tròn Bà Rịa (Tháp Nước Cổ) (Ảnh 3)",
+          "en": "Architecture & scenery at Ba Ria Round House (Historic Water Tower) (Photo 3)",
+          "fr": "Architecture et paysage à Maison Ronde de Ba Ria (Château d’eau historique) (Photo 3)",
+          "zh": "巴地圆屋历史遗迹（百年水塔）建筑与风光细节（图 3）",
+          "ja": "バリア円形館（歴史的給水塔）の建築と風景（写真 3）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      }
+    ],
+    "wikipediaUrl": "https://vi.wikipedia.org/wiki/Nh%C3%A0_Tr%C3%B2n_B%C3%A0_R%E1%BB%8Ba",
+    "viWikiSummary": "Nhà Tròn Bà Rịa (còn gọi là Tháp nước cổ Bà Rịa) được người Pháp xây dựng đầu thế kỷ XX bằng bê tông cốt thép cao khoảng 20m ngay trung tâm đường Cách Mạng Tháng Tám, vừa làm thủy đài cung cấp nước sạch vừa làm đài quan sát toàn vùng.",
+    "viWikiParagraphs": [
+      "Nhà Tròn Bà Rịa (còn gọi là Tháp nước cổ Bà Rịa) được người Pháp xây dựng đầu thế kỷ XX bằng bê tông cốt thép cao khoảng 20m ngay trung tâm đường Cách Mạng Tháng Tám, vừa làm thủy đài cung cấp nước sạch vừa làm đài quan sát toàn vùng.",
+      "Ngày 25/8/1945, lá cờ đỏ sao vàng đã tung bay trên đỉnh Nhà Tròn đánh dấu thắng lợi của Cách mạng Tháng Tám tại Bà Rịa; công trình được công nhận Di tích Lịch sử cấp Quốc gia năm 1987 và là biểu tượng kiến trúc thân thuộc của đô thị Bà Rịa."
+    ],
+    "enWikiSummary": "Built in the early 20th century as a 20-meter French-engineered octagonal water tower and observation post in central Ba Ria, Nha Tron became a National Historical Monument in 1987 commemorating the August 25, 1945 uprising.",
+    "enWikiParagraphs": [
+      "Built in the early 20th century as a 20-meter French-engineered octagonal water tower and observation post in central Ba Ria, Nha Tron became a National Historical Monument in 1987 commemorating the August 25, 1945 uprising."
+    ]
+  },
+  "dia-dao-long-phuoc-ba-ria": {
+    "coverImage": "https://commons.wikimedia.org/wiki/Special:FilePath/Capture_communist_flags_in_Long_Hai_hills,_1968.jpg?width=1200",
+    "mediaGallery": [
+      {
+        "id": "wk-diadaolongph-1",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Capture_communist_flags_in_Long_Hai_hills,_1968.jpg?width=1200",
+        "caption": {
+          "vi": "Ảnh thực tế toàn cảnh Di tích Quốc gia Địa đạo Long Phước (1948) (Wikimedia Commons)",
+          "en": "Real view of Long Phuoc Tunnels National Monument (1948) (Wikimedia Commons)",
+          "fr": "Vue réelle de Tunnels historiques de Long Phuoc (1948) (Wikimedia Commons)",
+          "zh": "龙福地道国家级遗迹（1948年）实景照片（维基共享资源）",
+          "ja": "ロンフック地下トンネル遺跡（1948年）の実景写真（ウィキメディア・コモンズ）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      },
+      {
+        "id": "wk-diadaolongph-2",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/N%C3%BAi_Dinh_B%C3%A0_R%E1%BB%8Ba_(nh%C3%ACn_t%E1%BB%AB_b%E1%BB%9D_s%C3%B4ng_Long_H%C6%B0%C6%A1ng)_-_panoramio.jpg?width=1200",
+        "caption": {
+          "vi": "Góc nhìn kiến trúc & cảnh quan tại Di tích Quốc gia Địa đạo Long Phước (1948) (Ảnh 2)",
+          "en": "Architecture & scenery at Long Phuoc Tunnels National Monument (1948) (Photo 2)",
+          "fr": "Architecture et paysage à Tunnels historiques de Long Phuoc (1948) (Photo 2)",
+          "zh": "龙福地道国家级遗迹（1948年）建筑与风光细节（图 2）",
+          "ja": "ロンフック地下トンネル遺跡（1948年）の建築と風景（写真 2）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      },
+      {
+        "id": "wk-diadaolongph-3",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Nh%C3%A0_tr%C3%B2n,_%C4%91%C6%B0%E1%BB%9Dng_c%C3%A1ch_m%E1%BA%A1ng_Th%C3%A1ng_t%C3%A1m,_th%E1%BB%8B_x%C3%A3_b%C3%A0_r%E1%BB%8Ba-V%C5%A9ng_t%C3%A0u,_vi%E1%BB%87t_nam_-_panoramio.jpg?width=1200",
+        "caption": {
+          "vi": "Góc nhìn kiến trúc & cảnh quan tại Di tích Quốc gia Địa đạo Long Phước (1948) (Ảnh 3)",
+          "en": "Architecture & scenery at Long Phuoc Tunnels National Monument (1948) (Photo 3)",
+          "fr": "Architecture et paysage à Tunnels historiques de Long Phuoc (1948) (Photo 3)",
+          "zh": "龙福地道国家级遗迹（1948年）建筑与风光细节（图 3）",
+          "ja": "ロンフック地下トンネル遺跡（1948年）の建築と風景（写真 3）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      }
+    ],
+    "wikipediaUrl": "https://vi.wikipedia.org/wiki/%C4%90%E1%BB%8Ba_%C4%91%E1%BA%A1o_Long_Ph%C6%B0%E1%BB%9Bc",
+    "viWikiSummary": "Địa đạo Long Phước nằm cách trung tâm Bà Rịa khoảng 7 km về phía Đông Bắc, được quân dân xã Long Phước bắt đầu đào từ năm 1948 trong kháng chiến chống Pháp và mở rộng vững chắc giai đoạn 1963–1975 với tổng chiều dài gần 3.600m (trục chính 1.200m).",
+    "viWikiParagraphs": [
+      "Địa đạo Long Phước nằm cách trung tâm Bà Rịa khoảng 7 km về phía Đông Bắc, được quân dân xã Long Phước bắt đầu đào từ năm 1948 trong kháng chiến chống Pháp và mở rộng vững chắc giai đoạn 1963–1975 với tổng chiều dài gần 3.600m (trục chính 1.200m).",
+      "Công trình được Bộ Văn hóa công nhận Di tích Lịch sử cấp Quốc gia tháng 01/1990, lưu giữ hệ thống hầm chỉ huy, trạm quân y, kho lương thực – vũ khí sâu 2–3m trong lòng đất gắn liền với chiến công 44 ngày đêm chống càn năm 1963."
+    ],
+    "enWikiSummary": "Located 7 km northeast of Ba Ria and designated a National Historical Monument in 1990, the Long Phuoc Tunnels were dug starting in 1948 and expanded into a resilient underground network with command bunkers, clinics, and storage chambers.",
+    "enWikiParagraphs": [
+      "Located 7 km northeast of Ba Ria and designated a National Historical Monument in 1990, the Long Phuoc Tunnels were dug starting in 1948 and expanded into a resilient underground network with command bunkers, clinics, and storage chambers."
+    ]
+  },
+  "can-cu-minh-dam-long-hai": {
+    "coverImage": "https://commons.wikimedia.org/wiki/Special:FilePath/Capture_communist_flags_in_Long_Hai_hills,_1968.jpg?width=1200",
+    "mediaGallery": [
+      {
+        "id": "wk-cancuminhdam-1",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Capture_communist_flags_in_Long_Hai_hills,_1968.jpg?width=1200",
+        "caption": {
+          "vi": "Ảnh thực tế toàn cảnh Khu Di tích Lịch sử Quốc gia Căn cứ Minh Đạm (Wikimedia Commons)",
+          "en": "Real view of Minh Dam Mountain Revolutionary Base (Wikimedia Commons)",
+          "fr": "Vue réelle de Base historique de la montagne Minh Dam (Wikimedia Commons)",
+          "zh": "明淡山抗战根据地（国家级遗迹）实景照片（维基共享资源）",
+          "ja": "ミンダム山革命根拠地（国家歴史遺産）の実景写真（ウィキメディア・コモンズ）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      },
+      {
+        "id": "wk-cancuminhdam-2",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/B%C3%A3i_bi%E1%BB%83n_Long_H%E1%BA%A3i.JPG?width=1200",
+        "caption": {
+          "vi": "Góc nhìn kiến trúc & cảnh quan tại Khu Di tích Lịch sử Quốc gia Căn cứ Minh Đạm (Ảnh 2)",
+          "en": "Architecture & scenery at Minh Dam Mountain Revolutionary Base (Photo 2)",
+          "fr": "Architecture et paysage à Base historique de la montagne Minh Dam (Photo 2)",
+          "zh": "明淡山抗战根据地（国家级遗迹）建筑与风光细节（图 2）",
+          "ja": "ミンダム山革命根拠地（国家歴史遺産）の建築と風景（写真 2）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      },
+      {
+        "id": "wk-cancuminhdam-3",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Long_H%E1%BA%A3i,_Long_%C4%90i%E1%BB%81n,_Ba_Ria_-_Vung_Tau,_Vietnam_-_panoramio.jpg?width=1200",
+        "caption": {
+          "vi": "Góc nhìn kiến trúc & cảnh quan tại Khu Di tích Lịch sử Quốc gia Căn cứ Minh Đạm (Ảnh 3)",
+          "en": "Architecture & scenery at Minh Dam Mountain Revolutionary Base (Photo 3)",
+          "fr": "Architecture et paysage à Base historique de la montagne Minh Dam (Photo 3)",
+          "zh": "明淡山抗战根据地（国家级遗迹）建筑与风光细节（图 3）",
+          "ja": "ミンダム山革命根拠地（国家歴史遺産）の建築と風景（写真 3）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      }
+    ],
+    "wikipediaUrl": "https://vi.wikipedia.org/wiki/C%C4%83n_c%E1%BB%A9_Minh_%C4%90%E1%BA%A1m",
+    "viWikiSummary": "Khu di tích lịch sử Căn cứ Minh Đạm (trước đây là dãy núi Châu Viên – Châu Long) dài khoảng 8 km, cao 355m ôm sát bờ biển Long Hải – Phước Hải, được đặt tên ghép từ hai vị liệt sĩ Bùi Công Minh và Mạc Thanh Đạm hy sinh năm 1948.",
+    "viWikiParagraphs": [
+      "Khu di tích lịch sử Căn cứ Minh Đạm (trước đây là dãy núi Châu Viên – Châu Long) dài khoảng 8 km, cao 355m ôm sát bờ biển Long Hải – Phước Hải, được đặt tên ghép từ hai vị liệt sĩ Bùi Công Minh và Mạc Thanh Đạm hy sinh năm 1948.",
+      "Được xếp hạng Di tích Lịch sử cấp Quốc gia năm 1993, căn cứ bảo tồn hàng loạt hang đá tự nhiên như hang Huyện ủy, hang Quân y, hang Huyện đội cùng Đền thờ Liệt sĩ trang nghiêm giữa rừng nguyên sinh xanh mát nhìn ra Biển Đông."
+    ],
+    "enWikiSummary": "Spanning an 8-kilometer coastal mountain range rising 355 meters above Long Hai and Phuoc Hai, the Minh Dam Revolutionary Base (National Monument, 1993) preserves natural granite cave headquarters used throughout 1948–1975 alongside lush forest trails and ocean panoramas.",
+    "enWikiParagraphs": [
+      "Spanning an 8-kilometer coastal mountain range rising 355 meters above Long Hai and Phuoc Hai, the Minh Dam Revolutionary Base (National Monument, 1993) preserves natural granite cave headquarters used throughout 1948–1975 alongside lush forest trails and ocean panoramas."
+    ]
+  },
+  "nha-luu-niem-vo-thi-sau-dat-do": {
+    "coverImage": "https://commons.wikimedia.org/wiki/Special:FilePath/Vo_Thi_Sau_memorial.jpg?width=1200",
+    "mediaGallery": [
+      {
+        "id": "wk-nhaluuniemvo-1",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Vo_Thi_Sau_memorial.jpg?width=1200",
+        "caption": {
+          "vi": "Ảnh thực tế toàn cảnh Nhà lưu niệm & Đền thờ Anh hùng Liệt sĩ Võ Thị Sáu (Wikimedia Commons)",
+          "en": "Real view of Heroine Vo Thi Sau Memorial House & Shrine (Dat Do) (Wikimedia Commons)",
+          "fr": "Vue réelle de Maison mémoriale de Vo Thi Sau (Dat Do) (Wikimedia Commons)",
+          "zh": "武氏六女英雄故居纪念馆（红土）实景照片（维基共享资源）",
+          "ja": "ヴォー・ティ・サウ記念館・生家（ダットドー）の実景写真（ウィキメディア・コモンズ）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      },
+      {
+        "id": "wk-nhaluuniemvo-2",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/M%E1%BB%99_V%C3%B5_Th%E1%BB%8B_S%C3%A1u.jpg?width=1200",
+        "caption": {
+          "vi": "Góc nhìn kiến trúc & cảnh quan tại Nhà lưu niệm & Đền thờ Anh hùng Liệt sĩ Võ Thị Sáu (Ảnh 2)",
+          "en": "Architecture & scenery at Heroine Vo Thi Sau Memorial House & Shrine (Dat Do) (Photo 2)",
+          "fr": "Architecture et paysage à Maison mémoriale de Vo Thi Sau (Dat Do) (Photo 2)",
+          "zh": "武氏六女英雄故居纪念馆（红土）建筑与风光细节（图 2）",
+          "ja": "ヴォー・ティ・サウ記念館・生家（ダットドー）の建築と風景（写真 2）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      },
+      {
+        "id": "wk-nhaluuniemvo-3",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Long_H%E1%BA%A3i,_Long_%C4%90i%E1%BB%81n,_Ba_Ria_-_Vung_Tau,_Vietnam_-_panoramio.jpg?width=1200",
+        "caption": {
+          "vi": "Góc nhìn kiến trúc & cảnh quan tại Nhà lưu niệm & Đền thờ Anh hùng Liệt sĩ Võ Thị Sáu (Ảnh 3)",
+          "en": "Architecture & scenery at Heroine Vo Thi Sau Memorial House & Shrine (Dat Do) (Photo 3)",
+          "fr": "Architecture et paysage à Maison mémoriale de Vo Thi Sau (Dat Do) (Photo 3)",
+          "zh": "武氏六女英雄故居纪念馆（红土）建筑与风光细节（图 3）",
+          "ja": "ヴォー・ティ・サウ記念館・生家（ダットドー）の建築と風景（写真 3）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      }
+    ],
+    "wikipediaUrl": "https://vi.wikipedia.org/wiki/V%C3%B5_Th%E1%BB%8B_S%C3%A1u",
+    "viWikiSummary": "Nhà lưu niệm và Đền thờ Anh hùng Lực lượng Vũ trang Nhân dân Võ Thị Sáu tọa lạc ngay trung tâm thị trấn Đất Đỏ (Quốc lộ 55) — quê hương người nữ anh hùng trẻ tuổi kiên trung (1933–1952).",
+    "viWikiParagraphs": [
+      "Nhà lưu niệm và Đền thờ Anh hùng Lực lượng Vũ trang Nhân dân Võ Thị Sáu tọa lạc ngay trung tâm thị trấn Đất Đỏ (Quốc lộ 55) — quê hương người nữ anh hùng trẻ tuổi kiên trung (1933–1952).",
+      "Khu di tích Quốc gia gồm ngôi nhà gỗ mái ngói nguyên gốc nơi chị sinh sống cùng gia đình, công viên tượng đài bằng đồng cao 7m và nhà trưng bày hình ảnh, hiện vật về cuộc đời bất khuất của chị từ miền quê Đất Đỏ tới Côn Đảo."
+    ],
+    "enWikiSummary": "Located along National Highway 55 in Dat Do—birthplace of national heroine Vo Thi Sau (1933–1952)—this National Historical Monument preserves her original timber family home, a 7-meter bronze statue park, and a biographical memorial hall.",
+    "enWikiParagraphs": [
+      "Located along National Highway 55 in Dat Do—birthplace of national heroine Vo Thi Sau (1933–1952)—this National Historical Monument preserves her original timber family home, a 7-meter bronze statue park, and a biographical memorial hall."
+    ]
+  },
+  "nui-dinh-chua-hang-phu-my": {
+    "coverImage": "https://commons.wikimedia.org/wiki/Special:FilePath/Su%E1%BB%91i_%C4%90%C3%A1_n%C3%BAi_Dinh_B%C3%A0_R%E1%BB%8Ba_-_panoramio_(31).jpg?width=1200",
+    "mediaGallery": [
+      {
+        "id": "wk-nuidinhchuah-1",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Su%E1%BB%91i_%C4%90%C3%A1_n%C3%BAi_Dinh_B%C3%A0_R%E1%BB%8Ba_-_panoramio_(31).jpg?width=1200",
+        "caption": {
+          "vi": "Ảnh thực tế toàn cảnh Căn cứ Núi Dinh, Chùa Hang & Suối Tiên (Phú Mỹ) (Wikimedia Commons)",
+          "en": "Real view of Nui Dinh Mountain Base, Hang Pagoda & Suoi Tien Stream (Wikimedia Commons)",
+          "fr": "Vue réelle de Mont Nui Dinh, Pagode Hang et ruisseau Suoi Tien (Wikimedia Commons)",
+          "zh": "富美定山根据地、石洞寺与仙溪实景照片（维基共享资源）",
+          "ja": "ヌイディン山根拠地・ハン寺・スオイティエン渓谷の実景写真（ウィキメディア・コモンズ）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      },
+      {
+        "id": "wk-nuidinhchuah-2",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/%C4%90inh_nui_Dinh_B%C3%A0_Ria_(_Mountian)_-_panoramio.jpg?width=1200",
+        "caption": {
+          "vi": "Góc nhìn kiến trúc & cảnh quan tại Căn cứ Núi Dinh, Chùa Hang & Suối Tiên (Phú Mỹ) (Ảnh 2)",
+          "en": "Architecture & scenery at Nui Dinh Mountain Base, Hang Pagoda & Suoi Tien Stream (Photo 2)",
+          "fr": "Architecture et paysage à Mont Nui Dinh, Pagode Hang et ruisseau Suoi Tien (Photo 2)",
+          "zh": "富美定山根据地、石洞寺与仙溪建筑与风光细节（图 2）",
+          "ja": "ヌイディン山根拠地・ハン寺・スオイティエン渓谷の建築と風景（写真 2）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      },
+      {
+        "id": "wk-nuidinhchuah-3",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/N%C3%BAi_Dinh_B%C3%A0_R%E1%BB%8Ba_(nh%C3%ACn_t%E1%BB%AB_b%E1%BB%9D_s%C3%B4ng_Long_H%C6%B0%C6%A1ng)_-_panoramio.jpg?width=1200",
+        "caption": {
+          "vi": "Góc nhìn kiến trúc & cảnh quan tại Căn cứ Núi Dinh, Chùa Hang & Suối Tiên (Phú Mỹ) (Ảnh 3)",
+          "en": "Architecture & scenery at Nui Dinh Mountain Base, Hang Pagoda & Suoi Tien Stream (Photo 3)",
+          "fr": "Architecture et paysage à Mont Nui Dinh, Pagode Hang et ruisseau Suoi Tien (Photo 3)",
+          "zh": "富美定山根据地、石洞寺与仙溪建筑与风光细节（图 3）",
+          "ja": "ヌイディン山根拠地・ハン寺・スオイティエン渓谷の建築と風景（写真 3）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      }
+    ],
+    "wikipediaUrl": "https://vi.wikipedia.org/wiki/N%C3%BAi_Dinh",
+    "viWikiSummary": "Núi Dinh (cao khoảng 504m) thuộc địa bàn Phú Mỹ – Bà Rịa là dãy núi rừng hùng vĩ gắn liền với truyền thuyết khai mở vùng đất Đông Nam Bộ và từng là căn cứ địa cách mạng kiên cường suốt hai cuộc kháng chiến.",
+    "viWikiParagraphs": [
+      "Núi Dinh (cao khoảng 504m) thuộc địa bàn Phú Mỹ – Bà Rịa là dãy núi rừng hùng vĩ gắn liền với truyền thuyết khai mở vùng đất Đông Nam Bộ và từng là căn cứ địa cách mạng kiên cường suốt hai cuộc kháng chiến.",
+      "Nơi đây quy tụ hàng chục ngôi chùa, am thiền cổ tĩnh mịch như Chùa Hang (Tổ đình), Chùa Tây Phương, Chùa Đại Tòng Lâm kề cận cùng dòng Suối Tiên – Suối Đá 5 tầng hồ trong vắt và cung đường trekking Đỉnh La Bàn tuyệt đẹp."
+    ],
+    "enWikiSummary": "Rising to 504 meters between Phu My and Ba Ria, Dinh Mountain is a forested massif dotted with tranquil cliffside pagodas including Hang Pagoda, cascading Suoi Tien and Suoi Da streams, historic wartime caves, and scenic La Ban summit trails.",
+    "enWikiParagraphs": [
+      "Rising to 504 meters between Phu My and Ba Ria, Dinh Mountain is a forested massif dotted with tranquil cliffside pagodas including Hang Pagoda, cascading Suoi Tien and Suoi Da streams, historic wartime caves, and scenic La Ban summit trails."
+    ]
+  },
+  "ho-da-xanh-phu-my": {
+    "coverImage": "https://commons.wikimedia.org/wiki/Special:FilePath/%C4%90%C6%B0%E1%BB%9Dng_%C4%91i_Su%E1%BB%91i_%C4%90%C3%A1_5_h%E1%BB%93_n%C3%BAi_Dinh_(_B%C3%A0_R%E1%BB%8Ba)_-_panoramio_(7).jpg?width=1200",
+    "mediaGallery": [
+      {
+        "id": "wk-hodaxanhphum-1",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/%C4%90%C6%B0%E1%BB%9Dng_%C4%91i_Su%E1%BB%91i_%C4%90%C3%A1_5_h%E1%BB%93_n%C3%BAi_Dinh_(_B%C3%A0_R%E1%BB%8Ba)_-_panoramio_(7).jpg?width=1200",
+        "caption": {
+          "vi": "Ảnh thực tế toàn cảnh Hồ Đá Xanh (Hồ Ngọc Bích Chân Núi Dinh) (Wikimedia Commons)",
+          "en": "Real view of Ho Da Xanh (Emerald Quarry Lake at Nui Dinh) (Wikimedia Commons)",
+          "fr": "Vue réelle de Lac Émeraude Ho Da Xanh (Mont Dinh) (Wikimedia Commons)",
+          "zh": "青石湖（Hồ Đá Xanh · 营山翡翠湖）实景照片（维基共享资源）",
+          "ja": "ホー・ダー・サイン（ディン山麓の翡翠湖）の実景写真（ウィキメディア・コモンズ）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      },
+      {
+        "id": "wk-hodaxanhphum-2",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Su%E1%BB%91i_%C4%90%C3%A1_n%C3%BAi_Dinh_B%C3%A0_R%E1%BB%8Ba_-_panoramio_(24).jpg?width=1200",
+        "caption": {
+          "vi": "Góc nhìn kiến trúc & cảnh quan tại Hồ Đá Xanh (Hồ Ngọc Bích Chân Núi Dinh) (Ảnh 2)",
+          "en": "Architecture & scenery at Ho Da Xanh (Emerald Quarry Lake at Nui Dinh) (Photo 2)",
+          "fr": "Architecture et paysage à Lac Émeraude Ho Da Xanh (Mont Dinh) (Photo 2)",
+          "zh": "青石湖（Hồ Đá Xanh · 营山翡翠湖）建筑与风光细节（图 2）",
+          "ja": "ホー・ダー・サイン（ディン山麓の翡翠湖）の建築と風景（写真 2）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      },
+      {
+        "id": "wk-hodaxanhphum-3",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/N%C3%BAi_Dinh_B%C3%A0_R%E1%BB%8Ba_(nh%C3%ACn_t%E1%BB%AB_b%E1%BB%9D_s%C3%B4ng_Long_H%C6%B0%C6%A1ng)_-_panoramio.jpg?width=1200",
+        "caption": {
+          "vi": "Góc nhìn kiến trúc & cảnh quan tại Hồ Đá Xanh (Hồ Ngọc Bích Chân Núi Dinh) (Ảnh 3)",
+          "en": "Architecture & scenery at Ho Da Xanh (Emerald Quarry Lake at Nui Dinh) (Photo 3)",
+          "fr": "Architecture et paysage à Lac Émeraude Ho Da Xanh (Mont Dinh) (Photo 3)",
+          "zh": "青石湖（Hồ Đá Xanh · 营山翡翠湖）建筑与风光细节（图 3）",
+          "ja": "ホー・ダー・サイン（ディン山麓の翡翠湖）の建築と風景（写真 3）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      }
+    ],
+    "wikipediaUrl": "https://vi.wikipedia.org/wiki/N%C3%BAi_Dinh",
+    "viWikiSummary": "Hồ Đá Xanh nằm dưới chân sườn Núi Dinh (khu vực Kim Dinh – Tân Hải, Phú Mỹ – Bà Rịa), hình thành từ lòng hồ khai thác đá sâu tích nước mưa tự nhiên tạo nên màu nước xanh ngọc bích đặc trưng soi bóng vách núi sừng sững.",
+    "viWikiParagraphs": [
+      "Hồ Đá Xanh nằm dưới chân sườn Núi Dinh (khu vực Kim Dinh – Tân Hải, Phú Mỹ – Bà Rịa), hình thành từ lòng hồ khai thác đá sâu tích nước mưa tự nhiên tạo nên màu nước xanh ngọc bích đặc trưng soi bóng vách núi sừng sững.",
+      "Nhờ cảnh sắc sơn thủy hữu tình với cầu gỗ vươn ra mặt hồ, thuyền gỗ và đàn cừu trắng, Hồ Đá Xanh trở thành tọa độ dừng chân chụp ảnh cưới và du lịch sinh thái nổi tiếng ngay trên cung đường từ TP.HCM đi Vũng Tàu."
+    ],
+    "enWikiSummary": "Nestled beneath the rocky foothills of Dinh Mountain near Kim Dinh, Ho Da Xanh is a striking emerald-turquoise quarry lake renowned for dramatic cliff reflections, wooden photo boardwalks, and pastoral lakeside scenery.",
+    "enWikiParagraphs": [
+      "Nestled beneath the rocky foothills of Dinh Mountain near Kim Dinh, Ho Da Xanh is a striking emerald-turquoise quarry lake renowned for dramatic cliff reflections, wooden photo boardwalks, and pastoral lakeside scenery."
+    ]
+  },
+  "doi-cuu-suoi-nghe-chau-duc": {
+    "coverImage": "https://commons.wikimedia.org/wiki/Special:FilePath/Th%E1%BB%8B_tr%E1%BA%A5n_Ph%C6%B0%E1%BB%9Bc_B%E1%BB%ADu,_Xuy%C3%AAn_M%E1%BB%99c,_BR-VT.jpg?width=1200",
+    "mediaGallery": [
+      {
+        "id": "wk-doicuusuoing-1",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Th%E1%BB%8B_tr%E1%BA%A5n_Ph%C6%B0%E1%BB%9Bc_B%E1%BB%ADu,_Xuy%C3%AAn_M%E1%BB%99c,_BR-VT.jpg?width=1200",
+        "caption": {
+          "vi": "Ảnh thực tế toàn cảnh Đồi Cừu Suối Nghệ (Thảo nguyên Cừu Châu Đức) (Wikimedia Commons)",
+          "en": "Real view of Suoi Nghe Sheep Hill (Chau Duc Pastoral Meadow) (Wikimedia Commons)",
+          "fr": "Vue réelle de Colline aux moutons de Suoi Nghe (Chau Duc) (Wikimedia Commons)",
+          "zh": "苏艺绵羊山丘（Đồi Cừu Suối Nghệ）实景照片（维基共享资源）",
+          "ja": "スオイゲー羊の丘（チャウドゥック牧草地）の実景写真（ウィキメディア・コモンズ）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      },
+      {
+        "id": "wk-doicuusuoing-2",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/N%C3%BAi_Dinh_B%C3%A0_R%E1%BB%8Ba_(nh%C3%ACn_t%E1%BB%AB_b%E1%BB%9D_s%C3%B4ng_Long_H%C6%B0%C6%A1ng)_-_panoramio.jpg?width=1200",
+        "caption": {
+          "vi": "Góc nhìn kiến trúc & cảnh quan tại Đồi Cừu Suối Nghệ (Thảo nguyên Cừu Châu Đức) (Ảnh 2)",
+          "en": "Architecture & scenery at Suoi Nghe Sheep Hill (Chau Duc Pastoral Meadow) (Photo 2)",
+          "fr": "Architecture et paysage à Colline aux moutons de Suoi Nghe (Chau Duc) (Photo 2)",
+          "zh": "苏艺绵羊山丘（Đồi Cừu Suối Nghệ）建筑与风光细节（图 2）",
+          "ja": "スオイゲー羊の丘（チャウドゥック牧草地）の建築と風景（写真 2）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      },
+      {
+        "id": "wk-doicuusuoing-3",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Su%E1%BB%91i_%C4%90%C3%A1_n%C3%BAi_Dinh_B%C3%A0_R%E1%BB%8Ba_-_panoramio_(31).jpg?width=1200",
+        "caption": {
+          "vi": "Góc nhìn kiến trúc & cảnh quan tại Đồi Cừu Suối Nghệ (Thảo nguyên Cừu Châu Đức) (Ảnh 3)",
+          "en": "Architecture & scenery at Suoi Nghe Sheep Hill (Chau Duc Pastoral Meadow) (Photo 3)",
+          "fr": "Architecture et paysage à Colline aux moutons de Suoi Nghe (Chau Duc) (Photo 3)",
+          "zh": "苏艺绵羊山丘（Đồi Cừu Suối Nghệ）建筑与风光细节（图 3）",
+          "ja": "スオイゲー羊の丘（チャウドゥック牧草地）の建築と風景（写真 3）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      }
+    ],
+    "wikipediaUrl": "https://vi.wikipedia.org/wiki/Su%E1%BB%91i_Ngh%E1%BB%87",
+    "viWikiSummary": "Đồi Cừu Suối Nghệ nằm trên tuyến đường Phước Tân – Hội Bài (đường số 14, xã Suối Nghệ, Châu Đức), khởi nguồn từ các hộ chăn nuôi cừu lấy thịt và lông rồi phát triển thành điểm du lịch nông trại nổi tiếng bậc nhất miền Đông Nam Bộ.",
+    "viWikiParagraphs": [
+      "Đồi Cừu Suối Nghệ nằm trên tuyến đường Phước Tân – Hội Bài (đường số 14, xã Suối Nghệ, Châu Đức), khởi nguồn từ các hộ chăn nuôi cừu lấy thịt và lông rồi phát triển thành điểm du lịch nông trại nổi tiếng bậc nhất miền Đông Nam Bộ.",
+      "Trên đồng cỏ nắng gió thoáng đãng, hơn 400 chú cừu trắng hiền lành cùng ngựa thả rong tự do tạo nên khung cảnh thảo nguyên du mục đầy chất thơ, thu hút đông đảo gia đình và du khách ghé thăm mỗi dịp cuối tuần."
+    ],
+    "enWikiSummary": "Along the Phuoc Tan – Hoi Bai road in Suoi Nghe (Chau Duc), this sunlit rural meadow is home to over 400 friendly grazing white sheep and horses, offering a beloved pastoral stop just 26 km from Vung Tau.",
+    "enWikiParagraphs": [
+      "Along the Phuoc Tan – Hoi Bai road in Suoi Nghe (Chau Duc), this sunlit rural meadow is home to over 400 friendly grazing white sheep and horses, offering a beloved pastoral stop just 26 km from Vung Tau."
+    ]
+  },
+  "dinh-co-long-hai": {
+    "coverImage": "https://commons.wikimedia.org/wiki/Special:FilePath/Dinh_C%C3%B4.jpg?width=1200",
+    "mediaGallery": [
+      {
+        "id": "wk-dinhcolongha-1",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Dinh_C%C3%B4.jpg?width=1200",
+        "caption": {
+          "vi": "Ảnh thực tế toàn cảnh Khu Di tích Dinh Cô – Biển Long Hải (Wikimedia Commons)",
+          "en": "Real view of Dinh Co Temple & Long Hai Beach (Wikimedia Commons)",
+          "fr": "Vue réelle de Temple Dinh Co et plage de Long Hai (Wikimedia Commons)",
+          "zh": "龙海姑庙历史遗迹实景照片（维基共享资源）",
+          "ja": "ディンコー廟とロンハイ海岸の実景写真（ウィキメディア・コモンズ）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      },
+      {
+        "id": "wk-dinhcolongha-2",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/B%C3%A3i_bi%E1%BB%83n_Long_H%E1%BA%A3i.JPG?width=1200",
+        "caption": {
+          "vi": "Góc nhìn kiến trúc & cảnh quan tại Khu Di tích Dinh Cô – Biển Long Hải (Ảnh 2)",
+          "en": "Architecture & scenery at Dinh Co Temple & Long Hai Beach (Photo 2)",
+          "fr": "Architecture et paysage à Temple Dinh Co et plage de Long Hai (Photo 2)",
+          "zh": "龙海姑庙历史遗迹建筑与风光细节（图 2）",
+          "ja": "ディンコー廟とロンハイ海岸の建築と風景（写真 2）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      },
+      {
+        "id": "wk-dinhcolongha-3",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Bi%E1%BB%83n_Long_H%E1%BA%A3i.jpg?width=1200",
+        "caption": {
+          "vi": "Góc nhìn kiến trúc & cảnh quan tại Khu Di tích Dinh Cô – Biển Long Hải (Ảnh 3)",
+          "en": "Architecture & scenery at Dinh Co Temple & Long Hai Beach (Photo 3)",
+          "fr": "Architecture et paysage à Temple Dinh Co et plage de Long Hai (Photo 3)",
+          "zh": "龙海姑庙历史遗迹建筑与风光细节（图 3）",
+          "ja": "ディンコー廟とロンハイ海岸の建築と風景（写真 3）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      }
+    ],
+    "wikipediaUrl": "https://vi.wikipedia.org/wiki/Dinh_C%C3%B4",
+    "viWikiSummary": "Khu di tích Dinh Cô tọa lạc dưới chân đồi Kỳ Vân hướng thẳng ra bãi biển Long Hải cát trắng, khởi dựng từ cuối thế kỷ XVIII gắn liền với huyền tích linh thiêng về cô gái Lê Thị Hồng luôn hiển linh che chở ngư dân vượt sóng dữ.",
+    "viWikiParagraphs": [
+      "Khu di tích Dinh Cô tọa lạc dưới chân đồi Kỳ Vân hướng thẳng ra bãi biển Long Hải cát trắng, khởi dựng từ cuối thế kỷ XVIII gắn liền với huyền tích linh thiêng về cô gái Lê Thị Hồng luôn hiển linh che chở ngư dân vượt sóng dữ.",
+      "Dinh Cô được xếp hạng Di tích Lịch sử – Văn hóa cấp Quốc gia năm 1995; đặc biệt, Lễ hội Dinh Cô diễn ra từ mùng 10 đến 12 tháng Hai âm lịch hằng năm đã được Bộ Văn hóa công nhận Di sản Văn hóa Phi vật thể Quốc gia năm 2023."
+    ],
+    "enWikiSummary": "Facing sandy Long Hai Beach beneath Ky Van Hill, Dinh Co Temple (National Monument, 1995) dates to the late 18th century and hosts the vibrant Dinh Co Festival every second lunar month—inscribed as National Intangible Cultural Heritage in 2023.",
+    "enWikiParagraphs": [
+      "Facing sandy Long Hai Beach beneath Ky Van Hill, Dinh Co Temple (National Monument, 1995) dates to the late 18th century and hosts the vibrant Dinh Co Festival every second lunar month—inscribed as National Intangible Cultural Heritage in 2023."
+    ]
+  },
+  "deo-nuoc-ngot-phuoc-hai": {
+    "coverImage": "https://commons.wikimedia.org/wiki/Special:FilePath/Bi%E1%BB%83n_Long_H%E1%BA%A3i.jpg?width=1200",
+    "mediaGallery": [
+      {
+        "id": "wk-deonuocngotp-1",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Bi%E1%BB%83n_Long_H%E1%BA%A3i.jpg?width=1200",
+        "caption": {
+          "vi": "Ảnh thực tế toàn cảnh Đèo Nước Ngọt & Làng Chài Phước Hải (Wikimedia Commons)",
+          "en": "Real view of Nuoc Ngot Coastal Pass & Phuoc Hai Fishing Village (Wikimedia Commons)",
+          "fr": "Vue réelle de Col côtier de Nuoc Ngot et village de pêcheurs de Phuoc Hai (Wikimedia Commons)",
+          "zh": "淡水岭沿海公路与福海渔村实景照片（维基共享资源）",
+          "ja": "ヌオックゴット海岸峠＆フオックハイ漁村の実景写真（ウィキメディア・コモンズ）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      },
+      {
+        "id": "wk-deonuocngotp-2",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Long_H%E1%BA%A3i,_Long_%C4%90i%E1%BB%81n,_Ba_Ria_-_Vung_Tau,_Vietnam_-_panoramio.jpg?width=1200",
+        "caption": {
+          "vi": "Góc nhìn kiến trúc & cảnh quan tại Đèo Nước Ngọt & Làng Chài Phước Hải (Ảnh 2)",
+          "en": "Architecture & scenery at Nuoc Ngot Coastal Pass & Phuoc Hai Fishing Village (Photo 2)",
+          "fr": "Architecture et paysage à Col côtier de Nuoc Ngot et village de pêcheurs de Phuoc Hai (Photo 2)",
+          "zh": "淡水岭沿海公路与福海渔村建筑与风光细节（图 2）",
+          "ja": "ヌオックゴット海岸峠＆フオックハイ漁村の建築と風景（写真 2）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      },
+      {
+        "id": "wk-deonuocngotp-3",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/B%C3%A3i_bi%E1%BB%83n_Long_H%E1%BA%A3i.JPG?width=1200",
+        "caption": {
+          "vi": "Góc nhìn kiến trúc & cảnh quan tại Đèo Nước Ngọt & Làng Chài Phước Hải (Ảnh 3)",
+          "en": "Architecture & scenery at Nuoc Ngot Coastal Pass & Phuoc Hai Fishing Village (Photo 3)",
+          "fr": "Architecture et paysage à Col côtier de Nuoc Ngot et village de pêcheurs de Phuoc Hai (Photo 3)",
+          "zh": "淡水岭沿海公路与福海渔村建筑与风光细节（图 3）",
+          "ja": "ヌオックゴット海岸峠＆フオックハイ漁村の建築と風景（写真 3）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      }
+    ],
+    "wikipediaUrl": "https://vi.wikipedia.org/wiki/Ph%C6%B0%E1%BB%9Bc_H%E1%BA%A3i_(th%E1%BB%8B_tr%E1%BA%A5n)",
+    "viWikiSummary": "Đèo Nước Ngọt là cung đường đèo ven biển hình chữ C dài khoảng 5 km trên tỉnh lộ ĐT44A, ôm trọn chân núi Minh Đạm nối liền thị trấn Long Hải với làng chài Phước Hải trù phú.",
+    "viWikiParagraphs": [
+      "Đèo Nước Ngọt là cung đường đèo ven biển hình chữ C dài khoảng 5 km trên tỉnh lộ ĐT44A, ôm trọn chân núi Minh Đạm nối liền thị trấn Long Hải với làng chài Phước Hải trù phú.",
+      "Cung đèo nổi tiếng với một bên là vách núi rừng xanh ngát, một bên là ghềnh đá và sóng biển xanh trong, đặc biệt rực rỡ sắc hoa đỗ mai (anh đào miền biển) nở hồng trắng mỗi dịp giáp Tết và dẫn xuống bờ kè hải sản Phước Hải trứ danh."
+    ],
+    "enWikiSummary": "Hugging the seaside cliffs of Minh Dam Mountain along Route DT44A, the 5-kilometer C-shaped Nuoc Ngot Pass links Long Hai with historic Phuoc Hai Fishing Village and bursts into pink-white coastal blossoms every spring.",
+    "enWikiParagraphs": [
+      "Hugging the seaside cliffs of Minh Dam Mountain along Route DT44A, the 5-kilometer C-shaped Nuoc Ngot Pass links Long Hai with historic Phuoc Hai Fishing Village and bursts into pink-white coastal blossoms every spring."
+    ]
+  },
+  "ben-tau-khong-so-loc-an": {
+    "coverImage": "https://commons.wikimedia.org/wiki/Special:FilePath/Ho_Tram_Beach.jpg?width=1200",
+    "mediaGallery": [
+      {
+        "id": "wk-bentaukhongs-1",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Ho_Tram_Beach.jpg?width=1200",
+        "caption": {
+          "vi": "Ảnh thực tế toàn cảnh Di tích Bến Lộc An (Đường Hồ Chí Minh trên biển) (Wikimedia Commons)",
+          "en": "Real view of Loc An Historic Pier (Ho Chi Minh Sea Trail Monument) (Wikimedia Commons)",
+          "fr": "Vue réelle de Site historique de la jetée de Loc An (Piste maritime Hô Chi Minh) (Wikimedia Commons)",
+          "zh": "禄安无号船码头遗迹（海上胡志明小道）实景照片（维基共享资源）",
+          "ja": "ロックアン無番号船埠頭遺跡（海のホーチミン・ルート）の実景写真（ウィキメディア・コモンズ）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      },
+      {
+        "id": "wk-bentaukhongs-2",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Long_H%E1%BA%A3i,_Long_%C4%90i%E1%BB%81n,_Ba_Ria_-_Vung_Tau,_Vietnam_-_panoramio.jpg?width=1200",
+        "caption": {
+          "vi": "Góc nhìn kiến trúc & cảnh quan tại Di tích Bến Lộc An (Đường Hồ Chí Minh trên biển) (Ảnh 2)",
+          "en": "Architecture & scenery at Loc An Historic Pier (Ho Chi Minh Sea Trail Monument) (Photo 2)",
+          "fr": "Architecture et paysage à Site historique de la jetée de Loc An (Piste maritime Hô Chi Minh) (Photo 2)",
+          "zh": "禄安无号船码头遗迹（海上胡志明小道）建筑与风光细节（图 2）",
+          "ja": "ロックアン無番号船埠頭遺跡（海のホーチミン・ルート）の建築と風景（写真 2）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      },
+      {
+        "id": "wk-bentaukhongs-3",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Bi%E1%BB%83n_%E1%BB%9F_H%E1%BB%93_C%C3%B3c.jpg?width=1200",
+        "caption": {
+          "vi": "Góc nhìn kiến trúc & cảnh quan tại Di tích Bến Lộc An (Đường Hồ Chí Minh trên biển) (Ảnh 3)",
+          "en": "Architecture & scenery at Loc An Historic Pier (Ho Chi Minh Sea Trail Monument) (Photo 3)",
+          "fr": "Architecture et paysage à Site historique de la jetée de Loc An (Piste maritime Hô Chi Minh) (Photo 3)",
+          "zh": "禄安无号船码头遗迹（海上胡志明小道）建筑与风光细节（图 3）",
+          "ja": "ロックアン無番号船埠頭遺跡（海のホーチミン・ルート）の建築と風景（写真 3）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      }
+    ],
+    "wikipediaUrl": "https://vi.wikipedia.org/wiki/%C4%90%C6%B0%E1%BB%9Dng_H%E1%BB%93_Ch%C3%AD_Minh_tr%C3%AAn_bi%E1%BB%83n",
+    "viWikiSummary": "Di tích Lịch sử Bến Lộc An nằm bên cửa sông Ray (xã Lộc An – Phước Thuận, Xuyên Mộc), được Bộ Văn hóa – Thông tin xếp hạng Di tích Lịch sử cấp Quốc gia năm 1995 trong hệ thống di tích Đường Hồ Chí Minh trên biển.",
+    "viWikiParagraphs": [
+      "Di tích Lịch sử Bến Lộc An nằm bên cửa sông Ray (xã Lộc An – Phước Thuận, Xuyên Mộc), được Bộ Văn hóa – Thông tin xếp hạng Di tích Lịch sử cấp Quốc gia năm 1995 trong hệ thống di tích Đường Hồ Chí Minh trên biển.",
+      "Từ tháng 10/1963 đến cuối năm 1964, Bến Lộc An đã đón an toàn 3 chuyến Tàu Không Số thuộc Đoàn 125 Hải quân chi viện hơn 109 tấn vũ khí cho chiến trường miền Đông Nam Bộ, góp phần trực tiếp vào chiến thắng Bình Giã lịch sử."
+    ],
+    "enWikiSummary": "Situated at the Ray River estuary in Loc An and designated a National Historical Monument in 1995, Loc An Pier served as a strategic landing point of the Ho Chi Minh Sea Trail, receiving three 'Unnumbered Ships' delivering over 109 tons of vital arms in 1963–1964.",
+    "enWikiParagraphs": [
+      "Situated at the Ray River estuary in Loc An and designated a National Historical Monument in 1995, Loc An Pier served as a strategic landing point of the Ho Chi Minh Sea Trail, receiving three 'Unnumbered Ships' delivering over 109 tons of vital arms in 1963–1964."
+    ]
+  },
+  "bien-ho-tram-hamptons-pier": {
+    "coverImage": "https://commons.wikimedia.org/wiki/Special:FilePath/Ho_Tram_Beach.jpg?width=1200",
+    "mediaGallery": [
+      {
+        "id": "wk-bienhotramha-1",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Ho_Tram_Beach.jpg?width=1200",
+        "caption": {
+          "vi": "Ảnh thực tế toàn cảnh Biển Hồ Tràm & Cầu Ngắm Biển Hamptons Pier (Wikimedia Commons)",
+          "en": "Real view of Ho Tram Beach & Hamptons Pier (Ocean Walk Bridge) (Wikimedia Commons)",
+          "fr": "Vue réelle de Plage de Ho Tram et jetée Hamptons Pier (Wikimedia Commons)",
+          "zh": "胡茶海滩与270米海上观景栈桥（Hamptons Pier）实景照片（维基共享资源）",
+          "ja": "ホーチャム海岸・ハンプトンズ桟橋の実景写真（ウィキメディア・コモンズ）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      },
+      {
+        "id": "wk-bienhotramha-2",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/The_Grand_Ho_Tram_Strip_in_Vietnam.jpg?width=1200",
+        "caption": {
+          "vi": "Góc nhìn kiến trúc & cảnh quan tại Biển Hồ Tràm & Cầu Ngắm Biển Hamptons Pier (Ảnh 2)",
+          "en": "Architecture & scenery at Ho Tram Beach & Hamptons Pier (Ocean Walk Bridge) (Photo 2)",
+          "fr": "Architecture et paysage à Plage de Ho Tram et jetée Hamptons Pier (Photo 2)",
+          "zh": "胡茶海滩与270米海上观景栈桥（Hamptons Pier）建筑与风光细节（图 2）",
+          "ja": "ホーチャム海岸・ハンプトンズ桟橋の建築と風景（写真 2）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      },
+      {
+        "id": "wk-bienhotramha-3",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/KND_H%E1%BB%93_Tr%C3%A0m_%E1%BB%9F_V%C5%A9ng_T%C3%A0u,_th01n2021_(c%E1%BA%A3nh_ki%E1%BA%BFn_tr%C3%BAc)_(3).jpg?width=1200",
+        "caption": {
+          "vi": "Góc nhìn kiến trúc & cảnh quan tại Biển Hồ Tràm & Cầu Ngắm Biển Hamptons Pier (Ảnh 3)",
+          "en": "Architecture & scenery at Ho Tram Beach & Hamptons Pier (Ocean Walk Bridge) (Photo 3)",
+          "fr": "Architecture et paysage à Plage de Ho Tram et jetée Hamptons Pier (Photo 3)",
+          "zh": "胡茶海滩与270米海上观景栈桥（Hamptons Pier）建筑与风光细节（图 3）",
+          "ja": "ホーチャム海岸・ハンプトンズ桟橋の建築と風景（写真 3）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      }
+    ],
+    "wikipediaUrl": "https://vi.wikipedia.org/wiki/H%E1%BB%93_Tr%C3%A0m",
+    "viWikiSummary": "Hồ Tràm (xã Phước Thuận, Xuyên Mộc) từng được kênh truyền hình CNNGo (Mỹ) bình chọn là một trong những bãi biển hoang sơ đẹp nhất hành tinh nhờ dải cát vàng dài 30 km, nước biển trong xanh và khí hậu nắng ấm quanh năm.",
+    "viWikiParagraphs": [
+      "Hồ Tràm (xã Phước Thuận, Xuyên Mộc) từng được kênh truyền hình CNNGo (Mỹ) bình chọn là một trong những bãi biển hoang sơ đẹp nhất hành tinh nhờ dải cát vàng dài 30 km, nước biển trong xanh và khí hậu nắng ấm quanh năm.",
+      "Điểm nhấn du lịch biểu tượng tại đây là Cầu ngắm biển Hamptons Pier khánh thành ngày 02/09/2022 — cây cầu đi bộ vươn ra biển đầu tiên tại Việt Nam dài 270m, rộng 10–20m kết nối phố thương mại biển sôi động và các khu nghỉ dưỡng 5 sao."
+    ],
+    "enWikiSummary": "Named by CNNGo among the world’s most beautiful unspoiled beaches, Ho Tram features Vietnam’s first sea-walking pier—the 270-meter Hamptons Pier inaugurated in September 2022—extending out into turquoise waters beside luxury beachfront resorts.",
+    "enWikiParagraphs": [
+      "Named by CNNGo among the world’s most beautiful unspoiled beaches, Ho Tram features Vietnam’s first sea-walking pier—the 270-meter Hamptons Pier inaugurated in September 2022—extending out into turquoise waters beside luxury beachfront resorts."
+    ]
+  },
+  "bien-ho-coc-xuyen-moc": {
+    "coverImage": "https://commons.wikimedia.org/wiki/Special:FilePath/Bi%E1%BB%83n_%E1%BB%9F_H%E1%BB%93_C%C3%B3c.jpg?width=1200",
+    "mediaGallery": [
+      {
+        "id": "wk-bienhococxuy-1",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Bi%E1%BB%83n_%E1%BB%9F_H%E1%BB%93_C%C3%B3c.jpg?width=1200",
+        "caption": {
+          "vi": "Ảnh thực tế toàn cảnh Biển Hồ Cốc (Cung đường Rừng – Biển Xuyên Mộc) (Wikimedia Commons)",
+          "en": "Real view of Ho Coc Beach (Pristine Forest-Meets-Sea Coast) (Wikimedia Commons)",
+          "fr": "Vue réelle de Plage sauvage de Ho Coc (Xuyen Moc) (Wikimedia Commons)",
+          "zh": "胡谷原始海滩（Biển Hồ Cốc）实景照片（维基共享资源）",
+          "ja": "ホーコック海岸（原生林に抱かれた秘境ビーチ）の実景写真（ウィキメディア・コモンズ）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      },
+      {
+        "id": "wk-bienhococxuy-2",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/C%E1%BA%A3nh_%E1%BB%9F_H%E1%BB%93_C%C3%B3c.jpg?width=1200",
+        "caption": {
+          "vi": "Góc nhìn kiến trúc & cảnh quan tại Biển Hồ Cốc (Cung đường Rừng – Biển Xuyên Mộc) (Ảnh 2)",
+          "en": "Architecture & scenery at Ho Coc Beach (Pristine Forest-Meets-Sea Coast) (Photo 2)",
+          "fr": "Architecture et paysage à Plage sauvage de Ho Coc (Xuyen Moc) (Photo 2)",
+          "zh": "胡谷原始海滩（Biển Hồ Cốc）建筑与风光细节（图 2）",
+          "ja": "ホーコック海岸（原生林に抱かれた秘境ビーチ）の建築と風景（写真 2）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      },
+      {
+        "id": "wk-bienhococxuy-3",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Ho_coc_beach_.jpg?width=1200",
+        "caption": {
+          "vi": "Góc nhìn kiến trúc & cảnh quan tại Biển Hồ Cốc (Cung đường Rừng – Biển Xuyên Mộc) (Ảnh 3)",
+          "en": "Architecture & scenery at Ho Coc Beach (Pristine Forest-Meets-Sea Coast) (Photo 3)",
+          "fr": "Architecture et paysage à Plage sauvage de Ho Coc (Xuyen Moc) (Photo 3)",
+          "zh": "胡谷原始海滩（Biển Hồ Cốc）建筑与风光细节（图 3）",
+          "ja": "ホーコック海岸（原生林に抱かれた秘境ビーチ）の建築と風景（写真 3）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      }
+    ],
+    "wikipediaUrl": "https://vi.wikipedia.org/wiki/H%E1%BB%93_C%E1%BB%91c",
+    "viWikiSummary": "Biển Hồ Cốc tọa lạc tại xã Bưng Riềng, huyện Xuyên Mộc, cách trung tâm TP.HCM khoảng 125 km — là bãi biển hoang sơ hiếm có tiếp giáp trực tiếp Khu bảo tồn thiên nhiên rừng nguyên sinh Bình Châu – Phước Bửu rộng hơn 11.000 ha.",
+    "viWikiParagraphs": [
+      "Biển Hồ Cốc tọa lạc tại xã Bưng Riềng, huyện Xuyên Mộc, cách trung tâm TP.HCM khoảng 125 km — là bãi biển hoang sơ hiếm có tiếp giáp trực tiếp Khu bảo tồn thiên nhiên rừng nguyên sinh Bình Châu – Phước Bửu rộng hơn 11.000 ha.",
+      "Nơi đây cuốn hút du khách bởi bờ cát trắng mịn trải dài dưới tán rừng dương xanh mát, những cụm đá tảng tự nhiên nhiều hình thù nằm rải rác trên mép sóng cùng làn nước trong xanh lý tưởng cho cắm trại và nhiếp ảnh."
+    ],
+    "enWikiSummary": "Bordering the 11,000-hectare Binh Chau – Phuoc Buu primeval coastal forest in Xuyen Moc, Ho Coc Beach captivates travelers with unspoiled golden sand, sculpted granite sea boulders, casuarina shade, and tranquil clear waters.",
+    "enWikiParagraphs": [
+      "Bordering the 11,000-hectare Binh Chau – Phuoc Buu primeval coastal forest in Xuyen Moc, Ho Coc Beach captivates travelers with unspoiled golden sand, sculpted granite sea boulders, casuarina shade, and tranquil clear waters."
+    ]
+  },
+  "suoi-khoang-nong-binh-chau": {
+    "coverImage": "https://commons.wikimedia.org/wiki/Special:FilePath/C%C3%B4ng_vi%C3%AAn_B%E1%BB%9D_H%E1%BB%93,_ph%C6%B0%E1%BB%9Bc_b%E1%BB%ADu,_xuy%C3%AAn_m%E1%BB%99c,_b%C3%A0_r%E1%BB%8Ba-v%C5%A9ng_t%C3%A0u_(3).jpg?width=1200",
+    "mediaGallery": [
+      {
+        "id": "wk-suoikhoangno-1",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/C%C3%B4ng_vi%C3%AAn_B%E1%BB%9D_H%E1%BB%93,_ph%C6%B0%E1%BB%9Bc_b%E1%BB%ADu,_xuy%C3%AAn_m%E1%BB%99c,_b%C3%A0_r%E1%BB%8Ba-v%C5%A9ng_t%C3%A0u_(3).jpg?width=1200",
+        "caption": {
+          "vi": "Ảnh thực tế toàn cảnh Suối Khoáng Nóng Bình Châu & Rừng Nguyên Sinh Phước Bửu (Wikimedia Commons)",
+          "en": "Real view of Binh Chau Natural Hot Springs & Phuoc Buu Nature Reserve (Wikimedia Commons)",
+          "fr": "Vue réelle de Sources thermales de Binh Chau et réserve de Phuoc Buu (Wikimedia Commons)",
+          "zh": "平洲天然温泉与福宝原始森林保护区实景照片（维基共享资源）",
+          "ja": "ビンチャウ天然温泉・フックブー自然保護区の実景写真（ウィキメディア・コモンズ）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      },
+      {
+        "id": "wk-suoikhoangno-2",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/C%C3%B4ng_vi%C3%AAn_B%E1%BB%9D_H%E1%BB%93,_ph%C6%B0%E1%BB%9Bc_b%E1%BB%ADu,_xuy%C3%AAn_m%E1%BB%99c,_b%C3%A0_r%E1%BB%8Ba-v%C5%A9ng_t%C3%A0u_(6).jpg?width=1200",
+        "caption": {
+          "vi": "Góc nhìn kiến trúc & cảnh quan tại Suối Khoáng Nóng Bình Châu & Rừng Nguyên Sinh Phước Bửu (Ảnh 2)",
+          "en": "Architecture & scenery at Binh Chau Natural Hot Springs & Phuoc Buu Nature Reserve (Photo 2)",
+          "fr": "Architecture et paysage à Sources thermales de Binh Chau et réserve de Phuoc Buu (Photo 2)",
+          "zh": "平洲天然温泉与福宝原始森林保护区建筑与风光细节（图 2）",
+          "ja": "ビンチャウ天然温泉・フックブー自然保護区の建築と風景（写真 2）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      },
+      {
+        "id": "wk-suoikhoangno-3",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Th%E1%BB%8B_tr%E1%BA%A5n_Ph%C6%B0%E1%BB%9Bc_B%E1%BB%ADu,_Xuy%C3%AAn_M%E1%BB%99c,_BR-VT.jpg?width=1200",
+        "caption": {
+          "vi": "Góc nhìn kiến trúc & cảnh quan tại Suối Khoáng Nóng Bình Châu & Rừng Nguyên Sinh Phước Bửu (Ảnh 3)",
+          "en": "Architecture & scenery at Binh Chau Natural Hot Springs & Phuoc Buu Nature Reserve (Photo 3)",
+          "fr": "Architecture et paysage à Sources thermales de Binh Chau et réserve de Phuoc Buu (Photo 3)",
+          "zh": "平洲天然温泉与福宝原始森林保护区建筑与风光细节（图 3）",
+          "ja": "ビンチャウ天然温泉・フックブー自然保護区の建築と風景（写真 3）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      }
+    ],
+    "wikipediaUrl": "https://vi.wikipedia.org/wiki/Khu_b%E1%BA%A3o_t%E1%BB%93n_thi%C3%AAn_nhi%C3%AAn_B%C3%ACnh_Ch%C3%A2u_%E2%80%93_Ph%C6%B0%E1%BB%9Bc_B%E1%BB%ADu",
+    "viWikiSummary": "Suối khoáng nóng Bình Châu nằm giữa Khu bảo tồn thiên nhiên Bình Châu – Phước Bửu rộng 11.293 ha (xã Bình Châu, Xuyên Mộc), sở hữu hơn 70 điểm phun nước khoáng tự nhiên có nhiệt độ từ 37°C đến 82°C giàu khoáng chất lưu huỳnh, silíc và bùn khoáng.",
+    "viWikiParagraphs": [
+      "Suối khoáng nóng Bình Châu nằm giữa Khu bảo tồn thiên nhiên Bình Châu – Phước Bửu rộng 11.293 ha (xã Bình Châu, Xuyên Mộc), sở hữu hơn 70 điểm phun nước khoáng tự nhiên có nhiệt độ từ 37°C đến 82°C giàu khoáng chất lưu huỳnh, silíc và bùn khoáng.",
+      "Từng được Tổ chức Du lịch Thế giới (UNWTO) bình chọn vào danh sách các khu du lịch sinh thái bền vững tiêu biểu, nơi đây mang đến trải nghiệm tắm khoáng kiểu Nhật – Âu, ngâm chân thảo dược, luộc trứng tại giếng nước sôi 82°C và khám phá rừng nguyên sinh ven biển."
+    ],
+    "enWikiSummary": "Set inside the 11,293-hectare Binh Chau – Phuoc Buu Nature Reserve in Xuyen Moc, Binh Chau Hot Springs features over 70 natural mineral vents ranging from 37°C to 82°C, famed for therapeutic mineral baths, mud spas, and boiling eggs in natural thermal wells.",
+    "enWikiParagraphs": [
+      "Set inside the 11,293-hectare Binh Chau – Phuoc Buu Nature Reserve in Xuyen Moc, Binh Chau Hot Springs features over 70 natural mineral vents ranging from 37°C to 82°C, famed for therapeutic mineral baths, mud spas, and boiling eggs in natural thermal wells."
+    ]
+  },
+  "nha-tu-con-dao": {
+    "coverImage": "https://commons.wikimedia.org/wiki/Special:FilePath/Nh%C3%A0_t%C3%B9_C%C3%B4n_%C4%90%E1%BA%A3o.JPG?width=1200",
+    "mediaGallery": [
+      {
+        "id": "wk-nhatucondao-1",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Nh%C3%A0_t%C3%B9_C%C3%B4n_%C4%90%E1%BA%A3o.JPG?width=1200",
+        "caption": {
+          "vi": "Ảnh thực tế toàn cảnh Di tích Quốc gia Đặc biệt Nhà tù Côn Đảo (Wikimedia Commons)",
+          "en": "Real view of Con Dao Prison Special National Monument (Wikimedia Commons)",
+          "fr": "Vue réelle de Bagne de Poulo Condor (Prison de Con Dao) (Wikimedia Commons)",
+          "zh": "昆岛监狱特别国家级历史遗迹实景照片（维基共享资源）",
+          "ja": "コンダオ刑務所（特別国家史跡）の実景写真（ウィキメディア・コモンズ）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      },
+      {
+        "id": "wk-nhatucondao-2",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Con_Dao_prison,_Vietnam.JPG?width=1200",
+        "caption": {
+          "vi": "Góc nhìn kiến trúc & cảnh quan tại Di tích Quốc gia Đặc biệt Nhà tù Côn Đảo (Ảnh 2)",
+          "en": "Architecture & scenery at Con Dao Prison Special National Monument (Photo 2)",
+          "fr": "Architecture et paysage à Bagne de Poulo Condor (Prison de Con Dao) (Photo 2)",
+          "zh": "昆岛监狱特别国家级历史遗迹建筑与风光细节（图 2）",
+          "ja": "コンダオ刑務所（特別国家史跡）の建築と風景（写真 2）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      },
+      {
+        "id": "wk-nhatucondao-3",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/C%C3%B4n_%C4%90%E1%BA%A3o_Prison.jpg?width=1200",
+        "caption": {
+          "vi": "Góc nhìn kiến trúc & cảnh quan tại Di tích Quốc gia Đặc biệt Nhà tù Côn Đảo (Ảnh 3)",
+          "en": "Architecture & scenery at Con Dao Prison Special National Monument (Photo 3)",
+          "fr": "Architecture et paysage à Bagne de Poulo Condor (Prison de Con Dao) (Photo 3)",
+          "zh": "昆岛监狱特别国家级历史遗迹建筑与风光细节（图 3）",
+          "ja": "コンダオ刑務所（特別国家史跡）の建築と風景（写真 3）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      }
+    ],
+    "wikipediaUrl": "https://vi.wikipedia.org/wiki/Nh%C3%A0_t%C3%B9_C%C3%B4n_%C4%90%E1%BA%A3o",
+    "viWikiSummary": "Hệ thống Nhà tù Côn Đảo do thực dân Pháp xây dựng từ ngày 01/02/1862 và tiếp tục được Mỹ – chính quyền Sài Gòn mở rộng suốt 113 năm cho đến ngày giải phóng 01/05/1975, từng giam cầm hàng chục vạn chiến sĩ yêu nước và cách mạng.",
+    "viWikiParagraphs": [
+      "Hệ thống Nhà tù Côn Đảo do thực dân Pháp xây dựng từ ngày 01/02/1862 và tiếp tục được Mỹ – chính quyền Sài Gòn mở rộng suốt 113 năm cho đến ngày giải phóng 01/05/1975, từng giam cầm hàng chục vạn chiến sĩ yêu nước và cách mạng.",
+      "Ngày 10/5/2012, Thủ tướng Chính phủ xếp hạng Nhà tù Côn Đảo là Di tích Quốc gia Đặc biệt gồm Trại Phú Hải (xây 1862), Chuồng Cọp kiểu Pháp (1940), Chuồng Cọp kiểu Mỹ (1971), Dinh Chúa Đảo và Cầu tàu lịch sử 914."
+    ],
+    "enWikiSummary": "Operating for 113 years from 1862 to 1975 and designated a Special National Monument in 2012, the Con Dao Prison complex preserves Phu Hai Camp, the notorious French and American Tiger Cages, the Island Governor’s Palace, and Historic Pier 914.",
+    "enWikiParagraphs": [
+      "Operating for 113 years from 1862 to 1975 and designated a Special National Monument in 2012, the Con Dao Prison complex preserves Phu Hai Camp, the notorious French and American Tiger Cages, the Island Governor’s Palace, and Historic Pier 914."
+    ]
+  },
+  "nghia-trang-hang-duong-con-dao": {
+    "coverImage": "https://commons.wikimedia.org/wiki/Special:FilePath/M%E1%BB%99_V%C3%B5_Th%E1%BB%8B_S%C3%A1u.jpg?width=1200",
+    "mediaGallery": [
+      {
+        "id": "wk-nghiatrangha-1",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/M%E1%BB%99_V%C3%B5_Th%E1%BB%8B_S%C3%A1u.jpg?width=1200",
+        "caption": {
+          "vi": "Ảnh thực tế toàn cảnh Nghĩa trang Hàng Dương & Mộ Chị Võ Thị Sáu (Wikimedia Commons)",
+          "en": "Real view of Hang Duong Cemetery & Vo Thi Sau Memorial (Wikimedia Commons)",
+          "fr": "Vue réelle de Cimetière national de Hang Duong (Con Dao) (Wikimedia Commons)",
+          "zh": "昆岛航阳烈士陵园（武氏六墓）实景照片（维基共享资源）",
+          "ja": "ハンズオン墓地（ヴォー・ティ・サウ記念地）の実景写真（ウィキメディア・コモンズ）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      },
+      {
+        "id": "wk-nghiatrangha-2",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Nh%C3%A0_t%C3%B9_C%C3%B4n_%C4%90%E1%BA%A3o.JPG?width=1200",
+        "caption": {
+          "vi": "Góc nhìn kiến trúc & cảnh quan tại Nghĩa trang Hàng Dương & Mộ Chị Võ Thị Sáu (Ảnh 2)",
+          "en": "Architecture & scenery at Hang Duong Cemetery & Vo Thi Sau Memorial (Photo 2)",
+          "fr": "Architecture et paysage à Cimetière national de Hang Duong (Con Dao) (Photo 2)",
+          "zh": "昆岛航阳烈士陵园（武氏六墓）建筑与风光细节（图 2）",
+          "ja": "ハンズオン墓地（ヴォー・ティ・サウ記念地）の建築と風景（写真 2）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      },
+      {
+        "id": "wk-nghiatrangha-3",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/ConDao_park_dam.jpg?width=1200",
+        "caption": {
+          "vi": "Góc nhìn kiến trúc & cảnh quan tại Nghĩa trang Hàng Dương & Mộ Chị Võ Thị Sáu (Ảnh 3)",
+          "en": "Architecture & scenery at Hang Duong Cemetery & Vo Thi Sau Memorial (Photo 3)",
+          "fr": "Architecture et paysage à Cimetière national de Hang Duong (Con Dao) (Photo 3)",
+          "zh": "昆岛航阳烈士陵园（武氏六墓）建筑与风光细节（图 3）",
+          "ja": "ハンズオン墓地（ヴォー・ティ・サウ記念地）の建築と風景（写真 3）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      }
+    ],
+    "wikipediaUrl": "https://vi.wikipedia.org/wiki/Ngh%C4%A9a_trang_H%C3%A0ng_D%C6%B0%C6%A1ng",
+    "viWikiSummary": "Nghĩa trang Hàng Dương rộng hơn 19 ha là nghĩa trang liệt sĩ lớn và thiêng liêng nhất tại Côn Đảo, nằm trong quần thể Di tích Quốc gia Đặc biệt Nhà tù Côn Đảo, nơi yên nghỉ của gần 2.000 chiến sĩ cách mạng qua nhiều thế hệ.",
+    "viWikiParagraphs": [
+      "Nghĩa trang Hàng Dương rộng hơn 19 ha là nghĩa trang liệt sĩ lớn và thiêng liêng nhất tại Côn Đảo, nằm trong quần thể Di tích Quốc gia Đặc biệt Nhà tù Côn Đảo, nơi yên nghỉ của gần 2.000 chiến sĩ cách mạng qua nhiều thế hệ.",
+      "Nghĩa trang được chia thành 4 khu A, B, C, D rợp bóng dương liễu với tượng đài trung tâm cao 21,6m, quy tụ phần mộ Tổng Bí thư Lê Hồng Phong, nhà yêu nước Nguyễn An Ninh, liệt sĩ Cao Văn Ngọc và nữ Anh hùng Võ Thị Sáu."
+    ],
+    "enWikiSummary": "Spanning 19 tranquil pine-shaded hectares within Con Dao’s Special National Monument, Hang Duong Cemetery is the resting place of nearly 2,000 Vietnamese patriots including heroine Vo Thi Sau, Le Hong Phong, and Nguyen An Ninh.",
+    "enWikiParagraphs": [
+      "Spanning 19 tranquil pine-shaded hectares within Con Dao’s Special National Monument, Hang Duong Cemetery is the resting place of nearly 2,000 Vietnamese patriots including heroine Vo Thi Sau, Le Hong Phong, and Nguyen An Ninh."
+    ]
+  },
+  "chua-nui-mot-van-son-tu-con-dao": {
+    "coverImage": "https://commons.wikimedia.org/wiki/Special:FilePath/Ch%C3%B9a_V%C3%A2n_S%C6%A1n_%E1%BB%9F_C%C3%B4n_%C4%90%E1%BA%A3o_(1).jpg?width=1200",
+    "mediaGallery": [
+      {
+        "id": "wk-chuanuimotva-1",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Ch%C3%B9a_V%C3%A2n_S%C6%A1n_%E1%BB%9F_C%C3%B4n_%C4%90%E1%BA%A3o_(1).jpg?width=1200",
+        "caption": {
+          "vi": "Ảnh thực tế toàn cảnh Chùa Núi Một (Vân Sơn Tự) – Côn Đảo (Wikimedia Commons)",
+          "en": "Real view of Van Son Tu (Nui Mot Pagoda, Con Dao) (Wikimedia Commons)",
+          "fr": "Vue réelle de Pagode Van Son Tu (Pagode Nui Mot, Con Dao) (Wikimedia Commons)",
+          "zh": "昆岛云山寺（一山寺）实景照片（维基共享资源）",
+          "ja": "ヴァンソン寺（ヌイモット寺・コンダオ）の実景写真（ウィキメディア・コモンズ）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      },
+      {
+        "id": "wk-chuanuimotva-2",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/An_S%C6%A1n_Mi%E1%BA%BFu_%E1%BB%9F_C%C3%B4n_%C4%90%E1%BA%A3o_n%C6%A1i_th%E1%BB%9D_b%C3%A0_Phi_Y%E1%BA%BFn.jpg?width=1200",
+        "caption": {
+          "vi": "Góc nhìn kiến trúc & cảnh quan tại Chùa Núi Một (Vân Sơn Tự) – Côn Đảo (Ảnh 2)",
+          "en": "Architecture & scenery at Van Son Tu (Nui Mot Pagoda, Con Dao) (Photo 2)",
+          "fr": "Architecture et paysage à Pagode Van Son Tu (Pagode Nui Mot, Con Dao) (Photo 2)",
+          "zh": "昆岛云山寺（一山寺）建筑与风光细节（图 2）",
+          "ja": "ヴァンソン寺（ヌイモット寺・コンダオ）の建築と風景（写真 2）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      },
+      {
+        "id": "wk-chuanuimotva-3",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/ConDao_park_dam.jpg?width=1200",
+        "caption": {
+          "vi": "Góc nhìn kiến trúc & cảnh quan tại Chùa Núi Một (Vân Sơn Tự) – Côn Đảo (Ảnh 3)",
+          "en": "Architecture & scenery at Van Son Tu (Nui Mot Pagoda, Con Dao) (Photo 3)",
+          "fr": "Architecture et paysage à Pagode Van Son Tu (Pagode Nui Mot, Con Dao) (Photo 3)",
+          "zh": "昆岛云山寺（一山寺）建筑与风光细节（图 3）",
+          "ja": "ヴァンソン寺（ヌイモット寺・コンダオ）の建築と風景（写真 3）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      }
+    ],
+    "wikipediaUrl": "https://vi.wikipedia.org/wiki/V%C3%A2n_S%C6%A1n_T%E1%BB%B1",
+    "viWikiSummary": "Chùa Núi Một (Vân Sơn Tự) là ngôi chùa Phật giáo duy nhất tại Côn Đảo, được xây dựng lần đầu năm 1964 trên triền Núi Một và trùng tu khang trang năm 2011 theo lối kiến trúc Phật giáo truyền thống Việt Nam.",
+    "viWikiParagraphs": [
+      "Chùa Núi Một (Vân Sơn Tự) là ngôi chùa Phật giáo duy nhất tại Côn Đảo, được xây dựng lần đầu năm 1964 trên triền Núi Một và trùng tu khang trang năm 2011 theo lối kiến trúc Phật giáo truyền thống Việt Nam.",
+      "Sở hữu thế phong thủy 'tựa sơn hướng thủy' tuyệt mỹ, từ sân chùa du khách phóng tầm mắt chiêm ngưỡng toàn cảnh hồ sen An Hải, vịnh Côn Sơn xanh ngọc và những cánh rừng nguyên sinh trùng điệp của Vườn Quốc gia Côn Đảo."
+    ],
+    "enWikiSummary": "Originally built in 1964 and restored in 2011 atop Nui Mot hillside, Van Son Tu is Con Dao’s sole Buddhist pagoda, commanding breathtaking views across lotus-filled An Hai Lake, Con Son Bay, and forested peaks.",
+    "enWikiParagraphs": [
+      "Originally built in 1964 and restored in 2011 atop Nui Mot hillside, Van Son Tu is Con Dao’s sole Buddhist pagoda, commanding breathtaking views across lotus-filled An Hai Lake, Con Son Bay, and forested peaks."
+    ]
+  },
+  "bai-dam-trau-vuon-quoc-gia-con-dao": {
+    "coverImage": "https://commons.wikimedia.org/wiki/Special:FilePath/ConDao_park_dam.jpg?width=1200",
+    "mediaGallery": [
+      {
+        "id": "wk-baidamtrauvu-1",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/ConDao_park_dam.jpg?width=1200",
+        "caption": {
+          "vi": "Ảnh thực tế toàn cảnh Bãi Đầm Trầu & Vườn Quốc gia Côn Đảo (Khu Ramsar Thế giới) (Wikimedia Commons)",
+          "en": "Real view of Dam Trau Beach & Con Dao National Park (Ramsar Site) (Wikimedia Commons)",
+          "fr": "Vue réelle de Plage Dam Trau et Parc national de Con Dao (Site Ramsar) (Wikimedia Commons)",
+          "zh": "昆岛潭洲海滩与昆岛国家公园（国际湿地）实景照片（维基共享资源）",
+          "ja": "ダムチャウビーチ・コンダオ国立公園（ラムサール条約湿地）の実景写真（ウィキメディア・コモンズ）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      },
+      {
+        "id": "wk-baidamtrauvu-2",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Beach_view_from_Six_Senses_Resort_in_C%C3%B4n_%C4%90%E1%BA%A3o_(April_2022).jpg?width=1200",
+        "caption": {
+          "vi": "Góc nhìn kiến trúc & cảnh quan tại Bãi Đầm Trầu & Vườn Quốc gia Côn Đảo (Khu Ramsar Thế giới) (Ảnh 2)",
+          "en": "Architecture & scenery at Dam Trau Beach & Con Dao National Park (Ramsar Site) (Photo 2)",
+          "fr": "Architecture et paysage à Plage Dam Trau et Parc national de Con Dao (Site Ramsar) (Photo 2)",
+          "zh": "昆岛潭洲海滩与昆岛国家公园（国际湿地）建筑与风光细节（图 2）",
+          "ja": "ダムチャウビーチ・コンダオ国立公園（ラムサール条約湿地）の建築と風景（写真 2）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      },
+      {
+        "id": "wk-baidamtrauvu-3",
+        "type": "image",
+        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Con_Dao.jpg?width=1200",
+        "caption": {
+          "vi": "Góc nhìn kiến trúc & cảnh quan tại Bãi Đầm Trầu & Vườn Quốc gia Côn Đảo (Khu Ramsar Thế giới) (Ảnh 3)",
+          "en": "Architecture & scenery at Dam Trau Beach & Con Dao National Park (Ramsar Site) (Photo 3)",
+          "fr": "Architecture et paysage à Plage Dam Trau et Parc national de Con Dao (Site Ramsar) (Photo 3)",
+          "zh": "昆岛潭洲海滩与昆岛国家公园（国际湿地）建筑与风光细节（图 3）",
+          "ja": "ダムチャウビーチ・コンダオ国立公園（ラムサール条約湿地）の建築と風景（写真 3）"
+        },
+        "yearOrSource": "Wikipedia · Wikimedia Commons"
+      }
+    ],
+    "wikipediaUrl": "https://vi.wikipedia.org/wiki/V%C6%B0%E1%BB%9Dn_qu%E1%BB%91c_gia_C%C3%B4n_%C4%90%E1%BA%A3o",
+    "viWikiSummary": "Vườn Quốc gia Côn Đảo được thành lập năm 1993 với tổng diện tích gần 20.000 ha (gồm rừng nhiệt đới hải đảo và khu bảo tồn biển), vinh dự được công nhận là Khu Ramsar đất ngập nước có tầm quan trọng quốc tế đầu tiên về biển đảo của Việt Nam năm 2013 và là nơi bảo tồn rùa biển lớn nhất cả nước.",
+    "viWikiParagraphs": [
+      "Vườn Quốc gia Côn Đảo được thành lập năm 1993 với tổng diện tích gần 20.000 ha (gồm rừng nhiệt đới hải đảo và khu bảo tồn biển), vinh dự được công nhận là Khu Ramsar đất ngập nước có tầm quan trọng quốc tế đầu tiên về biển đảo của Việt Nam năm 2013 và là nơi bảo tồn rùa biển lớn nhất cả nước.",
+      "Liền kề khu rừng xanh ven vịnh là Bãi Đầm Trầu — bãi biển từng được tạp chí Travel + Leisure bình chọn vào Top 25 bãi biển đẹp nhất thế giới, nổi tiếng với bờ cát vàng mịn, vách đá kỳ vĩ và khoảnh khắc ngắm máy bay hạ cánh sát đường băng Cỏ Ống."
+    ],
+    "enWikiSummary": "Designated Vietnam’s first marine-island Ramsar Wetland of International Importance in 2013, Con Dao National Park protects nearly 20,000 hectares of tropical island forest, coral reefs, and sea-turtle nesting grounds—paired with world-ranked Dam Trau Beach beside Co Ong runway.",
+    "enWikiParagraphs": [
+      "Designated Vietnam’s first marine-island Ramsar Wetland of International Importance in 2013, Con Dao National Park protects nearly 20,000 hectares of tropical island forest, coral reefs, and sea-turtle nesting grounds—paired with world-ranked Dam Trau Beach beside Co Ong runway."
+    ]
   }
 };
