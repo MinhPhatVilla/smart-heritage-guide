@@ -457,41 +457,39 @@ function buildExplorerMapHtml(
         return buildRasterStyleJson(tileCfg);
       }
 
-      function createSiteMarkerElement(site, compactMode) {
+      function createSiteMarkerElement(site) {
         var el = document.createElement('div');
         el.style.cursor = 'pointer';
-        el.style.zIndex = site.isSelected ? '40' : '12';
+        el.style.zIndex = site.isSelected ? '35' : '12';
+        var borderColor = site.isSelected ? '#B93815' : (site.isVisited ? '#047857' : '#141413');
+        var badgeText = site.isVisited ? '✓' : String(site.index);
 
         if (site.isSelected) {
-          var shortLabel = site.label.length > 20 ? site.label.slice(0, 18) + '…' : site.label;
+          var shortLabel = site.label.length > 18 ? site.label.slice(0, 16) + '…' : site.label;
           el.innerHTML = '<div class="shg-pin-badge" style="display:inline-flex;flex-direction:column;align-items:center;user-select:none;">'
-            + '<div style="display:inline-flex;align-items:center;gap:6px;padding:3px 10px 3px 3px;border-radius:999px;background:rgba(255,255,255,0.97);border:1.5px solid #B93815;box-shadow:0 8px 24px rgba(20,20,19,0.22);">'
-            + '<div style="width:22px;height:22px;border-radius:999px;overflow:hidden;flex-shrink:0;background:#F3F1EC;">'
-            + '<img src="' + escapeHtml(site.coverImage) + '" alt="" style="width:22px;height:22px;object-fit:cover;display:block;" />'
+            + '<div style="display:inline-flex;align-items:center;gap:6px;padding:3px 9px 3px 3px;border-radius:999px;background:rgba(255,255,255,0.98);border:1.8px solid #B93815;box-shadow:0 8px 22px rgba(20,20,19,0.22);">'
+            + '<div style="width:24px;height:24px;border-radius:999px;overflow:hidden;flex-shrink:0;background:#F3F1EC;">'
+            + '<img src="' + escapeHtml(site.coverImage) + '" alt="" style="width:24px;height:24px;object-fit:cover;display:block;" />'
             + '</div>'
             + '<span style="font-size:11.5px;font-weight:700;color:#141413;white-space:nowrap;">'
             + escapeHtml(shortLabel)
             + '</span>'
+            + '<span style="display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 4px;border-radius:999px;background:#B93815;color:#FFFFFF;font-size:9.5px;font-weight:700;">'
+            + badgeText
+            + '</span>'
             + '</div>'
             + '<div style="width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:6px solid #B93815;margin-top:-1px;"></div>'
             + '</div>';
-          return el;
+        } else {
+          el.innerHTML = '<div class="shg-pin-badge" style="position:relative;width:34px;height:34px;border-radius:999px;background:#FFFFFF;border:2px solid ' + (site.isVisited ? '#047857' : '#FFFFFF') + ';box-shadow:0 4px 12px rgba(20,20,19,0.22);user-select:none;">'
+            + '<div style="width:100%;height:100%;border-radius:999px;overflow:hidden;background:#F3F1EC;">'
+            + '<img src="' + escapeHtml(site.coverImage) + '" alt="" style="width:100%;height:100%;object-fit:cover;display:block;" />'
+            + '</div>'
+            + '<span style="position:absolute;top:-4px;right:-4px;display:inline-flex;align-items:center;justify-content:center;min-width:16px;height:16px;padding:0 3px;border-radius:999px;background:' + borderColor + ';color:#FFFFFF;border:1.5px solid #FFFFFF;font-size:9px;font-weight:700;line-height:1;">'
+            + badgeText
+            + '</span>'
+            + '</div>';
         }
-
-        if (compactMode) {
-          var dotBg = site.isVisited ? '#047857' : '#B93815';
-          el.innerHTML = '<div class="shg-pin-badge" style="width:12px;height:12px;border-radius:999px;background:' + dotBg + ';border:2px solid #FFFFFF;box-shadow:0 2px 6px rgba(20,20,19,0.28);user-select:none;"></div>';
-          return el;
-        }
-
-        el.innerHTML = '<div class="shg-pin-badge" style="position:relative;width:30px;height:30px;border-radius:999px;background:#FFFFFF;border:2px solid ' + (site.isVisited ? '#047857' : '#FFFFFF') + ';box-shadow:0 4px 12px rgba(20,20,19,0.22);user-select:none;">'
-          + '<div style="width:100%;height:100%;border-radius:999px;overflow:hidden;background:#F3F1EC;">'
-          + '<img src="' + escapeHtml(site.coverImage) + '" alt="" style="width:100%;height:100%;object-fit:cover;display:block;" />'
-          + '</div>'
-          + (site.isVisited
-            ? '<span style="position:absolute;bottom:-2px;right:-2px;width:9px;height:9px;border-radius:999px;background:#047857;border:1.5px solid #FFFFFF;"></span>'
-            : '')
-          + '</div>';
         return el;
       }
 
@@ -500,9 +498,9 @@ function buildExplorerMapHtml(
         el.style.cursor = 'pointer';
         el.style.zIndex = '8';
         var isOverture = res.source === 'overture';
-        var dotColor = isOverture ? '#D97706' : '#141413';
-        el.innerHTML = '<div class="shg-pin-badge" style="display:inline-flex;align-items:center;gap:3px;padding:2px 6px;border-radius:999px;background:rgba(255,255,255,0.95);color:#141413;border:1px solid rgba(20,20,19,0.12);box-shadow:0 2px 8px rgba(0,0,0,0.14);font-size:9.5px;font-weight:700;white-space:nowrap;">'
-          + '<span style="width:6px;height:6px;border-radius:999px;background:' + dotColor + ';display:inline-block;"></span>'
+        var bg = isOverture ? '#EA580C' : '#141413';
+        el.innerHTML = '<div class="shg-pin-badge" style="display:inline-flex;align-items:center;gap:3px;padding:' + (isOverture ? '2px 6px' : '2.5px 6.5px') + ';border-radius:999px;background:' + bg + ';color:#FFFFFF;border:1.5px solid #FFFFFF;box-shadow:0 3px 8px rgba(0,0,0,0.2);font-size:9.5px;font-weight:700;white-space:nowrap;">'
+          + '<span style="color:#FDE047;">★</span>'
           + '<span>' + Number(res.rating).toFixed(1) + '</span>'
           + '</div>';
         return el;
@@ -539,28 +537,28 @@ function buildExplorerMapHtml(
       }
 
       function applyMapboxOrOsmEnhancements(map, tileCfg, is3D, lightPreset) {
-        // 1. Mapbox Standard 3D (v3): phong cách tối giản hiện đại (ẩn POI/Transit rác, giữ đường phố & khối 3D sạch)
+        // 1. Mapbox Standard 3D (v3): giữ đầy đủ nhãn POI, đường phố, giao thông + hiệu ứng 3D & sương chân trời êm mắt
         if (USE_MAPBOX && tileCfg.id === 'mapbox_standard') {
           try {
             map.setConfigProperty('basemap', 'lightPreset', lightPreset || 'day');
-            map.setConfigProperty('basemap', 'showPointOfInterestLabels', false);
+            map.setConfigProperty('basemap', 'showPointOfInterestLabels', true);
             map.setConfigProperty('basemap', 'showRoadLabels', true);
-            map.setConfigProperty('basemap', 'showTransitLabels', false);
+            map.setConfigProperty('basemap', 'showTransitLabels', true);
             map.setConfigProperty('basemap', 'show3dObjects', is3D);
             if (typeof map.setFog === 'function') {
               var isNight = lightPreset === 'night';
               map.setFog(is3D ? {
                 color: isNight ? '#111827' : '#F4F2EC',
                 'high-color': isNight ? '#090D16' : '#E7ECF2',
-                'horizon-blend': 0.08,
-                range: [1.5, 11]
+                'horizon-blend': 0.06,
+                range: [2.0, 12]
               } : null);
             }
           } catch (e) {}
           return;
         }
 
-        // 2. Mapbox Streets / Outdoors / Satellite v12: khối kiến trúc 3D tông alabaster sạch mượt
+        // 2. Mapbox Streets / Outdoors / Satellite v12: khối kiến trúc 3D tông sáng dịu mượt
         if (USE_MAPBOX && tileCfg.renderMode === 'mapbox') {
           try {
             if (is3D && map.getSource('composite') && !map.getLayer('shg-mapbox-3d-buildings')) {
@@ -578,7 +576,7 @@ function buildExplorerMapHtml(
                 'source-layer': 'building',
                 filter: ['==', 'extrude', 'true'],
                 type: 'fill-extrusion',
-                minzoom: 14.2,
+                minzoom: 14.5,
                 paint: {
                   'fill-extrusion-color': [
                     'interpolate', ['linear'],
@@ -601,7 +599,7 @@ function buildExplorerMapHtml(
           return;
         }
 
-        // 3. OpenStreetMap Vector 3D (OpenFreeMap) — Bảng màu Kiến trúc Tối giản Hiện đại (Apple Maps / Editorial 3D)
+        // 3. OpenStreetMap Vector 3D (OpenFreeMap) — giữ đầy đủ mọi điểm/nhãn, chỉ tinh chỉnh bảng màu sạch hiện đại
         if (tileCfg.renderMode !== 'vector') return;
         var style = map.getStyle();
         if (!style || !Array.isArray(style.layers)) return;
@@ -612,18 +610,6 @@ function buildExplorerMapHtml(
         var setLayout = function(id, prop, val) {
           try { if (map.getLayer(id)) map.setLayoutProperty(id, prop, val); } catch (e) {}
         };
-
-        // Ẩn bớt icon POI/cửa hàng/trạm xe thừa để mặt bằng 3D tinh gọn, nổi bật 50 di sản
-        for (var j = 0; j < style.layers.length; j++) {
-          var lyr = style.layers[j];
-          var lid = String(lyr.id || '').toLowerCase();
-          if (
-            lyr.type === 'symbol' &&
-            (lid.indexOf('poi') !== -1 || lid.indexOf('shop') !== -1 || lid.indexOf('transit') !== -1 || lid.indexOf('housenumber') !== -1)
-          ) {
-            setLayout(lyr.id, 'visibility', 'none');
-          }
-        }
 
         if (tileCfg.googleLikePalette) {
           setPaint('background', 'background-color', '#F6F5F2');
@@ -1055,28 +1041,11 @@ function buildExplorerMapHtml(
           updateUserHeadingVisual(heading, isNavigating);
         }
 
-        var lastShowRestaurants = false;
-        var lastZoomTier = 'street';
-
-        function getZoomTier() {
-          var z = map.getZoom();
-          if (z < 13.4) return 'overview';
-          if (z < 15.0) return 'city';
-          return 'street';
-        }
-
         function renderSites(sites, showRestaurants) {
-          lastShowRestaurants = !!showRestaurants;
-          var tier = getZoomTier();
-          lastZoomTier = tier;
-          var compactMode = tier === 'overview';
-          var allowAllRestaurants = Boolean(showRestaurants) && tier === 'street';
-
           var sig = JSON.stringify({
-            tier: tier,
             showRestaurants: !!showRestaurants,
             sites: sites.map(function(s) {
-              return [s.id, s.label, s.isVisited, s.isSelected];
+              return [s.id, s.label, s.index, s.isVisited, s.isSelected];
             })
           });
           if (sig === lastSitesSignature) return;
@@ -1088,7 +1057,7 @@ function buildExplorerMapHtml(
           restaurantMarkers = [];
 
           sites.forEach(function(site) {
-            var el = createSiteMarkerElement(site, compactMode);
+            var el = createSiteMarkerElement(site);
             el.addEventListener('click', function(ev) {
               ev.stopPropagation();
               postToHost({ type: 'SITE_CLICK', siteId: site.id });
@@ -1107,11 +1076,8 @@ function buildExplorerMapHtml(
               .addTo(map);
             siteMarkers.push(m);
 
-            // Chỉ hiện quán ăn khi đang bật nút Ẩm thực ở zoom gần, HOẶC cho riêng địa điểm đang chọn để bản đồ 3D luôn gọn thoáng
-            var showSiteFood = (allowAllRestaurants || (site.isSelected && tier !== 'overview')) && Array.isArray(site.restaurants);
-            if (showSiteFood) {
-              var maxFood = site.isSelected ? 6 : 2;
-              site.restaurants.slice(0, maxFood).forEach(function(res) {
+            if (showRestaurants && Array.isArray(site.restaurants)) {
+              site.restaurants.forEach(function(res) {
                 var rEl = createRestaurantMarkerElement(res);
                 rEl.addEventListener('click', function(ev) {
                   ev.stopPropagation();
@@ -1135,13 +1101,6 @@ function buildExplorerMapHtml(
             }
           });
         }
-
-        map.on('zoomend', function() {
-          var nextTier = getZoomTier();
-          if (nextTier !== lastZoomTier && lastKnownSites.length > 0) {
-            renderSites(lastKnownSites, lastShowRestaurants);
-          }
-        });
 
         function setTileConfig(cfg) {
           if (!cfg || currentStyleId === cfg.id) return;
@@ -1674,9 +1633,8 @@ export const MapExplorer: React.FC<MapExplorerProps> = ({
   );
   const [is3DView, setIs3DView] = useState<boolean>(true);
   const [lightPreset, setLightPreset] = useState<MapboxLightPreset>('day');
-  // Mặc định ẩn 300+ ghim quán ăn để mặt bằng bản đồ 3D cực gọn; tự hiện khi bấm nút Ẩm thực hoặc chọn di tích
   const [showRestaurantsOnMap, setShowRestaurantsOnMap] =
-    useState<boolean>(false);
+    useState<boolean>(true);
   const [showStyleMenu, setShowStyleMenu] = useState<boolean>(false);
   const [tappedPlace, setTappedPlace] = useState<{
     name: string;
