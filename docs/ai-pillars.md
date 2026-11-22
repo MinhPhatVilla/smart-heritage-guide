@@ -1,12 +1,12 @@
 # 3. Đặc tả Chi tiết 3 Trụ cột Hệ thống Thông minh & Gamification
 
-Tài liệu này mô tả chi tiết mô hình toán học, thuật toán AI, quy tắc xác thực vật lý và cơ chế dự phòng (**Graceful Fallback**) của 3 trụ cột thông minh được cài đặt trong `backend/app/services/`.
+Tài liệu này mô tả chi tiết mô hình toán học, thuật toán AI, quy tắc xác thực vật lý, công nghệ thuyết minh Neural TTS và cơ chế dự phòng (**Graceful Fallback**) được cài đặt trong `backend/app/services/` và `mobile/src/services/`.
 
 ---
 
-## 3.1. Trụ cột 1: Gợi ý Ngữ cảnh Giải thích được & Lập Lịch trình Đi bộ Tối ưu (`2-Opt`)
+## 3.1. Trụ cột 1: Gợi ý Ngữ cảnh Giải thích được & Lập Lịch trình Đi bộ Tối ưu (`2-Opt` + Thời tiết trực tiếp)
 
-Cài đặt tại: [`backend/app/services/recommendation_service.py`](../backend/app/services/recommendation_service.py)
+Cài đặt tại: [`backend/app/services/recommendation_service.py`](../backend/app/services/recommendation_service.py) và [`mobile/src/services/weatherService.ts`](../mobile/src/services/weatherService.ts)
 
 ### A. Mô hình Chấm điểm Đa tiêu chí Giải thích được (Explainable Context-Aware Scoring)
 
@@ -22,18 +22,22 @@ $$S(i) = 0.30 \cdot S_{\text{dist}}(i) + 0.25 \cdot S_{\text{novelty}}(i) + 0.20
 | $S_{\text{rating}}(i)$ | **15%** | Điểm đánh giá chuẩn hóa có hiệu chỉnh độ tin cậy theo số lượng đánh giá (**Bayesian Average**). |
 | $S_{\text{status}}(i)$ | **10%** | Điểm thưởng cho Di tích Quốc gia Đặc biệt / Di sản UNESCO và đang mở cửa tại thời điểm truy vấn. |
 
-Mỗi kết quả gợi ý trả về kèm danh sách lý do giải thích **`reasons[]`** theo ngôn ngữ đang chọn (`vi/en/fr/zh/ja`), ví dụ: *"Cách bạn chỉ 320m"*, *"Bạn chưa từng ghé thăm"*, *"Di tích Quốc gia Đặc biệt"*.
+Mỗi kết quả gợi ý (hỗ trợ `max_results <= 50`) trả về kèm mảng lý do giải thích **`reasons[]`** theo ngôn ngữ đang chọn (`vi/en/fr/zh/ja`), ví dụ: *"Cách bạn chỉ 320m"*, *"Bạn chưa từng ghé thăm"*, *"Di tích Quốc gia Đặc biệt"*.
 
-### B. Thuật toán Lập Lịch trình Đi bộ Nhiều điểm (`Smart Walking Tour Planner`)
+### B. Thuật toán Lập Lịch trình Đi bộ Nhiều điểm (`Smart Walking Tour Planner`) & Ngữ cảnh Thời tiết
 
 ```mermaid
 flowchart LR
-    A["1. Chọn tập điểm\n(Tổng thời gian đi + tham quan <= T_max)"] --> B["2. Khởi tạo lộ trình\nNearest-Neighbor từ GPS hiện tại"]
+    W["0. Ngữ cảnh Thời tiết thực tế\n(Open-Meteo: Nhiệt độ · Độ ẩm · Mưa %\nDự báo 4h · indoor_preferred)"] --> A["1. Chọn tập điểm\n(Tổng thời gian đi + tham quan <= T_max)"]
+    A --> B["2. Khởi tạo lộ trình\nNearest-Neighbor từ GPS hiện tại"]
     B --> C["3. Tối ưu cục bộ\n2-Opt Local Search\n(Gỡ cạnh cắt nhau, đo số mét tiết kiệm)"]
     C --> D["4. Chèn điểm ẩm thực\n(Theo khung giờ Sáng/Trưa/Tối/Cafe\nvà Rating cao nhất gần điểm dừng)"]
     D --> E["5. Đóng gói Lịch trình\n(Giờ dự kiến, chặng đi bộ, lý do)"]
 ```
 
+- **Tích hợp Thời tiết trực tiếp (`weatherService.ts` → `SmartTourModal.tsx`):**
+  - Tự động lấy dữ liệu từ **Open-Meteo Forecast API** (miễn phí, không cần API key): `temperature_c`, `apparent_temperature_c`, `humidity_percent`, `rain_probability_percent`, `next_3h_rain_max_percent`, `wind_speed_kmh`, `uv_index` và dự báo 4 giờ kế tiếp.
+  - Tự động phân loại mức độ dễ chịu (`ideal` / `warm` / `rain_alert`) và bật cờ **`indoor_preferred`** khi xác suất mưa cao hoặc nắng gắt, truyền kèm **`weather_context`** vào yêu cầu lập lịch trình AI để ưu tiên bảo tàng/công trình có mái che hoặc nhắc mang dù/nước.
 - **Khung giờ tự động chèn ẩm thực (`meal_slots`):**
   - **Sáng (`breakfast`):** `06:00 – 10:00`
   - **Trưa (`lunch`):** `11:00 – 14:00`
@@ -42,13 +46,13 @@ flowchart LR
 
 ---
 
-## 3.2. Trụ cột 2: Trợ lý AI Hướng dẫn viên Hỏi–Đáp RAG (5 Ngôn ngữ)
+## 3.2. Trụ cột 2: Trợ lý AI Hướng dẫn viên RAG (5 Ngôn ngữ) & AI Neural TTS
 
-Cài đặt tại: [`backend/app/services/rag_service.py`](../backend/app/services/rag_service.py)
+### A. Truy xuất Lai & Hỏi–Đáp RAG (`backend/app/services/rag_service.py`)
 
 1. **Truy xuất lai (`Hybrid Retrieval + RRF`):**
-   - Hỗ trợ 5 ngôn ngữ: `vi`, `en`, `fr`, `zh`, `ja`. Nếu người dùng đang mở chi tiết một di tích cụ thể (`site_id`), bộ truy xuất ưu tiên phạm vi tri thức của di tích đó trước.
-   - Chạy song song **Vector Cosine Similarity** (`pgvector` / cosine trên embedding JSON) và **Lexical / Full-Text Search** (`ts_rank` / khớp từ khóa có trọng số) trên **340 đoạn tri thức** (`summary`, `script`, `architecture`, `restaurant`).
+   - Hỗ trợ 5 ngôn ngữ cân bằng 1-1: `vi`, `en`, `fr`, `zh`, `ja`. Nếu người dùng đang mở chi tiết một di tích cụ thể (`site_id`), bộ truy xuất ưu tiên phạm vi tri thức của di tích đó trước.
+   - Chạy song song **Vector Cosine Similarity** (`pgvector` / cosine trên `embedding_json`) và **Lexical / Full-Text Search** (`ts_rank` / khớp từ khóa có trọng số) trên **850 đoạn tri thức** (`summary`, `script`, `architecture`, `restaurant`).
    - Hợp nhất bảng xếp hạng bằng **Reciprocal Rank Fusion (RRF)**:
      $$\text{RRF}(d) = \sum_{r \in \{\text{vector}, \text{lexical}\}} \frac{1}{k + \text{rank}_r(d)}$$
      để chọn **Top-5** đoạn tri thức liên quan nhất.
@@ -56,6 +60,23 @@ Cài đặt tại: [`backend/app/services/rag_service.py`](../backend/app/servic
    - Gọi **Google Gemini 2.5 Flash** (`google-genai`) với system prompt ràng buộc chỉ trả lời dựa trên ngữ cảnh truy xuất được (chống AI bịa đặt sự kiện lịch sử), trả về kèm **`citations[]`** và 3 câu hỏi gợi ý tiếp theo **`suggested_questions[]`**.
 3. **Cơ chế Dự phòng Thông minh (`Smart Structured Fallback`):**
    - Khi chưa có `GEMINI_API_KEY`, mất mạng hoặc chạm giới hạn quota, hệ thống tự động tổng hợp câu trả lời có cấu trúc từ Top-3 đoạn tri thức khớp nhất (kèm giờ mở cửa, giá vé, điểm nhấn kiến trúc và gợi ý quán ăn gần nhất) để demo và kiểm thử luôn ổn định 100%.
+
+### B. Hệ thống Thuyết minh AI Neural TTS (`backend/app/services/tts_service.py` & `mobile/src/services/speechService.ts`)
+
+- **Giọng đọc AI Neural tự nhiên (`edge-tts` — Microsoft Azure Neural Voices, miễn phí không cần key):**
+
+| Ngôn ngữ | Giọng Nữ (`female`) | Giọng Nam (`male`) |
+| :---: | :--- | :--- |
+| **`vi`** | `vi-VN-HoaiMyNeural` *(Hoài My · Truyền cảm)* | `vi-VN-NamMinhNeural` *(Nam Minh · Trầm ấm)* |
+| **`en`** | `en-US-AriaNeural` *(Aria · Expressive)* | `en-US-GuyNeural` *(Guy · Warm)* |
+| **`fr`** | `fr-FR-DeniseNeural` *(Denise · Naturelle)* | `fr-FR-HenriNeural` *(Henri · Posé)* |
+| **`zh`** | `zh-CN-XiaoxiaoNeural` *(晓晓 · 自然)* | `zh-CN-YunxiNeural` *(云希 · 沉稳)* |
+| **`ja`** | `ja-JP-NanamiNeural` *(七海 · 丁寧)* | `ja-JP-KeitaNeural` *(圭太 · 落ち着き)* |
+
+- **Cache & Tối ưu Trải nghiệm:**
+  - Server lưu đệm MP3 bền vững tại `uploads/tts_cache/` (SHA-256 theo `text + language + gender`, tránh gọi lại trùng lặp, trả header `X-TTS-Cache: hit/miss`).
+  - Client hỗ trợ **prefetch đoạn tiếp theo**, thanh tiến độ thời gian thực **0% → 100%** (hiển thị `phút:giây`), đổi tốc độ mượt, tạm dừng/tiếp tục đúng vị trí và bật/tắt **Tự động thuyết minh 1 chạm** ngay trên thanh Header (kể cả khi đang xem Bản đồ).
+  - **Offline Fallback nâng cấp (`speechTextUtils.ts`):** Khi mất mạng, chuẩn hóa viết tắt & ký hiệu tiếng Việt (`TP.HCM`, `KTS`, `Q.1`, `1880 – 1891`, `40.000đ`) trước khi đọc bằng `expo-speech` ưu tiên giọng `Natural / Neural / Enhanced / Google` trên thiết bị.
 
 ---
 
