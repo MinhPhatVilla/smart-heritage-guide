@@ -109,6 +109,7 @@ interface SerializedSiteMarker {
     lng: number;
     rating: number;
     name: string;
+    source?: 'curated' | 'overture';
   }>;
 }
 
@@ -409,8 +410,10 @@ function buildExplorerMapHtml(
       function createRestaurantMarkerElement(res) {
         var el = document.createElement('div');
         el.style.cursor = 'pointer';
-        el.innerHTML = '<div class="shg-pin-badge" style="display:inline-flex;align-items:center;gap:3px;padding:3px 7px;border-radius:999px;background:#141413;color:#FFFFFF;border:1.5px solid #FFFFFF;box-shadow:0 4px 10px rgba(0,0,0,0.26);font-size:10px;font-weight:700;white-space:nowrap;">'
-          + '<span style="color:#FBBF24;">★</span>'
+        var isOverture = res.source === 'overture';
+        var bg = isOverture ? '#EA580C' : '#141413';
+        el.innerHTML = '<div class="shg-pin-badge" style="display:inline-flex;align-items:center;gap:3px;padding:' + (isOverture ? '2px 6px' : '3px 7px') + ';border-radius:999px;background:' + bg + ';color:#FFFFFF;border:1.5px solid #FFFFFF;box-shadow:0 3px 9px rgba(0,0,0,0.24);font-size:' + (isOverture ? '9.5px' : '10px') + ';font-weight:700;white-space:nowrap;">'
+          + '<span style="color:#FDE047;">★</span>'
           + '<span>' + Number(res.rating).toFixed(1) + '</span>'
           + '</div>';
         return el;
@@ -1197,7 +1200,7 @@ export const MapExplorer: React.FC<MapExplorerProps> = ({
   const [is3DView, setIs3DView] = useState<boolean>(true);
   const [lightPreset, setLightPreset] = useState<MapboxLightPreset>('day');
   const [showRestaurantsOnMap, setShowRestaurantsOnMap] =
-    useState<boolean>(false);
+    useState<boolean>(true);
   const [showStyleMenu, setShowStyleMenu] = useState<boolean>(false);
   const [tappedPlace, setTappedPlace] = useState<{
     name: string;
@@ -1334,6 +1337,7 @@ export const MapExplorer: React.FC<MapExplorerProps> = ({
           lng: res.lng,
           rating: res.rating,
           name: res.name,
+          source: res.source,
         })),
       };
     });
@@ -1908,9 +1912,16 @@ export const MapExplorer: React.FC<MapExplorerProps> = ({
           <View style={styles.previewCard}>
             <View style={styles.previewTopMeta}>
               <View style={{ flex: 1 }}>
-                <Text style={styles.restaurantCuisine} numberOfLines={1}>
-                  {focusedRestaurant.restaurant.cuisine}
-                </Text>
+                <View style={styles.previewTagRow}>
+                  <Text style={styles.restaurantCuisine} numberOfLines={1}>
+                    {focusedRestaurant.restaurant.cuisine}
+                  </Text>
+                  {focusedRestaurant.restaurant.source === 'overture' && (
+                    <View style={styles.overtureBadge}>
+                      <Text style={styles.overtureBadgeText}>Overture Maps</Text>
+                    </View>
+                  )}
+                </View>
                 <Text style={styles.restaurantName} numberOfLines={1}>
                   {focusedRestaurant.restaurant.name}
                 </Text>
@@ -1944,7 +1955,8 @@ export const MapExplorer: React.FC<MapExplorerProps> = ({
             </View>
 
             <Text style={styles.restaurantDishes} numberOfLines={1}>
-              {focusedRestaurant.restaurant.specialtyDishes.join(' · ')}
+              {focusedRestaurant.restaurant.address ||
+                focusedRestaurant.restaurant.specialtyDishes.join(' · ')}
             </Text>
 
             <TouchableOpacity
@@ -2546,6 +2558,19 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     color: COLORS.accent,
+  },
+  overtureBadge: {
+    backgroundColor: '#FFF7ED',
+    borderColor: '#FDBA74',
+    borderWidth: 1,
+    borderRadius: RADII.pill,
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+  },
+  overtureBadgeText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#C2410C',
   },
   restaurantName: {
     fontSize: 15,

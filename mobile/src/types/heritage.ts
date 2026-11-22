@@ -48,6 +48,10 @@ export interface NearbyRestaurant {
   address: string;
   openHours: string;
   imageUrl: string;
+  /** Nguồn dữ liệu: quán đặc sản biên tập (`curated`) hoặc đồng bộ từ Overture Maps (`overture`) */
+  source?: 'curated' | 'overture';
+  overtureId?: string;
+  confidence?: number;
 }
 
 export type HeritageCategory =

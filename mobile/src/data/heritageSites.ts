@@ -1,6 +1,7 @@
 import { HeritageSite } from '../types/heritage';
 import { HCM_CENTRAL_SITES } from './hcmCentralSites';
 import { HCM_EXTENDED_SITES } from './hcmExtendedSites';
+import { OVERTURE_RESTAURANTS_BY_SITE } from './overtureRestaurants';
 
 export interface CityPreset {
   id: string;
@@ -434,8 +435,20 @@ const ADDITIONAL_HCM_SITES: HeritageSite[] = [
   },
 ];
 
-export const HERITAGE_SITES: HeritageSite[] = [
+const BASE_HERITAGE_SITES: HeritageSite[] = [
   ...HCM_CENTRAL_SITES,
   ...HCM_EXTENDED_SITES,
   ...ADDITIONAL_HCM_SITES,
 ];
+
+export const HERITAGE_SITES: HeritageSite[] = BASE_HERITAGE_SITES.map((site) => {
+  const curated = site.nearbyRestaurants.map((res) => ({
+    ...res,
+    source: res.source ?? ('curated' as const),
+  }));
+  const overture = OVERTURE_RESTAURANTS_BY_SITE[site.id] ?? [];
+  return {
+    ...site,
+    nearbyRestaurants: [...curated, ...overture],
+  };
+});
