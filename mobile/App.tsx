@@ -137,6 +137,7 @@ function SmartHeritageAppContent() {
   ]);
   const [userHeading, setUserHeading] = useState<number | null>(null);
   const [activeCityId, setActiveCityId] = useState<string>('ALL_HCM');
+  const [focusHcmcOnly, setFocusHcmcOnly] = useState<boolean>(true);
   const [gpsStatus, setGpsStatus] = useState<string>('Trung tâm Quận 1');
   const [isLocatingGps, setIsLocatingGps] = useState<boolean>(false);
 
@@ -413,6 +414,7 @@ function SmartHeritageAppContent() {
       stopWalkSimulation();
       stopGpsWatch();
       setActiveCityId(preset.id);
+      setFocusHcmcOnly(true);
       setUserLocation([preset.lat, preset.lng]);
       setSearchRadiusMeters(preset.defaultRadius);
       setActiveRoute(null);
@@ -1289,6 +1291,16 @@ function SmartHeritageAppContent() {
               activeWalkSeconds={activeWalkSeconds}
               isSimulatingWalk={isSimulatingWalk}
               searchRadiusMeters={searchRadiusMeters}
+              focusHcmcOnly={focusHcmcOnly}
+              onToggleFocusHcmcOnly={(next) => {
+                setFocusHcmcOnly(next);
+                triggerHaptic('selection');
+                setToastMessage(
+                  next
+                    ? 'Đang tập trung TP.HCM · Đã làm mờ các tỉnh xung quanh.'
+                    : 'Đang mở bản đồ toàn lãnh thổ Việt Nam.'
+                );
+              }}
               onSelectSite={(site) => setSelectedSite(site)}
               onStartRouteToSite={handleStartNavigationToSite}
               onStartRouteToRestaurant={handleNavigateToRestaurant}
@@ -1602,6 +1614,30 @@ function SmartHeritageAppContent() {
                     </TouchableOpacity>
                   );
                 })}
+              </View>
+
+              {/* Focus HCMC Map Mask Switch */}
+              <View style={styles.sheetSwitchRow}>
+                <View style={styles.sheetSwitchTextCol}>
+                  <Text style={styles.sheetSwitchTitle}>
+                    Chỉ tập trung bản đồ TP.HCM
+                  </Text>
+                  <Text style={styles.sheetSwitchSub}>
+                    Làm mờ các tỉnh xung quanh (giới hạn toàn bản đồ trong lãnh thổ Việt Nam)
+                  </Text>
+                </View>
+                <Switch
+                  value={focusHcmcOnly}
+                  onValueChange={(val) => {
+                    setFocusHcmcOnly(val);
+                    triggerHaptic('selection');
+                  }}
+                  trackColor={{
+                    false: COLORS.borderStrong,
+                    true: COLORS.accent,
+                  }}
+                  thumbColor={COLORS.white}
+                />
               </View>
 
               {/* Auto Proximity Audio Switch */}

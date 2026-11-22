@@ -2,7 +2,7 @@
  * Prisma Idempotent Database Seeder — Smart Heritage Guide Backend
  *
  * Tự động nạp toàn bộ dữ liệu chuẩn vào Supabase PostgreSQL (dùng chung backend/.env):
- * - Tất cả 20 Di sản & Di tích TP. Hồ Chí Minh (5 ngôn ngữ: vi, en, fr, zh, ja)
+ * - Tất cả 50 Di sản, Di tích & Điểm tham quan TP. Hồ Chí Minh (5 ngôn ngữ: vi, en, fr, zh, ja)
  * - Toàn bộ quán ăn đặc sản quanh từng di tích
  * - Các mảnh tri thức RAG đa ngôn ngữ (summary, architecture, script, restaurant)
  * - 6 Huy hiệu thành tựu tự động

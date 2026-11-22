@@ -1,4 +1,4 @@
-"""Sync real eateries & cafes around all 20 Ho Chi Minh City heritage sites
+"""Sync real eateries & cafes around all 50 Ho Chi Minh City heritage sites & attractions
 from Overture Maps Foundation (`places` GeoParquet on public AWS S3) via DuckDB.
 
 Usage:
@@ -229,7 +229,7 @@ def query_overture_hcmc_places(release: str) -> list[dict[str, Any]]:
     con.execute("INSTALL httpfs; LOAD httpfs;")
     con.execute("SET s3_region='us-west-2';")
 
-    # Single bounding-box pushdown covering all 20 HCMC sites (District 1..Thu Duc..Cu Chi..Can Gio)
+    # Single bounding-box pushdown covering all 50 HCMC sites (District 1..Thu Duc..Cu Chi..Can Gio)
     # Overture 2026 schema uses `taxonomy."primary"` + `basic_category`
     sql = f"""
         SELECT
@@ -315,8 +315,11 @@ def assign_places_to_sites(
         s_lat = float(site["lat"])
         s_lng = float(site["lng"])
         district_label = site.get("city", "TP.HCM")
-        # Suburban heritage sites (Cu Chi, Can Gio, Thu Duc) use wider search radius
-        is_suburban = any(k in site_id for k in ("cu-chi", "can-gio", "vua-hung"))
+        # Suburban heritage sites (Cu Chi, Can Gio, Thu Duc, Binh Quoi, Quan 12) use wider search radius
+        is_suburban = any(
+            k in site_id
+            for k in ("cu-chi", "can-gio", "vua-hung", "buu-long", "ao-dai", "binh-quoi", "khanh-an")
+        )
         radius_m = 2500.0 if is_suburban else 520.0
 
         curated_list = curated_by_site.get(site_id, [])
@@ -402,7 +405,7 @@ def write_typescript_module(
 
     json_body = json.dumps(assigned, ensure_ascii=False, indent=2)
     ts_content = f"""/**
- * Dữ liệu hàng quán & quán cà phê thực tế quanh 20 di tích TP. Hồ Chí Minh
+ * Dữ liệu hàng quán & quán cà phê thực tế quanh {len(assigned)} di tích & điểm tham quan TP. Hồ Chí Minh
  * được đồng bộ tự động từ Overture Maps Foundation (theme=places, GeoParquet).
  *
  * - Release: {release}

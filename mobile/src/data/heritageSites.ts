@@ -1,7 +1,10 @@
 import { HeritageSite } from '../types/heritage';
 import { HCM_CENTRAL_SITES } from './hcmCentralSites';
 import { HCM_EXTENDED_SITES } from './hcmExtendedSites';
+import { HCM_ICONIC_PHOTO_SITES } from './hcmIconicPhotoSites';
+import { HCM_CULTURE_AND_SUBURBAN_SITES } from './hcmCultureAndSuburbanSites';
 import { OVERTURE_RESTAURANTS_BY_SITE } from './overtureRestaurants';
+import { WIKIPEDIA_ENRICHMENT_BY_SITE } from './wikipediaEnrichment';
 
 export interface CityPreset {
   id: string;
@@ -16,7 +19,7 @@ export const CITY_PRESETS: CityPreset[] = [
   {
     id: 'ALL_HCM',
     label: 'Toàn TP. Hồ Chí Minh',
-    subtitle: 'Tất cả 18 di sản, di tích & điểm tham quan',
+    subtitle: 'Tất cả 50 di sản, di tích & điểm tham quan TP.HCM',
     lat: 10.7775,
     lng: 106.699,
     defaultRadius: 0,
@@ -24,7 +27,7 @@ export const CITY_PRESETS: CityPreset[] = [
   {
     id: 'QUAN_1',
     label: 'Quận 1 · Trung tâm Di sản',
-    subtitle: 'Dinh Độc Lập, Nhà thờ Đức Bà, Bưu điện, Nhà hát, Chợ Bến Thành',
+    subtitle: 'Dinh Độc Lập, Nhà thờ Đức Bà, Phố đi bộ Nguyễn Huệ, Bitexco, Bến Bạch Đằng',
     lat: 10.7775,
     lng: 106.699,
     defaultRadius: 5000,
@@ -32,7 +35,7 @@ export const CITY_PRESETS: CityPreset[] = [
   {
     id: 'QUAN_3_TAN_BINH',
     label: 'Quận 3 & Tân Bình',
-    subtitle: 'Bảo tàng Chứng tích, Hầm Biệt động, Chùa Vĩnh Nghiêm, Chùa Giác Lâm',
+    subtitle: 'Nhà thờ Tân Định, Hồ Con Rùa, Bảo tàng Chứng tích, Chùa Vĩnh Nghiêm, Chùa Giác Lâm',
     lat: 10.7815,
     lng: 106.6885,
     defaultRadius: 8000,
@@ -40,7 +43,7 @@ export const CITY_PRESETS: CityPreset[] = [
   {
     id: 'QUAN_4_BEN_NHA_RONG',
     label: 'Quận 4 · Bến Nhà Rồng',
-    subtitle: 'Bảo tàng Hồ Chí Minh – Bến cảng lịch sử sông Sài Gòn',
+    subtitle: 'Bảo tàng Hồ Chí Minh, Cầu Mống & Bến cảng lịch sử sông Sài Gòn',
     lat: 10.7683,
     lng: 106.7068,
     defaultRadius: 5000,
@@ -48,26 +51,50 @@ export const CITY_PRESETS: CityPreset[] = [
   {
     id: 'CHO_LON_QUAN_5',
     label: 'Quận 5 · Chợ Lớn',
-    subtitle: 'Chùa Bà Thiên Hậu – Hội quán Tuệ Thành & Phố cổ người Hoa',
+    subtitle: 'Chùa Bà Thiên Hậu, Hội quán Nghĩa An, Hẻm Hào Sĩ Phường, Chùa Vạn Phật',
     lat: 10.7533,
     lng: 106.6612,
     defaultRadius: 6000,
   },
   {
+    id: 'QUAN_6_10',
+    label: 'Quận 6 & Quận 10',
+    subtitle: 'Chợ Bình Tây, Bảo tàng Y học Cổ truyền FITO, Chợ hoa & Phố ẩm thực Hồ Thị Kỷ',
+    lat: 10.7615,
+    lng: 106.6645,
+    defaultRadius: 6000,
+  },
+  {
     id: 'BINH_THANH_DA_KAO',
     label: 'Bình Thạnh & Đa Kao',
-    subtitle: 'Lăng Ông Bà Chiểu, Chùa Ngọc Hoàng, Bảo tàng Lịch sử',
+    subtitle: 'Lăng Ông Bà Chiểu, Landmark 81, Làng Du lịch Bình Quới, Chùa Ngọc Hoàng',
     lat: 10.7975,
-    lng: 106.6975,
-    defaultRadius: 5000,
+    lng: 106.712,
+    defaultRadius: 6000,
+  },
+  {
+    id: 'QUAN_7_PHU_MY_HUNG',
+    label: 'Quận 7 · Phú Mỹ Hưng',
+    subtitle: 'Cầu Ánh Sao & Hồ Bán Nguyệt — không gian dạo bộ hiện đại khu Nam',
+    lat: 10.7273,
+    lng: 106.7192,
+    defaultRadius: 6000,
   },
   {
     id: 'TP_THU_DUC',
     label: 'TP. Thủ Đức',
-    subtitle: 'Công viên Lịch sử Văn hóa Dân tộc & Đền Tưởng niệm Vua Hùng',
-    lat: 10.8795,
-    lng: 106.8195,
-    defaultRadius: 15000,
+    subtitle: 'Công viên Bờ sông Thủ Thiêm, Chùa Bửu Long, Bảo tàng Áo Dài, Đền Vua Hùng',
+    lat: 10.842,
+    lng: 106.785,
+    defaultRadius: 18000,
+  },
+  {
+    id: 'QUAN_12',
+    label: 'Quận 12 · Cửa ngõ Tây Bắc',
+    subtitle: 'Tu viện Khánh An — không gian thiền viện kiến trúc Á Đông thanh tịnh',
+    lat: 10.8617,
+    lng: 106.6952,
+    defaultRadius: 10000,
   },
   {
     id: 'CU_CHI',
@@ -435,10 +462,12 @@ const ADDITIONAL_HCM_SITES: HeritageSite[] = [
   },
 ];
 
-const BASE_HERITAGE_SITES: HeritageSite[] = [
+export const BASE_HERITAGE_SITES: HeritageSite[] = [
   ...HCM_CENTRAL_SITES,
   ...HCM_EXTENDED_SITES,
   ...ADDITIONAL_HCM_SITES,
+  ...HCM_ICONIC_PHOTO_SITES,
+  ...HCM_CULTURE_AND_SUBURBAN_SITES,
 ];
 
 export const HERITAGE_SITES: HeritageSite[] = BASE_HERITAGE_SITES.map((site) => {
@@ -447,8 +476,53 @@ export const HERITAGE_SITES: HeritageSite[] = BASE_HERITAGE_SITES.map((site) => 
     source: res.source ?? ('curated' as const),
   }));
   const overture = OVERTURE_RESTAURANTS_BY_SITE[site.id] ?? [];
+  const wiki = WIKIPEDIA_ENRICHMENT_BY_SITE[site.id];
+
+  const viBase = site.translations.vi;
+  const enBase = site.translations.en;
+
+  const viAudioScript = [...viBase.audioScript];
+  if (
+    wiki?.viWikiParagraphs &&
+    wiki.viWikiParagraphs.length > 0 &&
+    !viAudioScript.some((s) => s.includes('Wikipedia'))
+  ) {
+    let wikiNote = `Theo tư liệu bách khoa Wikipedia: ${wiki.viWikiParagraphs[0]}`;
+    if (wiki.viWikiParagraphs.length > 1 && wikiNote.length < 420) {
+      wikiNote = `${wikiNote} ${wiki.viWikiParagraphs[1]}`;
+    }
+    viAudioScript.push(wikiNote);
+  }
+
+  const enAudioScript = [...enBase.audioScript];
+  if (
+    wiki?.enWikiParagraphs &&
+    wiki.enWikiParagraphs.length > 0 &&
+    !enAudioScript.some((s) => s.includes('Wikipedia'))
+  ) {
+    enAudioScript.push(
+      `Historical context from Wikipedia: ${wiki.enWikiParagraphs[0]}`
+    );
+  }
+
   return {
     ...site,
+    coverImage: wiki?.coverImage || site.coverImage,
+    mediaGallery:
+      wiki?.mediaGallery && wiki.mediaGallery.length > 0
+        ? wiki.mediaGallery
+        : site.mediaGallery,
+    translations: {
+      ...site.translations,
+      vi: {
+        ...viBase,
+        audioScript: viAudioScript,
+      },
+      en: {
+        ...enBase,
+        audioScript: enAudioScript,
+      },
+    },
     nearbyRestaurants: [...curated, ...overture],
   };
 });

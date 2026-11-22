@@ -38,7 +38,7 @@ Hệ thống Backend FastAPI + Supabase (PostgreSQL + PostGIS + `pgvector` + Aut
 TAGS_METADATA = [
     {"name": "System", "description": "Kiểm tra tình trạng Server, DB PostGIS/pgvector & kết nối AI."},
     {"name": "Auth", "description": "Đăng ký, đăng nhập JWT (Supabase Auth / Local fallback) & quản lý hồ sơ."},
-    {"name": "Heritage Sites", "description": "Truy vấn 20 di tích lịch sử TP.HCM & quán ăn đặc sản lân cận."},
+    {"name": "Heritage Sites", "description": "Truy vấn 50 di tích lịch sử, điểm tham quan TP.HCM & quán ăn đặc sản lân cận."},
     {"name": "Admin CRUD", "description": "Quản trị di tích & quán ăn (Admin only), tự động cập nhật tri thức RAG."},
     {"name": "Smart AI", "description": "3 Trụ cột Thông minh: Gợi ý ngữ cảnh, Tour 2-Opt, RAG Chatbot & Vision AI."},
     {"name": "Routing", "description": "Proxy chỉ đường đi bộ (DB Cache 7 ngày → FOSSGIS OSRM → Goong → Fallback)."},

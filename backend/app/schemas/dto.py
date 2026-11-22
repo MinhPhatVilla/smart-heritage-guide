@@ -204,7 +204,7 @@ class RecommendationRequest(BaseModel):
     language: SupportedLanguage = "vi"
     preferred_categories: list[HeritageCategory] = Field(default_factory=list)
     visited_site_ids: list[str] = Field(default_factory=list)
-    max_results: int = Field(default=6, ge=1, le=20)
+    max_results: int = Field(default=6, ge=1, le=50)
     current_hour: Optional[int] = Field(default=None, ge=0, le=23)
     radius_m: Optional[float] = Field(default=None, ge=100.0)
 
