@@ -224,40 +224,45 @@ function buildExplorerMapHtml(
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <link rel="stylesheet" href="${glCssUrl}" />
   <style>
-    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; font-family: "Times New Roman", Times, serif; }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     html, body, #map {
       margin: 0;
       padding: 0;
       width: 100%;
       height: 100%;
-      background: #F2F0EA;
+      background: #EDF2F7;
       overflow: hidden;
-      font-family: "Times New Roman", Times, serif;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
     }
     .mapboxgl-map, .maplibregl-map, .leaflet-container {
-      background: #F2F0EA;
-      font-family: "Times New Roman", Times, serif !important;
+      background: #EDF2F7;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
     }
     .mapboxgl-ctrl-attrib, .maplibregl-ctrl-attrib {
       font-size: 9px !important;
-      background: rgba(255, 255, 255, 0.8) !important;
-      color: #57554F !important;
-      border-radius: 6px 0 0 0;
+      background: rgba(255, 255, 255, 0.72) !important;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      color: #64748B !important;
+      border-radius: 10px 0 0 0;
+      padding: 1px 6px !important;
     }
     .mapboxgl-ctrl-scale, .maplibregl-ctrl-scale {
-      background: rgba(255, 255, 255, 0.9) !important;
-      border: 1.5px solid #3C4043 !important;
+      background: rgba(255, 255, 255, 0.82) !important;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border: 1.5px solid rgba(15, 23, 42, 0.45) !important;
       border-top: none !important;
-      color: #202124 !important;
-      font-size: 10px !important;
-      font-weight: 700 !important;
-      padding: 0 5px !important;
-      border-radius: 0 0 3px 3px;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+      color: #334155 !important;
+      font-size: 9.5px !important;
+      font-weight: 600 !important;
+      padding: 0 6px !important;
+      border-radius: 0 0 4px 4px;
+      box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);
     }
     .mapboxgl-ctrl-bottom-left, .maplibregl-ctrl-bottom-left {
-      left: 10px !important;
-      bottom: 10px !important;
+      left: 12px !important;
+      bottom: 12px !important;
     }
     @keyframes shgGpsPulse {
       0% { transform: scale(0.8); opacity: 0.78; }
@@ -269,14 +274,26 @@ function buildExplorerMapHtml(
       width: 20px;
       height: 20px;
       border-radius: 9999px;
-      background: rgba(26, 115, 232, 0.36);
+      background: rgba(0, 122, 255, 0.34);
       animation: shgGpsPulse 2s ease-out infinite;
     }
     .shg-pin-badge {
-      transition: transform 0.16s ease;
+      transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease;
+      transform-origin: bottom center;
+    }
+    .shg-pin-badge:hover {
+      transform: translateY(-2px) scale(1.06);
     }
     .shg-pin-badge:active {
       transform: scale(0.94);
+    }
+    .shg-teardrop-shadow {
+      width: 14px;
+      height: 4px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.24);
+      filter: blur(1.5px);
+      margin-top: -1px;
     }
     .shg-dest-pulse {
       position: absolute;
@@ -460,47 +477,55 @@ function buildExplorerMapHtml(
       function createSiteMarkerElement(site) {
         var el = document.createElement('div');
         el.style.cursor = 'pointer';
-        el.style.zIndex = site.isSelected ? '35' : '12';
-        var borderColor = site.isSelected ? '#B93815' : (site.isVisited ? '#047857' : '#141413');
+        el.style.zIndex = site.isSelected ? '45' : '15';
+        var accent = site.isVisited ? '#059669' : '#D9381E';
         var badgeText = site.isVisited ? '✓' : String(site.index);
 
         if (site.isSelected) {
-          var shortLabel = site.label.length > 18 ? site.label.slice(0, 16) + '…' : site.label;
+          var shortLabel = site.label.length > 20 ? site.label.slice(0, 18) + '…' : site.label;
           el.innerHTML = '<div class="shg-pin-badge" style="display:inline-flex;flex-direction:column;align-items:center;user-select:none;">'
-            + '<div style="display:inline-flex;align-items:center;gap:6px;padding:3px 9px 3px 3px;border-radius:999px;background:rgba(255,255,255,0.98);border:1.8px solid #B93815;box-shadow:0 8px 22px rgba(20,20,19,0.22);">'
-            + '<div style="width:24px;height:24px;border-radius:999px;overflow:hidden;flex-shrink:0;background:#F3F1EC;">'
-            + '<img src="' + escapeHtml(site.coverImage) + '" alt="" style="width:24px;height:24px;object-fit:cover;display:block;" />'
+            + '<div style="display:inline-flex;align-items:center;gap:7px;padding:4px 11px 4px 4px;border-radius:999px;background:rgba(255,255,255,0.95);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1.5px solid #D9381E;box-shadow:0 10px 28px rgba(15,23,42,0.22),0 2px 6px rgba(217,56,30,0.16);">'
+            + '<div style="width:26px;height:26px;border-radius:999px;overflow:hidden;flex-shrink:0;background:#F1F5F9;border:1px solid rgba(15,23,42,0.08);">'
+            + '<img src="' + escapeHtml(site.coverImage) + '" alt="" style="width:26px;height:26px;object-fit:cover;display:block;" />'
             + '</div>'
-            + '<span style="font-size:11.5px;font-weight:700;color:#141413;white-space:nowrap;">'
+            + '<span style="font-size:12px;font-weight:700;color:#0F172A;letter-spacing:-0.01em;white-space:nowrap;">'
             + escapeHtml(shortLabel)
             + '</span>'
-            + '<span style="display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 4px;border-radius:999px;background:#B93815;color:#FFFFFF;font-size:9.5px;font-weight:700;">'
+            + '<span style="display:inline-flex;align-items:center;justify-content:center;min-width:19px;height:19px;padding:0 5px;border-radius:999px;background:#D9381E;color:#FFFFFF;font-size:10px;font-weight:700;">'
             + badgeText
             + '</span>'
             + '</div>'
-            + '<div style="width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:6px solid #B93815;margin-top:-1px;"></div>'
+            + '<div style="width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:7px solid #D9381E;margin-top:-1px;"></div>'
+            + '<div class="shg-teardrop-shadow" style="width:18px;"></div>'
             + '</div>';
-        } else {
-          el.innerHTML = '<div class="shg-pin-badge" style="position:relative;width:34px;height:34px;border-radius:999px;background:#FFFFFF;border:2px solid ' + (site.isVisited ? '#047857' : '#FFFFFF') + ';box-shadow:0 4px 12px rgba(20,20,19,0.22);user-select:none;">'
-            + '<div style="width:100%;height:100%;border-radius:999px;overflow:hidden;background:#F3F1EC;">'
-            + '<img src="' + escapeHtml(site.coverImage) + '" alt="" style="width:100%;height:100%;object-fit:cover;display:block;" />'
-            + '</div>'
-            + '<span style="position:absolute;top:-4px;right:-4px;display:inline-flex;align-items:center;justify-content:center;min-width:16px;height:16px;padding:0 3px;border-radius:999px;background:' + borderColor + ';color:#FFFFFF;border:1.5px solid #FFFFFF;font-size:9px;font-weight:700;line-height:1;">'
-            + badgeText
-            + '</span>'
-            + '</div>';
+          return el;
         }
+
+        // Apple Maps / Airbnb Teardrop Photo Pin with soft 3D ground shadow
+        el.innerHTML = '<div class="shg-pin-badge" style="display:inline-flex;flex-direction:column;align-items:center;user-select:none;">'
+          + '<div style="position:relative;width:36px;height:36px;border-radius:999px;background:#FFFFFF;padding:2.5px;box-shadow:0 6px 16px rgba(15,23,42,0.24),0 1px 3px rgba(15,23,42,0.12);border:1px solid rgba(255,255,255,0.95);">'
+          + '<div style="width:100%;height:100%;border-radius:999px;overflow:hidden;background:#F1F5F9;">'
+          + '<img src="' + escapeHtml(site.coverImage) + '" alt="" style="width:100%;height:100%;object-fit:cover;display:block;" />'
+          + '</div>'
+          + '<span style="position:absolute;bottom:-3px;right:-3px;display:inline-flex;align-items:center;justify-content:center;min-width:16px;height:16px;padding:0 3.5px;border-radius:999px;background:' + accent + ';color:#FFFFFF;border:1.5px solid #FFFFFF;font-size:8.5px;font-weight:700;line-height:1;box-shadow:0 2px 5px rgba(15,23,42,0.22);">'
+          + badgeText
+          + '</span>'
+          + '</div>'
+          + '<div style="width:0;height:0;border-left:5.5px solid transparent;border-right:5.5px solid transparent;border-top:7.5px solid #FFFFFF;margin-top:-2px;filter:drop-shadow(0 2px 2px rgba(15,23,42,0.18));"></div>'
+          + '<div class="shg-teardrop-shadow"></div>'
+          + '</div>';
         return el;
       }
 
       function createRestaurantMarkerElement(res) {
         var el = document.createElement('div');
         el.style.cursor = 'pointer';
-        el.style.zIndex = '8';
+        el.style.zIndex = '9';
         var isOverture = res.source === 'overture';
-        var bg = isOverture ? '#EA580C' : '#141413';
-        el.innerHTML = '<div class="shg-pin-badge" style="display:inline-flex;align-items:center;gap:3px;padding:' + (isOverture ? '2px 6px' : '2.5px 6.5px') + ';border-radius:999px;background:' + bg + ';color:#FFFFFF;border:1.5px solid #FFFFFF;box-shadow:0 3px 8px rgba(0,0,0,0.2);font-size:9.5px;font-weight:700;white-space:nowrap;">'
-          + '<span style="color:#FDE047;">★</span>'
+        var starColor = isOverture ? '#F59E0B' : '#D9381E';
+        // Airbnb Floating White Glass Pill for eateries (clean, bright, never dark/cluttered)
+        el.innerHTML = '<div class="shg-pin-badge" style="display:inline-flex;align-items:center;gap:3px;padding:3px 7.5px;border-radius:999px;background:rgba(255,255,255,0.94);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);color:#0F172A;border:1px solid rgba(15,23,42,0.09);box-shadow:0 3px 10px rgba(15,23,42,0.15),0 1px 2px rgba(15,23,42,0.08);font-size:10px;font-weight:700;letter-spacing:-0.01em;white-space:nowrap;">'
+          + '<span style="color:' + starColor + ';font-size:9.5px;line-height:1;">★</span>'
           + '<span>' + Number(res.rating).toFixed(1) + '</span>'
           + '</div>';
         return el;
@@ -537,7 +562,7 @@ function buildExplorerMapHtml(
       }
 
       function applyMapboxOrOsmEnhancements(map, tileCfg, is3D, lightPreset) {
-        // 1. Mapbox Standard 3D (v3): giữ đầy đủ nhãn POI, đường phố, giao thông + hiệu ứng 3D & sương chân trời êm mắt
+        // 1. Mapbox Standard 3D (v3): phong cách Apple Maps 3D sáng trong + sương trời xanh nhẹ + đầy đủ POI
         if (USE_MAPBOX && tileCfg.id === 'mapbox_standard') {
           try {
             map.setConfigProperty('basemap', 'lightPreset', lightPreset || 'day');
@@ -547,18 +572,20 @@ function buildExplorerMapHtml(
             map.setConfigProperty('basemap', 'show3dObjects', is3D);
             if (typeof map.setFog === 'function') {
               var isNight = lightPreset === 'night';
+              var isDusk = lightPreset === 'dusk';
               map.setFog(is3D ? {
-                color: isNight ? '#111827' : '#F4F2EC',
-                'high-color': isNight ? '#090D16' : '#E7ECF2',
-                'horizon-blend': 0.06,
-                range: [2.0, 12]
+                color: isNight ? '#0F172A' : (isDusk ? '#F3DFCE' : '#EDF4FB'),
+                'high-color': isNight ? '#020617' : (isDusk ? '#D8A48F' : '#D4E6F8'),
+                'space-color': isNight ? '#020617' : '#CBE0F5',
+                'horizon-blend': 0.12,
+                range: [1.6, 11]
               } : null);
             }
           } catch (e) {}
           return;
         }
 
-        // 2. Mapbox Streets / Outdoors / Satellite v12: khối kiến trúc 3D tông sáng dịu mượt
+        // 2. Mapbox Streets / Outdoors / Satellite v12: khối kiến trúc 3D trắng ngọc Apple Maps
         if (USE_MAPBOX && tileCfg.renderMode === 'mapbox') {
           try {
             if (is3D && map.getSource('composite') && !map.getLayer('shg-mapbox-3d-buildings')) {
@@ -576,19 +603,19 @@ function buildExplorerMapHtml(
                 'source-layer': 'building',
                 filter: ['==', 'extrude', 'true'],
                 type: 'fill-extrusion',
-                minzoom: 14.5,
+                minzoom: 14.3,
                 paint: {
                   'fill-extrusion-color': [
                     'interpolate', ['linear'],
                     ['coalesce', ['get', 'height'], 10],
-                    0, '#F3F1EC',
-                    25, '#E7E4DC',
-                    75, '#D9D4C9',
-                    160, '#CBC5B8'
+                    0, '#F8F7F4',
+                    25, '#ECEAE4',
+                    75, '#DFDDD5',
+                    160, '#D1CEC5'
                   ],
                   'fill-extrusion-height': ['get', 'height'],
                   'fill-extrusion-base': ['get', 'min_height'],
-                  'fill-extrusion-opacity': 0.78,
+                  'fill-extrusion-opacity': 0.86,
                   'fill-extrusion-vertical-gradient': true
                 }
               }, labelLayerId);
@@ -599,7 +626,7 @@ function buildExplorerMapHtml(
           return;
         }
 
-        // 3. OpenStreetMap Vector 3D (OpenFreeMap) — giữ đầy đủ mọi điểm/nhãn, chỉ tinh chỉnh bảng màu sạch hiện đại
+        // 3. OpenStreetMap Vector 3D (OpenFreeMap) — Bảng màu Apple Maps 3D sáng trong trẻo
         if (tileCfg.renderMode !== 'vector') return;
         var style = map.getStyle();
         if (!style || !Array.isArray(style.layers)) return;
@@ -612,31 +639,31 @@ function buildExplorerMapHtml(
         };
 
         if (tileCfg.googleLikePalette) {
-          setPaint('background', 'background-color', '#F6F5F2');
-          setPaint('water', 'fill-color', '#C9DDEA');
-          setPaint('waterway_river', 'line-color', '#BCD4E6');
-          setPaint('waterway_other', 'line-color', '#C9DDEA');
-          setPaint('park', 'fill-color', '#DCE8DC');
-          setPaint('park_outline', 'line-color', '#CDDDCF');
-          setPaint('landcover_wood', 'fill-color', '#DDE8DB');
-          setPaint('landcover_grass', 'fill-color', '#E5EFE3');
-          setPaint('landuse_residential', 'fill-color', '#F2F1ED');
-          setPaint('landuse_commercial_area', 'fill-color', '#F4EFE7');
-          setPaint('landuse_hospital', 'fill-color', '#F7ECEC');
-          setPaint('landuse_school', 'fill-color', '#F7F3E6');
-          setPaint('road_motorway_casing', 'line-color', '#E2D4BC');
-          setPaint('road_motorway', 'line-color', '#F3E7D3');
-          setPaint('road_trunk_primary_casing', 'line-color', '#E5DCCB');
-          setPaint('road_trunk_primary', 'line-color', '#F9F3E6');
-          setPaint('road_secondary_tertiary_casing', 'line-color', '#E6E4DE');
+          setPaint('background', 'background-color', '#F5F5F0');
+          setPaint('water', 'fill-color', '#9FD2FF');
+          setPaint('waterway_river', 'line-color', '#8CC7FB');
+          setPaint('waterway_other', 'line-color', '#9FD2FF');
+          setPaint('park', 'fill-color', '#C6E8B8');
+          setPaint('park_outline', 'line-color', '#B2DEA1');
+          setPaint('landcover_wood', 'fill-color', '#BFE4B0');
+          setPaint('landcover_grass', 'fill-color', '#D1EDC4');
+          setPaint('landuse_residential', 'fill-color', '#F1F2EE');
+          setPaint('landuse_commercial_area', 'fill-color', '#F5F0E7');
+          setPaint('landuse_hospital', 'fill-color', '#FCEAEA');
+          setPaint('landuse_school', 'fill-color', '#FAF3DF');
+          setPaint('road_motorway_casing', 'line-color', '#E8BD6B');
+          setPaint('road_motorway', 'line-color', '#FCE19D');
+          setPaint('road_trunk_primary_casing', 'line-color', '#E8D296');
+          setPaint('road_trunk_primary', 'line-color', '#FDF1C7');
+          setPaint('road_secondary_tertiary_casing', 'line-color', '#E2E4E8');
           setPaint('road_secondary_tertiary', 'line-color', '#FFFFFF');
-          setPaint('road_minor_casing', 'line-color', '#ECEAE4');
+          setPaint('road_minor_casing', 'line-color', '#E9EBEF');
           setPaint('road_minor', 'line-color', '#FFFFFF');
-          setPaint('road_service_track_casing', 'line-color', '#EFECE7');
-          setPaint('road_service_track', 'line-color', '#FAF9F6');
-          setPaint('road_path_pedestrian', 'line-color', '#ECE5D8');
-          setPaint('building', 'fill-color', '#ECEAE5');
-          setPaint('building', 'fill-outline-color', '#E0DDD6');
+          setPaint('road_service_track_casing', 'line-color', '#EEEFF2');
+          setPaint('road_service_track', 'line-color', '#FAFAFC');
+          setPaint('road_path_pedestrian', 'line-color', '#EAE4D8');
+          setPaint('building', 'fill-color', '#ECEBE6');
+          setPaint('building', 'fill-outline-color', '#DFDDD6');
         }
 
         if (map.getLayer('building-3d')) {
@@ -644,12 +671,12 @@ function buildExplorerMapHtml(
           setPaint('building-3d', 'fill-extrusion-color', [
             'interpolate', ['linear'],
             ['coalesce', ['get', 'render_height'], 10],
-            0, '#F3F1EC',
-            18, '#EAE7E0',
-            50, '#DDD8CE',
-            130, '#CFC9BC'
+            0, '#F8F7F4',
+            18, '#ECEAE4',
+            50, '#DFDDD5',
+            130, '#D1CEC5'
           ]);
-          setPaint('building-3d', 'fill-extrusion-opacity', 0.8);
+          setPaint('building-3d', 'fill-extrusion-opacity', 0.88);
           setPaint('building-3d', 'fill-extrusion-vertical-gradient', true);
         }
       }
@@ -691,8 +718,8 @@ function buildExplorerMapHtml(
           minZoom: isFocusHcmcOnly ? HCMC_MIN_ZOOM : VIETNAM_MIN_ZOOM,
           maxBounds: isFocusHcmcOnly ? HCMC_MAX_BOUNDS : VIETNAM_MAX_BOUNDS,
           renderWorldCopies: false,
-          pitch: 45,
-          bearing: -12,
+          pitch: 50,
+          bearing: -15,
           maxPitch: 70,
           antialias: true,
           attributionControl: true
@@ -725,14 +752,14 @@ function buildExplorerMapHtml(
               lineOpacity: 0.86
             };
           }
-          // Editorial frosted warm mist for light / 3D street maps (Apple Maps / Airbnb style)
+          // Apple Maps airy cool-white mist veil (seamless with sky fog)
           return {
-            maskColor: '#F3F0E9',
-            maskOpacity: 0.78,
-            featherColor: '#B8ACA0',
-            featherOpacity: 0.24,
+            maskColor: '#EEF3F8',
+            maskOpacity: 0.72,
+            featherColor: '#94A3B8',
+            featherOpacity: 0.22,
             casingColor: '#FFFFFF',
-            lineColor: '#B93815',
+            lineColor: '#D9381E',
             lineOpacity: 0.84
           };
         }
@@ -1070,7 +1097,7 @@ function buildExplorerMapHtml(
 
             var m = new gl.Marker({
               element: el,
-              anchor: site.isSelected ? 'bottom' : 'center'
+              anchor: 'bottom'
             })
               .setLngLat([site.lng, site.lat])
               .addTo(map);
@@ -2780,30 +2807,33 @@ const styles = StyleSheet.create({
   scopeSegmentedPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.94)',
+    backgroundColor: 'rgba(255, 255, 255, 0.88)',
     borderRadius: RADII.pill,
     borderWidth: 1,
-    borderColor: 'rgba(20, 20, 19, 0.08)',
-    padding: 3,
+    borderColor: 'rgba(255, 255, 255, 0.85)',
+    padding: 3.5,
     gap: 3,
+    ...(Platform.OS === 'web'
+      ? ({ backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)' } as object)
+      : {}),
     ...SHADOWS.floating,
   },
   scopeSegBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    paddingHorizontal: 11,
-    paddingVertical: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 6.5,
     borderRadius: RADII.pill,
   },
   scopeSegBtnActive: {
-    backgroundColor: COLORS.ink,
+    backgroundColor: '#18181B',
   },
   scopeSegText: {
     fontSize: 11.5,
     fontWeight: '700',
-    letterSpacing: 0.15,
-    color: COLORS.inkSecondary,
+    letterSpacing: 0.1,
+    color: '#475569',
   },
   scopeSegTextActive: {
     color: COLORS.white,
@@ -2853,40 +2883,46 @@ const styles = StyleSheet.create({
     gap: SPACING.sm,
   },
   controlDock: {
-    width: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.92)',
+    width: 42,
+    borderRadius: 21,
+    backgroundColor: 'rgba(255, 255, 255, 0.88)',
     borderWidth: 1,
-    borderColor: 'rgba(20, 20, 19, 0.08)',
+    borderColor: 'rgba(255, 255, 255, 0.85)',
     overflow: 'hidden',
+    ...(Platform.OS === 'web'
+      ? ({ backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)' } as object)
+      : {}),
     ...SHADOWS.floating,
   },
   dockBtn: {
-    width: 38,
-    height: 36,
+    width: 40,
+    height: 38,
     alignItems: 'center',
     justifyContent: 'center',
   },
   dockBtnActive: {
-    backgroundColor: COLORS.ink,
+    backgroundColor: '#18181B',
   },
   dockBtn3DActive: {
-    backgroundColor: COLORS.gpsBlue,
+    backgroundColor: '#007AFF',
   },
   dockDivider: {
     height: 1,
-    backgroundColor: 'rgba(20, 20, 19, 0.07)',
-    marginHorizontal: 8,
+    backgroundColor: 'rgba(15, 23, 42, 0.08)',
+    marginHorizontal: 9,
   },
   roundControlBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.94)',
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: 'rgba(255, 255, 255, 0.90)',
     borderWidth: 1,
-    borderColor: 'rgba(20, 20, 19, 0.08)',
+    borderColor: 'rgba(255, 255, 255, 0.85)',
     alignItems: 'center',
     justifyContent: 'center',
+    ...(Platform.OS === 'web'
+      ? ({ backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)' } as object)
+      : {}),
     ...SHADOWS.floating,
   },
   roundControlBtnActive: {
@@ -3054,11 +3090,14 @@ const styles = StyleSheet.create({
     zIndex: 20,
   },
   previewCard: {
-    backgroundColor: COLORS.surface,
-    borderRadius: RADII.xl,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    borderRadius: 24,
     borderWidth: 1,
-    borderColor: COLORS.border,
-    padding: SPACING.md,
+    borderColor: 'rgba(255, 255, 255, 0.9)',
+    padding: SPACING.md + 2,
+    ...(Platform.OS === 'web'
+      ? ({ backdropFilter: 'blur(18px)', WebkitBackdropFilter: 'blur(18px)' } as object)
+      : {}),
     ...SHADOWS.floating,
   },
   previewCardRow: {
@@ -3066,12 +3105,12 @@ const styles = StyleSheet.create({
     gap: SPACING.md,
   },
   previewThumb: {
-    width: 78,
-    height: 84,
-    borderRadius: RADII.lg,
+    width: 84,
+    height: 90,
+    borderRadius: 16,
     backgroundColor: COLORS.surfaceMuted,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: 'rgba(15, 23, 42, 0.06)',
   },
   previewInfo: {
     flex: 1,
@@ -3153,10 +3192,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 5,
-    backgroundColor: COLORS.ink,
-    borderRadius: RADII.md,
-    paddingVertical: 8,
-    paddingHorizontal: 10,
+    backgroundColor: '#18181B',
+    borderRadius: RADII.pill,
+    paddingVertical: 9,
+    paddingHorizontal: 12,
   },
   btnDarkText: {
     fontSize: 12,
@@ -3169,10 +3208,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 5,
-    backgroundColor: COLORS.accent,
-    borderRadius: RADII.md,
-    paddingVertical: 8,
-    paddingHorizontal: 10,
+    backgroundColor: '#D9381E',
+    borderRadius: RADII.pill,
+    paddingVertical: 9,
+    paddingHorizontal: 12,
   },
   btnAccentText: {
     fontSize: 12,
