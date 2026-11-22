@@ -58,8 +58,13 @@ const ESRI_LABELS_URL =
   'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}';
 
 export function getEnvMapboxAccessToken(): string {
-  if (typeof process === 'undefined' || !process.env) return '';
-  return (process.env.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN || '').trim();
+  // Không kiểm tra `typeof process === 'undefined'` trước vì Expo/Babel thay thế trực tiếp
+  // biểu thức `process.env.EXPO_PUBLIC_*` thành chuỗi tĩnh khi bundle cho Web/Mobile.
+  try {
+    return (process.env.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN || '').trim();
+  } catch {
+    return '';
+  }
 }
 
 export function isValidMapboxPublicToken(token: string | null | undefined): boolean {

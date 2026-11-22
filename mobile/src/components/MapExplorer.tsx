@@ -1630,9 +1630,9 @@ export const MapExplorer: React.FC<MapExplorerProps> = ({
         )}
       </View>
 
-      {/* Top-Left Pill: Tapped OSM/Mapbox Place OR Quick Mapbox Activation Chip */}
-      <View style={styles.topLeftPlaceWrap} pointerEvents="box-none">
-        {tappedPlace && !activeRoute && !focusedSite && !focusedRestaurant ? (
+      {/* Top-Left Pill: Tapped Mapbox/OSM Place Label */}
+      {tappedPlace && !activeRoute && !focusedSite && !focusedRestaurant && (
+        <View style={styles.topLeftPlaceWrap} pointerEvents="box-none">
           <View style={styles.tappedPlacePill}>
             <MapPin size={13} color={COLORS.gpsBlue} />
             <Text style={styles.tappedPlaceText} numberOfLines={1}>
@@ -1645,19 +1645,8 @@ export const MapExplorer: React.FC<MapExplorerProps> = ({
               <X size={13} color={COLORS.inkMuted} />
             </TouchableOpacity>
           </View>
-        ) : !isMapboxActive && !activeRoute && !focusedSite && !focusedRestaurant ? (
-          <TouchableOpacity
-            activeOpacity={0.85}
-            onPress={handleOpenTokenModal}
-            style={styles.mapboxPromptPill}
-          >
-            <KeyRound size={12} color={COLORS.accent} />
-            <Text style={styles.mapboxPromptText}>
-              Bật Mapbox GL JS v3
-            </Text>
-          </TouchableOpacity>
-        ) : null}
-      </View>
+        </View>
+      )}
 
       {/* Minimal Top-Right Floating Controls (Layers + 3D + Light + Food) */}
       <View style={styles.topRightControls} pointerEvents="box-none">
