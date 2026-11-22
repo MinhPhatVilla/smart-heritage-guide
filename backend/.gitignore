@@ -11,6 +11,9 @@ dist/
 venv/
 ENV/
 
+# Node / Prisma
+node_modules/
+
 # Environment & Local DB
 .env
 .env.local
