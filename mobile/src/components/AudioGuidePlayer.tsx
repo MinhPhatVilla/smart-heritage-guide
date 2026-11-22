@@ -58,6 +58,11 @@ export const AudioGuidePlayer: React.FC<AudioGuidePlayerProps> = ({
   );
   const [activeVoiceLabel, setActiveVoiceLabel] = useState<string>('');
   const [isBufferingAudio, setIsBufferingAudio] = useState<boolean>(false);
+  const [segmentProgress, setSegmentProgress] = useState<number>(0);
+  const [segmentTiming, setSegmentTiming] = useState<{
+    current: number;
+    duration: number;
+  }>({ current: 0, duration: 0 });
   const [speechError, setSpeechError] = useState<string | null>(null);
 
   const mountedRef = useRef(true);
@@ -78,6 +83,8 @@ export const AudioGuidePlayer: React.FC<AudioGuidePlayerProps> = ({
 
       const clampedIndex = Math.max(0, Math.min(index, script.length - 1));
       setActiveSegment(clampedIndex);
+      setSegmentProgress(0);
+      setSegmentTiming({ current: 0, duration: 0 });
 
       speechService.speakScript(
         script,
@@ -86,7 +93,11 @@ export const AudioGuidePlayer: React.FC<AudioGuidePlayerProps> = ({
         clampedIndex,
         {
           onSegmentChange: (idx) => {
-            if (mountedRef.current) setActiveSegment(idx);
+            if (mountedRef.current) {
+              setActiveSegment(idx);
+              setSegmentProgress(0);
+              setSegmentTiming({ current: 0, duration: 0 });
+            }
           },
           onStateChange: (st) => {
             if (mountedRef.current) setPlayState(st);
@@ -100,10 +111,20 @@ export const AudioGuidePlayer: React.FC<AudioGuidePlayerProps> = ({
           onLoadingChange: (loading) => {
             if (mountedRef.current) setIsBufferingAudio(loading);
           },
+          onProgress: (ratio, curSec, durSec) => {
+            if (mountedRef.current) {
+              setSegmentProgress(Math.max(0, Math.min(1, ratio)));
+              if (durSec > 0) {
+                setSegmentTiming({ current: curSec, duration: durSec });
+              }
+            }
+          },
           onEnd: () => {
             if (mountedRef.current) {
               setPlayState('idle');
               setActiveSegment(0);
+              setSegmentProgress(0);
+              setSegmentTiming({ current: 0, duration: 0 });
               setIsBufferingAudio(false);
             }
           },
@@ -124,6 +145,8 @@ export const AudioGuidePlayer: React.FC<AudioGuidePlayerProps> = ({
     speechService.stop();
     setPlayState('idle');
     setActiveSegment(0);
+    setSegmentProgress(0);
+    setSegmentTiming({ current: 0, duration: 0 });
     setSpeechError(null);
 
     if (autoPlayOnOpen) {
@@ -161,6 +184,8 @@ export const AudioGuidePlayer: React.FC<AudioGuidePlayerProps> = ({
     speechService.stop();
     setPlayState('idle');
     setActiveSegment(0);
+    setSegmentProgress(0);
+    setSegmentTiming({ current: 0, duration: 0 });
     setSpeechError(null);
   };
 
@@ -196,6 +221,8 @@ export const AudioGuidePlayer: React.FC<AudioGuidePlayerProps> = ({
       Math.min(segments.length - 1, safeActiveSegment + delta)
     );
     setActiveSegment(nextIdx);
+    setSegmentProgress(0);
+    setSegmentTiming({ current: 0, duration: 0 });
     if (playState === 'playing') {
       speechService.jumpToSegment(nextIdx, true);
     } else if (playState === 'paused') {
@@ -203,13 +230,26 @@ export const AudioGuidePlayer: React.FC<AudioGuidePlayerProps> = ({
     }
   };
 
-  const progressPercent =
-    segments.length > 0
-      ? Math.min(
-          100,
-          Math.round(((safeActiveSegment + 1) / segments.length) * 100)
-        )
-      : 0;
+  const formatAudioTime = (seconds: number): string => {
+    const safe = Math.max(0, Math.floor(seconds));
+    const mins = Math.floor(safe / 60);
+    const secs = safe % 60;
+    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+  };
+
+  // Tiến độ thời gian thực mượt từ 0% → 100% theo tỷ trọng độ dài từng đoạn + tiến độ đang đọc
+  const progressPercent = (() => {
+    if (segments.length === 0) return 0;
+    if (playState === 'idle' && segmentProgress === 0) return 0;
+    const weights = segments.map((s) => Math.max(24, s.length));
+    const totalWeight = weights.reduce((acc, w) => acc + w, 0) || 1;
+    let completed = 0;
+    for (let i = 0; i < safeActiveSegment; i += 1) {
+      completed += weights[i];
+    }
+    completed += weights[safeActiveSegment] * segmentProgress;
+    return Math.max(0, Math.min(100, Math.round((completed / totalWeight) * 100)));
+  })();
 
   return (
     <View style={styles.container}>
@@ -294,7 +334,7 @@ export const AudioGuidePlayer: React.FC<AudioGuidePlayerProps> = ({
         })}
       </ScrollView>
 
-      {/* Progress Bar */}
+      {/* Progress Bar (Real-time smooth audio progress) */}
       <View style={styles.progressWrap}>
         <View style={styles.progressTrack}>
           <View
@@ -308,7 +348,13 @@ export const AudioGuidePlayer: React.FC<AudioGuidePlayerProps> = ({
             ]}
           />
         </View>
-        <Text style={styles.progressPct}>{progressPercent}%</Text>
+        <Text style={styles.progressPct}>
+          {segmentTiming.duration > 0 && playState !== 'idle'
+            ? `${formatAudioTime(segmentTiming.current)} / ${formatAudioTime(
+                segmentTiming.duration
+              )}`
+            : `${progressPercent}%`}
+        </Text>
       </View>
 
       {/* Transport Controls */}
@@ -625,10 +671,10 @@ const styles = StyleSheet.create({
     borderRadius: RADII.pill,
   },
   progressPct: {
-    fontSize: 10,
+    fontSize: 10.5,
     fontWeight: '700',
     color: COLORS.inkMuted,
-    width: 30,
+    minWidth: 34,
     textAlign: 'right',
     fontVariant: ['tabular-nums'],
   },

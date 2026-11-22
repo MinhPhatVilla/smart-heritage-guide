@@ -13,6 +13,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { WebView } from 'react-native-webview';
 import {
+  ArrowLeft,
   Camera,
   Clock,
   ExternalLink,
@@ -42,6 +43,7 @@ import {
 } from '../utils/geoUtils';
 import { AudioGuidePlayer } from './AudioGuidePlayer';
 import { SiteMiniMap } from './SiteMiniMap';
+import { speechService } from '../services/speechService';
 import { COLORS, RADII, SERIF_FONT, SHADOWS, SPACING } from '../theme';
 
 export interface HeritageDetailModalProps {
@@ -116,12 +118,41 @@ export const HeritageDetailModal: React.FC<HeritageDetailModalProps> = ({
   } | null>(null);
   const [playingVideoId, setPlayingVideoId] = useState<string | null>(null);
 
+  const handleCloseModal = () => {
+    speechService.stop();
+    setPlayingVideoId(null);
+    setLightboxMedia(null);
+    onClose();
+  };
+
   useEffect(() => {
     setActiveTab('overview');
     setMinRatingFilter(0);
     setLightboxMedia(null);
     setPlayingVideoId(null);
   }, [site.id]);
+
+  // Hỗ trợ bấm phím Escape trên Web để thoát chi tiết địa danh ngay lập tức
+  useEffect(() => {
+    if (!visible || Platform.OS !== 'web') return;
+    const win = globalThis as unknown as {
+      addEventListener?: (ev: string, fn: (e: { key?: string }) => void) => void;
+      removeEventListener?: (ev: string, fn: (e: { key?: string }) => void) => void;
+    };
+    if (!win.addEventListener || !win.removeEventListener) return;
+    const onKeyDown = (e: { key?: string }) => {
+      if (e.key === 'Escape') {
+        if (lightboxMedia) {
+          setLightboxMedia(null);
+        } else {
+          speechService.stop();
+          onClose();
+        }
+      }
+    };
+    win.addEventListener('keydown', onKeyDown);
+    return () => win.removeEventListener?.('keydown', onKeyDown);
+  }, [visible, lightboxMedia, onClose]);
 
   const localized = site.translations[selectedLanguage] || site.translations.vi;
 
@@ -240,7 +271,7 @@ export const HeritageDetailModal: React.FC<HeritageDetailModalProps> = ({
       visible={visible}
       animationType="slide"
       presentationStyle="fullScreen"
-      onRequestClose={onClose}
+      onRequestClose={handleCloseModal}
     >
       <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
         {/* Hero Image Header */}
@@ -250,18 +281,9 @@ export const HeritageDetailModal: React.FC<HeritageDetailModalProps> = ({
             style={styles.heroImage}
             resizeMode="cover"
           />
-          <View style={styles.heroScrim} />
+          <View style={styles.heroScrim} pointerEvents="none" />
 
-          <TouchableOpacity
-            onPress={onClose}
-            style={styles.heroCloseBtn}
-            accessibilityLabel="Đóng chi tiết di tích"
-            activeOpacity={0.8}
-          >
-            <X size={20} color={COLORS.white} />
-          </TouchableOpacity>
-
-          <View style={styles.heroBottom}>
+          <View style={styles.heroBottom} pointerEvents="box-none">
             <View style={styles.heroMetaRow}>
               <Text style={styles.heroMetaText}>{site.city}</Text>
               <Text style={styles.heroMetaDot}>·</Text>
@@ -301,6 +323,30 @@ export const HeritageDetailModal: React.FC<HeritageDetailModalProps> = ({
                 </Text>
               </View>
             </View>
+          </View>
+
+          {/* Always-on-top Back & Close controls (never blocked by heroBottom/scrim) */}
+          <View style={styles.heroTopActions} pointerEvents="box-none">
+            <TouchableOpacity
+              onPress={handleCloseModal}
+              style={styles.heroBackPill}
+              hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
+              accessibilityLabel="Quay lại danh sách"
+              activeOpacity={0.82}
+            >
+              <ArrowLeft size={16} color={COLORS.white} />
+              <Text style={styles.heroBackPillText}>Quay lại</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={handleCloseModal}
+              style={styles.heroCloseBtn}
+              hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
+              accessibilityLabel="Đóng chi tiết di tích"
+              activeOpacity={0.82}
+            >
+              <X size={20} color={COLORS.white} />
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -761,16 +807,40 @@ const styles = StyleSheet.create({
     bottom: 0,
     backgroundColor: 'rgba(20, 20, 19, 0.48)',
   },
-  heroCloseBtn: {
+  heroTopActions: {
     position: 'absolute',
     top: SPACING.md,
+    left: SPACING.md,
     right: SPACING.md,
+    zIndex: 30,
+    elevation: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  heroBackPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 12,
+    height: 36,
+    borderRadius: RADII.pill,
+    backgroundColor: 'rgba(20, 20, 19, 0.72)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.24)',
+  },
+  heroBackPillText: {
+    fontSize: 12.5,
+    fontWeight: '700',
+    color: COLORS.white,
+  },
+  heroCloseBtn: {
     width: 38,
     height: 38,
     borderRadius: RADII.pill,
-    backgroundColor: 'rgba(20, 20, 19, 0.68)',
+    backgroundColor: 'rgba(20, 20, 19, 0.72)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.22)',
+    borderColor: 'rgba(255,255,255,0.24)',
     alignItems: 'center',
     justifyContent: 'center',
   },

@@ -34,6 +34,12 @@ export interface SpeechCallbacks {
   onStateChange?: (state: SpeechPlayState) => void;
   onEngineChange?: (engine: SpeechEngineMode, voiceLabel?: string) => void;
   onLoadingChange?: (loading: boolean) => void;
+  /** Tiến độ đọc thời gian thực trong đoạn hiện tại (0..1) kèm giây hiện tại & tổng giây ước tính */
+  onProgress?: (
+    segmentProgress: number,
+    currentSeconds: number,
+    durationSeconds: number
+  ) => void;
   onEnd?: () => void;
   /** Alias tương thích với phiên bản web */
   onComplete?: () => void;
@@ -42,10 +48,13 @@ export interface SpeechCallbacks {
 
 interface WebAudioLike {
   src: string;
+  currentTime: number;
+  duration: number;
   playbackRate: number;
   preservesPitch?: boolean;
   mozPreservesPitch?: boolean;
   webkitPreservesPitch?: boolean;
+  ontimeupdate: (() => void) | null;
   onended: (() => void) | null;
   onerror: (() => void) | null;
   play: () => Promise<void>;
@@ -54,6 +63,8 @@ interface WebAudioLike {
 
 class MultiLingualSpeechService {
   private fallbackTimer: ReturnType<typeof setTimeout> | null = null;
+  private progressTimer: ReturnType<typeof setInterval> | null = null;
+  private activeFetchAbort: AbortController | null = null;
   private currentSegments: string[] = [];
   private currentIndex = 0;
   private currentLang: SupportedLanguage = 'vi';
@@ -81,9 +92,52 @@ class MultiLingualSpeechService {
     }
   }
 
+  private clearProgressTimer(): void {
+    if (this.progressTimer !== null) {
+      clearInterval(this.progressTimer);
+      this.progressTimer = null;
+    }
+  }
+
+  private startEstimatedProgressTicker(
+    spokenText: string,
+    effectiveRate: number,
+    token: number
+  ): void {
+    this.clearProgressTimer();
+    const charsPerSecond =
+      this.currentLang === 'zh' || this.currentLang === 'ja' ? 5.2 : 14.5;
+    const estDurationSec = Math.max(
+      2.4,
+      spokenText.length / (charsPerSecond * Math.max(0.5, effectiveRate))
+    );
+    const startedAt = Date.now();
+    this.callbacks.onProgress?.(0.02, 0, estDurationSec);
+
+    this.progressTimer = setInterval(() => {
+      if (token !== this.playbackId || this.state !== 'playing') {
+        this.clearProgressTimer();
+        return;
+      }
+      const elapsedSec = (Date.now() - startedAt) / 1000;
+      const ratio = Math.min(0.97, elapsedSec / estDurationSec);
+      this.callbacks.onProgress?.(ratio, Math.min(elapsedSec, estDurationSec), estDurationSec);
+    }, 180);
+  }
+
   private cleanupAudioPlayers(): void {
+    this.clearProgressTimer();
+    if (this.activeFetchAbort) {
+      try {
+        this.activeFetchAbort.abort();
+      } catch {
+        // Ignore
+      }
+      this.activeFetchAbort = null;
+    }
     if (this.webAudio) {
       try {
+        this.webAudio.ontimeupdate = null;
         this.webAudio.onended = null;
         this.webAudio.onerror = null;
         this.webAudio.pause();
@@ -234,6 +288,7 @@ class MultiLingualSpeechService {
 
     const promise = (async (): Promise<string | null> => {
       const controller = new AbortController();
+      this.activeFetchAbort = controller;
       const timeoutId = setTimeout(() => controller.abort(), 7000);
       try {
         const res = await fetch(`${getApiBaseUrl()}/api/v1/ai/tts`, {
@@ -260,11 +315,16 @@ class MultiLingualSpeechService {
         this.webBlobCache.set(key, blobUrl);
         return blobUrl;
       } catch {
-        // Backend offline -> tạm dừng thử Neural TTS 20s để tránh delay mỗi đoạn
-        this.neuralDisabledUntil = Date.now() + 20_000;
+        if (!controller.signal.aborted) {
+          // Backend offline -> tạm dừng thử Neural TTS 20s để tránh delay mỗi đoạn
+          this.neuralDisabledUntil = Date.now() + 20_000;
+        }
         return null;
       } finally {
         clearTimeout(timeoutId);
+        if (this.activeFetchAbort === controller) {
+          this.activeFetchAbort = null;
+        }
         this.webBlobFetchInflight.delete(key);
       }
     })();
@@ -327,11 +387,24 @@ class MultiLingualSpeechService {
           this.webAudio = audio;
 
           let resolved = false;
-          audio.onended = () => {
+          const emitWebProgress = () => {
             if (token !== this.playbackId || this.state !== 'playing') return;
+            const dur = Number.isFinite(audio.duration) && audio.duration > 0 ? audio.duration : 0;
+            const cur = Number.isFinite(audio.currentTime) ? audio.currentTime : 0;
+            if (dur > 0) {
+              this.callbacks.onProgress?.(Math.min(1, cur / dur), cur, dur);
+            }
+          };
+          audio.ontimeupdate = emitWebProgress;
+          audio.onended = () => {
+            this.clearProgressTimer();
+            if (token !== this.playbackId || this.state !== 'playing') return;
+            const dur = Number.isFinite(audio.duration) && audio.duration > 0 ? audio.duration : 0;
+            this.callbacks.onProgress?.(1, dur, dur);
             onDone();
           };
           audio.onerror = () => {
+            this.clearProgressTimer();
             if (!resolved) {
               resolved = true;
               resolve(false);
@@ -350,6 +423,8 @@ class MultiLingualSpeechService {
                 return;
               }
               this.notifyEngineChange('neural', voiceLabel);
+              this.clearProgressTimer();
+              this.progressTimer = setInterval(emitWebProgress, 150);
               this.prefetchNextWebSegment(this.currentIndex + 1);
               if (!resolved) {
                 resolved = true;
@@ -431,9 +506,18 @@ class MultiLingualSpeechService {
               resolve(true);
             }
 
+            if (status.duration > 0) {
+              this.callbacks.onProgress?.(
+                Math.min(1, status.currentTime / status.duration),
+                status.currentTime,
+                status.duration
+              );
+            }
+
             if (status.didJustFinish && !finished) {
               finished = true;
               clearTimeout(guardTimer);
+              this.callbacks.onProgress?.(1, status.duration || 0, status.duration || 0);
               onDone();
             }
           }
@@ -515,6 +599,7 @@ class MultiLingualSpeechService {
       'device',
       bestVoice.name ? bestVoice.name.slice(0, 26) : 'Giọng thiết bị'
     );
+    this.startEstimatedProgressTicker(spokenText, deviceRate, token);
 
     try {
       Speech.speak(spokenText, {
@@ -523,6 +608,8 @@ class MultiLingualSpeechService {
         pitch: this.voiceGender === 'male' ? 0.94 : 1.0,
         ...(bestVoice.identifier ? { voice: bestVoice.identifier } : {}),
         onDone: () => {
+          this.clearProgressTimer();
+          this.callbacks.onProgress?.(1, 0, 0);
           advanceToNext();
         },
         onStopped: () => {
@@ -575,6 +662,7 @@ class MultiLingualSpeechService {
   public pause(): void {
     if (this.state !== 'playing') return;
     this.clearFallbackTimer();
+    this.clearProgressTimer();
     if (this.webAudio) {
       try {
         this.webAudio.pause();
@@ -606,10 +694,28 @@ class MultiLingualSpeechService {
       return;
     }
     if (this.webAudio) {
+      const audio = this.webAudio;
+      const token = this.playbackId;
       this.notifyStateChange('playing');
-      void this.webAudio.play().catch(() => {
-        void this.speakCurrentSegment();
-      });
+      void audio
+        .play()
+        .then(() => {
+          this.clearProgressTimer();
+          this.progressTimer = setInterval(() => {
+            if (token !== this.playbackId || this.state !== 'playing') {
+              this.clearProgressTimer();
+              return;
+            }
+            const dur = Number.isFinite(audio.duration) && audio.duration > 0 ? audio.duration : 0;
+            const cur = Number.isFinite(audio.currentTime) ? audio.currentTime : 0;
+            if (dur > 0) {
+              this.callbacks.onProgress?.(Math.min(1, cur / dur), cur, dur);
+            }
+          }, 150);
+        })
+        .catch(() => {
+          void this.speakCurrentSegment();
+        });
       return;
     }
     if (this.nativePlayer) {
@@ -715,6 +821,7 @@ class MultiLingualSpeechService {
     this.clearFallbackTimer();
     this.cleanupAudioPlayers();
     this.callbacks.onLoadingChange?.(false);
+    this.callbacks.onProgress?.(0, 0, 0);
     this.state = 'idle';
     void Speech.stop().catch(() => {});
     if (emitState) {
