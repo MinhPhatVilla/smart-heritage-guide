@@ -1003,7 +1003,7 @@ export const HCM_MERGED_BD_VT_SITES: HeritageSite[] = [
       'https://images.unsplash.com/photo-1559592413-7cec4d0cae2b?auto=format&fit=crop&w=1200&q=80',
     translations: {
       vi: {
-        name: 'Tượng Chúa Kitô Vua – Đỉnh Núi Nhỏ Vũng Tàu',
+        name: 'Tượng Chúa Kitô Vua (Tượng Chúa Dang Tay – Núi Nhỏ)',
         shortSummary:
           'Biểu tượng du lịch nổi tiếng bậc nhất Vũng Tàu cao 32m, sải tay 18,4m trên đỉnh Núi Nhỏ (cao 170m), với 811 bậc thang đá và cầu thang xoắn 133 bậc bên trong lên vai tượng ngắm toàn cảnh Biển Đông.',
         historicalEra: '1974 – 1994',

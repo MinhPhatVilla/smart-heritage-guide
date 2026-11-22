@@ -4,6 +4,8 @@ import { HCM_EXTENDED_SITES } from './hcmExtendedSites';
 import { HCM_ICONIC_PHOTO_SITES } from './hcmIconicPhotoSites';
 import { HCM_CULTURE_AND_SUBURBAN_SITES } from './hcmCultureAndSuburbanSites';
 import { HCM_MERGED_BD_VT_SITES } from './hcmMergedBinhDuongVungTauSites';
+import { HCM_VUNG_TAU_DETAILED_SITES } from './hcmVungTauDetailedSites';
+import { HCM_VUNG_TAU_TOURISM_SITES } from './hcmVungTauTourismSites';
 import { OVERTURE_RESTAURANTS_BY_SITE } from './overtureRestaurants';
 import { WIKIPEDIA_ENRICHMENT_BY_SITE } from './wikipediaEnrichment';
 
@@ -20,7 +22,7 @@ export const CITY_PRESETS: CityPreset[] = [
   {
     id: 'ALL_HCM',
     label: 'Toàn TP. Hồ Chí Minh (Mở rộng)',
-    subtitle: 'Tất cả 66 di sản, di tích & điểm tham quan TP.HCM (gồm Bình Dương, Vũng Tàu & Côn Đảo)',
+    subtitle: 'Tất cả 97 di sản, di tích & điểm du lịch TP.HCM (gồm Bình Dương, Bà Rịa – Vũng Tàu & Côn Đảo)',
     lat: 10.7775,
     lng: 106.699,
     defaultRadius: 0,
@@ -130,20 +132,28 @@ export const CITY_PRESETS: CityPreset[] = [
     defaultRadius: 25000,
   },
   {
-    id: 'VUNG_TAU_LONG_HAI',
-    label: 'Vũng Tàu & Biển Long Hải',
-    subtitle: 'Tượng Chúa Kitô, Bạch Dinh, Hải Đăng 1862, Thích Ca Phật Đài, Miếu Hòn Bà, Dinh Cô',
+    id: 'VUNG_TAU_LONG_SON',
+    label: 'Vũng Tàu & Đảo Long Sơn',
+    subtitle: 'Tháp Tam Thắng, Đồi Con Heo, Tượng Chúa Dang Tay, Bãi Sau – Bãi Trước – Bãi Dứa, Hẻm 107, Đức Mẹ Bãi Dâu, Bạch Dinh, Hải Đăng, Chợ Xóm Lưới, Marina & Long Sơn',
     lat: 10.3458,
     lng: 107.075,
-    defaultRadius: 28000,
+    defaultRadius: 20000,
+  },
+  {
+    id: 'BA_RIA_LONG_HAI_HO_TRAM',
+    label: 'Bà Rịa, Phú Mỹ, Long Hải, Hồ Tràm & Hồ Cốc',
+    subtitle: 'Hồ Đá Xanh, Đồi Cừu Suối Nghệ, Đèo Nước Ngọt – Phước Hải, Biển Hồ Cốc, Bến Lộc An, Núi Dinh, Minh Đạm, Đền Võ Thị Sáu, Dinh Cô, Hồ Tràm & Bình Châu',
+    lat: 10.485,
+    lng: 107.28,
+    defaultRadius: 45000,
   },
   {
     id: 'CON_DAO',
     label: 'Đặc khu Côn Đảo',
-    subtitle: 'Di tích Quốc gia Đặc biệt Nhà tù Côn Đảo & Nghĩa trang Hàng Dương',
-    lat: 8.6895,
-    lng: 106.6105,
-    defaultRadius: 15000,
+    subtitle: 'Nhà tù Côn Đảo, Nghĩa trang Hàng Dương, Chùa Núi Một, Bãi Đầm Trầu & VQG Côn Đảo',
+    lat: 8.693,
+    lng: 106.609,
+    defaultRadius: 18000,
   },
 ];
 
@@ -502,6 +512,8 @@ export const BASE_HERITAGE_SITES: HeritageSite[] = [
   ...HCM_ICONIC_PHOTO_SITES,
   ...HCM_CULTURE_AND_SUBURBAN_SITES,
   ...HCM_MERGED_BD_VT_SITES,
+  ...HCM_VUNG_TAU_DETAILED_SITES,
+  ...HCM_VUNG_TAU_TOURISM_SITES,
 ];
 
 export const HERITAGE_SITES: HeritageSite[] = BASE_HERITAGE_SITES.map((site) => {
