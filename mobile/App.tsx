@@ -164,6 +164,7 @@ function SmartHeritageAppContent() {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [activeTab, setActiveTab] = useState<MainTab>('explore');
   const [exploreSection, setExploreSection] = useState<'sites' | 'dining'>('sites');
+  const [isMapMounted, setIsMapMounted] = useState<boolean>(false);
 
   // Compact bottom sheets (replaces cluttered stacked toolbars)
   const [filterSheetVisible, setFilterSheetVisible] = useState<boolean>(false);
@@ -921,6 +922,40 @@ function SmartHeritageAppContent() {
 
   const autoSyncAttemptedKeyRef = useRef<string>('');
 
+  // Pre-warm bản đồ 3D ngầm sau khi tab Khám phá vừa hiển thị ổn định (~650ms) và giữ sống mãi để chuyển tab 0ms lag!
+  useEffect(() => {
+    if (isMapMounted) return;
+    if (activeTab === 'map') {
+      setIsMapMounted(true);
+      return;
+    }
+    const timer = setTimeout(() => {
+      setIsMapMounted(true);
+    }, 650);
+    return () => clearTimeout(timer);
+  }, [activeTab, isMapMounted]);
+
+  const handleToggleFocusHcmcOnly = useCallback((next: boolean) => {
+    setFocusHcmcOnly(next);
+    triggerHaptic('selection');
+    setToastMessage(
+      next
+        ? 'Đang tập trung TP.HCM · Đã làm mờ các tỉnh xung quanh.'
+        : 'Đang mở bản đồ toàn lãnh thổ Việt Nam.'
+    );
+  }, []);
+
+  const handleMoveUserLocation = useCallback(
+    (lat: number, lng: number) => {
+      stopWalkSimulation();
+      stopGpsWatch();
+      setUserLocation([lat, lng]);
+      setActiveCityId('CUSTOM');
+      setGpsStatus(formatCoordinatesLabel(lat, lng));
+    },
+    [stopGpsWatch, stopWalkSimulation]
+  );
+
   // Tự động đồng bộ ngầm các hành trình offline lên Cloud ngay khi người dùng đã đăng nhập
   useEffect(() => {
     if (!authState.isAuthenticated || isSyncingCloud) return;
@@ -1564,9 +1599,16 @@ function SmartHeritageAppContent() {
           </View>
         )}
 
-        {activeTab === 'map' && (
-          <View style={styles.mapTabContainer}>
-            {quickAudioSite && (
+        {/* Keep-Alive 3D Map Layer: giữ WebGL sống liên tục, chuyển tab Bản đồ tức thì (<16ms, không tải lại!) */}
+        {isMapMounted && (
+          <View
+            pointerEvents={activeTab === 'map' ? 'auto' : 'none'}
+            style={[
+              styles.mapTabKeepAlive,
+              activeTab !== 'map' && styles.mapTabKeepAliveHidden,
+            ]}
+          >
+            {activeTab === 'map' && quickAudioSite && (
               <View style={styles.mapQuickAudioOverlay}>
                 <View style={styles.quickAudioHeader}>
                   <View style={styles.quickAudioTitleWrap}>
@@ -1590,6 +1632,7 @@ function SmartHeritageAppContent() {
             )}
 
             <MapExplorer
+              isVisible={activeTab === 'map'}
               userLocation={userLocation}
               userHeading={userHeading}
               sites={mapSites}
@@ -1602,29 +1645,15 @@ function SmartHeritageAppContent() {
               isSimulatingWalk={isSimulatingWalk}
               searchRadiusMeters={searchRadiusMeters}
               focusHcmcOnly={focusHcmcOnly}
-              onToggleFocusHcmcOnly={(next) => {
-                setFocusHcmcOnly(next);
-                triggerHaptic('selection');
-                setToastMessage(
-                  next
-                    ? 'Đang tập trung TP.HCM · Đã làm mờ các tỉnh xung quanh.'
-                    : 'Đang mở bản đồ toàn lãnh thổ Việt Nam.'
-                );
-              }}
-              onSelectSite={(site) => setSelectedSite(site)}
+              onToggleFocusHcmcOnly={handleToggleFocusHcmcOnly}
+              onSelectSite={setSelectedSite}
               onStartRouteToSite={handleStartNavigationToSite}
               onStartRouteToRestaurant={handleNavigateToRestaurant}
               onSimulateWalkAlongRoute={handleSimulateWalkAlongRoute}
               onFinishWalkAndCheckIn={handleFinishWalkAndCheckIn}
               onCancelRoute={handleCancelRoute}
               onDetectRealGps={handleDetectRealGps}
-              onMoveUserLocation={(lat, lng) => {
-                stopWalkSimulation();
-                stopGpsWatch();
-                setUserLocation([lat, lng]);
-                setActiveCityId('CUSTOM');
-                setGpsStatus(formatCoordinatesLabel(lat, lng));
-              }}
+              onMoveUserLocation={handleMoveUserLocation}
             />
           </View>
         )}
@@ -2313,15 +2342,31 @@ const styles = StyleSheet.create({
   },
   mainBody: {
     flex: 1,
+    position: 'relative',
   },
   tabContainer: {
     flex: 1,
     backgroundColor: COLORS.bg,
+    zIndex: 2,
   },
   mapTabContainer: {
     flex: 1,
     position: 'relative',
     backgroundColor: COLORS.bg,
+  },
+  mapTabKeepAlive: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 5,
+    backgroundColor: COLORS.bg,
+    opacity: 1,
+  },
+  mapTabKeepAliveHidden: {
+    opacity: 0,
+    zIndex: -5,
   },
   stickySearchArea: {
     backgroundColor: COLORS.bg,

@@ -95,6 +95,7 @@ export interface MapExplorerProps {
   isSimulatingWalk: boolean;
   searchRadiusMeters: number;
   focusHcmcOnly?: boolean;
+  isVisible?: boolean;
   onToggleFocusHcmcOnly?: (next: boolean) => void;
   onSelectSite: (site: HeritageSite) => void;
   onStartRouteToSite: (site: HeritageSite) => void;
@@ -158,7 +159,8 @@ type MapCommand =
   | { type: 'SET_3D'; enabled: boolean }
   | { type: 'SET_LIGHT'; preset: MapboxLightPreset }
   | { type: 'FIT_SCOPE'; focusHcmcOnly: boolean }
-  | { type: 'FLY_TO'; lat: number; lng: number; zoom?: number };
+  | { type: 'FLY_TO'; lat: number; lng: number; zoom?: number }
+  | { type: 'RESIZE' };
 
 type MapBridgeIncomingMessage =
   | { source: 'shg-map'; mapId: string; type: 'MAP_READY'; engine?: string }
@@ -2108,6 +2110,8 @@ function buildExplorerMapHtml(
             syncHcmcFocusLayer(Boolean(cmd.focusHcmcOnly), true);
           } else if (cmd.type === 'FLY_TO' && typeof cmd.lat === 'number' && typeof cmd.lng === 'number') {
             map.flyTo({ center: [cmd.lng, cmd.lat], zoom: cmd.zoom || 16, duration: 650 });
+          } else if (cmd.type === 'RESIZE') {
+            try { map.resize(); } catch (e) {}
           }
         };
 
@@ -2357,7 +2361,7 @@ function renderStepIcon(maneuverType: RouteStep['maneuverType']) {
   }
 }
 
-export const MapExplorer: React.FC<MapExplorerProps> = ({
+export const MapExplorer: React.FC<MapExplorerProps> = React.memo(({
   userLocation,
   userHeading = null,
   sites,
@@ -2370,6 +2374,7 @@ export const MapExplorer: React.FC<MapExplorerProps> = ({
   isSimulatingWalk,
   searchRadiusMeters,
   focusHcmcOnly = true,
+  isVisible = true,
   onToggleFocusHcmcOnly,
   onSelectSite,
   onStartRouteToSite,
@@ -2591,11 +2596,26 @@ export const MapExplorer: React.FC<MapExplorerProps> = ({
     activeRoute,
   ]);
 
+  const hasFlushedInitialRef = useRef<boolean>(false);
+
   useEffect(() => {
     latestPayloadRef.current = mapStatePayload;
     if (!isMapReady) return;
+    // Cho phép flush 1 lần đầu tiên khi pre-warm ngầm, sau đó chỉ gửi khi tab Bản đồ đang hiển thị để tiết kiệm CPU
+    if (!isVisible && hasFlushedInitialRef.current) return;
+    hasFlushedInitialRef.current = true;
     sendToMap({ type: 'UPDATE_STATE', payload: mapStatePayload });
-  }, [isMapReady, mapStatePayload, sendToMap]);
+  }, [isMapReady, isVisible, mapStatePayload, sendToMap]);
+
+  // Ngay khi người dùng chuyển sang tab Bản đồ -> resize tức thì + đẩy dữ liệu mới nhất (0ms reload!)
+  useEffect(() => {
+    if (!isVisible || !isMapReady) return;
+    sendToMap({ type: 'CMD', command: { type: 'RESIZE' } });
+    if (latestPayloadRef.current) {
+      hasFlushedInitialRef.current = true;
+      sendToMap({ type: 'UPDATE_STATE', payload: latestPayloadRef.current });
+    }
+  }, [isVisible, isMapReady, sendToMap]);
 
   const handleIframeLoad = useCallback(() => {
     setIsMapReady(true);
@@ -3511,7 +3531,9 @@ export const MapExplorer: React.FC<MapExplorerProps> = ({
       </Modal>
     </View>
   );
-};
+});
+
+MapExplorer.displayName = 'MapExplorer';
 
 const styles = StyleSheet.create({
   root: {
