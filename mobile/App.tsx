@@ -21,6 +21,7 @@ import {
 import {
   Check,
   ChevronDown,
+  CloudSun,
   Compass,
   Footprints,
   Globe,
@@ -85,6 +86,10 @@ import {
   watchLocation,
 } from './src/services/locationService';
 import { speechService } from './src/services/speechService';
+import {
+  WeatherSnapshot,
+  fetchLiveWeather,
+} from './src/services/weatherService';
 import { MapExplorer } from './src/components/MapExplorer';
 import { HeritageDetailModal } from './src/components/HeritageDetailModal';
 import { PhotoCaptureModal } from './src/components/PhotoCaptureModal';
@@ -95,6 +100,7 @@ import { SmartTourModal } from './src/components/SmartTourModal';
 import { AiChatModal } from './src/components/AiChatModal';
 import { AuthModal } from './src/components/AuthModal';
 import { AdminDashboardView } from './src/components/AdminDashboardView';
+import { WeatherWidgetCard } from './src/components/WeatherWidgetCard';
 import { COLORS, RADII, SERIF_FONT, SHADOWS, SPACING } from './src/theme';
 
 type MainTab = 'explore' | 'map' | 'journey' | 'admin';
@@ -193,6 +199,9 @@ function SmartHeritageAppContent() {
   const [aiChatContextSite, setAiChatContextSite] =
     useState<HeritageSite | null>(null);
   const [isSyncingCloud, setIsSyncingCloud] = useState<boolean>(false);
+  const [weather, setWeather] = useState<WeatherSnapshot | null>(null);
+  const [isWeatherLoading, setIsWeatherLoading] = useState<boolean>(false);
+  const lastWeatherCoordsRef = useRef<[number, number] | null>(null);
 
   const walkTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const gpsWatchRef = useRef<LocationWatchHandle | null>(null);
@@ -286,6 +295,40 @@ function SmartHeritageAppContent() {
     const timeout = setTimeout(() => setToastMessage(null), 3800);
     return () => clearTimeout(timeout);
   }, [toastMessage]);
+
+  const refreshLiveWeather = useCallback(
+    async (lat: number, lng: number, forceRefresh = false) => {
+      setIsWeatherLoading(true);
+      const snapshot = await fetchLiveWeather(lat, lng, { forceRefresh });
+      setWeather(snapshot);
+      lastWeatherCoordsRef.current = [lat, lng];
+      setIsWeatherLoading(false);
+    },
+    []
+  );
+
+  // Tự động cập nhật thời tiết khi đổi vị trí (> 1.5km) và làm mới liên tục mỗi 5 phút
+  useEffect(() => {
+    const prev = lastWeatherCoordsRef.current;
+    const movedEnough =
+      !prev ||
+      calculateDistanceMeters(
+        prev[0],
+        prev[1],
+        userLocation[0],
+        userLocation[1]
+      ) > 1500;
+
+    if (movedEnough) {
+      void refreshLiveWeather(userLocation[0], userLocation[1], false);
+    }
+
+    const interval = setInterval(() => {
+      void refreshLiveWeather(userLocation[0], userLocation[1], true);
+    }, 5 * 60 * 1000);
+
+    return () => clearInterval(interval);
+  }, [userLocation, refreshLiveWeather]);
 
   const stopWalkSimulation = useCallback(() => {
     if (walkTimerRef.current) {
@@ -988,9 +1031,23 @@ function SmartHeritageAppContent() {
       ? 'GPS thực tế'
       : CITY_PRESETS.find((c) => c.id === activeCityId)?.label || gpsStatus;
 
-  // Scrollable list header: AI Tools + Optional Proximity Banner + Count
+  // Scrollable list header: Live Weather + AI Tools + Nearby Dining Showcase + Optional Proximity Banner + Count
   const exploreListHeader = (
     <View style={styles.listHeaderWrap}>
+      {/* Live Auto-Updating Weather Card (Temp · Humidity · Rain Probability · 4h Forecast · AI Advice) */}
+      <WeatherWidgetCard
+        weather={weather}
+        locationLabel={activeCityLabel}
+        isLoading={isWeatherLoading}
+        onRefresh={() =>
+          void refreshLiveWeather(userLocation[0], userLocation[1], true)
+        }
+        onPlanTourWithWeather={() => {
+          setSmartTourVisible(true);
+          triggerHaptic('light');
+        }}
+      />
+
       {/* Clean AI Companion Strip (scrolls smoothly out of view when browsing) */}
       <View style={styles.aiStripRow}>
         <TouchableOpacity
@@ -1223,6 +1280,23 @@ function SmartHeritageAppContent() {
           </TouchableOpacity>
 
           <View style={styles.headerActions}>
+            {weather && (
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={() => {
+                  setSmartTourVisible(true);
+                  triggerHaptic('selection');
+                }}
+                style={styles.weatherHeaderPill}
+                accessibilityLabel="Thời tiết hiện tại và lập tour AI"
+              >
+                <CloudSun size={13} color={COLORS.accent} />
+                <Text style={styles.weatherHeaderTemp}>
+                  {Math.round(weather.temperatureC)}°C
+                </Text>
+              </TouchableOpacity>
+            )}
+
             {/* Compact Language Pill (opens clean 5-language sheet instead of cramming 5 buttons) */}
             <TouchableOpacity
               activeOpacity={0.8}
@@ -1957,6 +2031,7 @@ function SmartHeritageAppContent() {
         selectedLanguage={selectedLanguage}
         visitedSiteIds={visitedRecords.map((r) => r.siteId)}
         allSites={catalogSites}
+        weather={weather}
         onClose={() => setSmartTourVisible(false)}
         onStartNavigateStop={handleStartNavigationToSite}
         onSelectSite={(site) => setSelectedSite(site)}
@@ -2056,6 +2131,23 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+  },
+  weatherHeaderPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    height: 36,
+    paddingHorizontal: 10,
+    borderRadius: RADII.pill,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  weatherHeaderTemp: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.ink,
+    fontVariant: ['tabular-nums'],
   },
   langPillBtn: {
     flexDirection: 'row',

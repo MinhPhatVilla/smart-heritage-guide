@@ -12,10 +12,13 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   Clock,
+  CloudSun,
+  Droplets,
   Footprints,
   Navigation,
   Route,
   Sparkles,
+  Umbrella,
   Utensils,
   WifiOff,
   X,
@@ -30,6 +33,10 @@ import {
   TourStopItem,
   fetchSmartTourPlan,
 } from '../services/aiService';
+import {
+  WeatherSnapshot,
+  toWeatherContextPayload,
+} from '../services/weatherService';
 import { formatDistance } from '../utils/geoUtils';
 import { COLORS, RADII, SERIF_FONT, SHADOWS, SPACING } from '../theme';
 
@@ -39,6 +46,7 @@ export interface SmartTourModalProps {
   selectedLanguage: SupportedLanguage;
   visitedSiteIds: string[];
   allSites: HeritageSite[];
+  weather?: WeatherSnapshot | null;
   onClose: () => void;
   onStartNavigateStop: (site: HeritageSite) => void;
   onSelectSite: (site: HeritageSite) => void;
@@ -60,6 +68,7 @@ export const SmartTourModal: React.FC<SmartTourModalProps> = ({
   selectedLanguage,
   visitedSiteIds,
   allSites,
+  weather = null,
   onClose,
   onStartNavigateStop,
   onSelectSite,
@@ -95,6 +104,7 @@ export const SmartTourModal: React.FC<SmartTourModalProps> = ({
       include_meal_stop: includeMealStop,
       language: selectedLanguage,
       max_stops: availableMinutes >= 150 ? 6 : 4,
+      weather_context: toWeatherContextPayload(weather),
     });
 
     setIsLoading(false);
@@ -161,6 +171,35 @@ export const SmartTourModal: React.FC<SmartTourModalProps> = ({
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
+          {/* Live Weather Context Banner for AI Planning */}
+          {weather && (
+            <View style={styles.weatherContextBanner}>
+              <View style={styles.weatherContextTop}>
+                <CloudSun size={15} color={COLORS.accent} />
+                <Text style={styles.weatherContextTitle}>
+                  Ngữ cảnh thời tiết thực tế gửi cho AI: {Math.round(weather.temperatureC)}°C · {weather.conditionLabelVi}
+                </Text>
+              </View>
+              <View style={styles.weatherContextMetrics}>
+                <View style={styles.weatherContextChip}>
+                  <Droplets size={11} color={COLORS.gpsBlue} />
+                  <Text style={styles.weatherContextChipText}>
+                    Độ ẩm {weather.humidityPercent}%
+                  </Text>
+                </View>
+                <View style={styles.weatherContextChip}>
+                  <Umbrella size={11} color={COLORS.accent} />
+                  <Text style={styles.weatherContextChipText}>
+                    Mưa {weather.rainProbabilityPercent}% (3h tới: {weather.next3HoursRainMaxPercent}%)
+                  </Text>
+                </View>
+              </View>
+              <Text style={styles.weatherContextHint}>
+                {weather.aiTourAdvice.headlineVi} — {weather.aiTourAdvice.detailVi}
+              </Text>
+            </View>
+          )}
+
           {/* Configuration Card */}
           <View style={styles.configCard}>
             <Text style={styles.sectionLabel}>1. Quỹ thời gian rảnh của bạn</Text>
@@ -471,6 +510,52 @@ const styles = StyleSheet.create({
     padding: SPACING.md,
     gap: SPACING.md,
     ...SHADOWS.card,
+  },
+  weatherContextBanner: {
+    backgroundColor: COLORS.surface,
+    borderRadius: RADII.lg,
+    borderWidth: 1,
+    borderColor: COLORS.accentBorder,
+    padding: 12,
+    gap: 7,
+    ...SHADOWS.card,
+  },
+  weatherContextTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+  },
+  weatherContextTitle: {
+    flex: 1,
+    fontSize: 12.5,
+    fontWeight: '700',
+    color: COLORS.ink,
+  },
+  weatherContextMetrics: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  weatherContextChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: COLORS.bg,
+    borderRadius: RADII.pill,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+  },
+  weatherContextChipText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: COLORS.inkSecondary,
+  },
+  weatherContextHint: {
+    fontSize: 11.5,
+    lineHeight: 16.5,
+    color: COLORS.inkSecondary,
   },
   sectionLabel: {
     fontSize: 12.5,
