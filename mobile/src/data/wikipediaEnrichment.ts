@@ -27,12 +27,12 @@ export const WIKIPEDIA_ENRICHMENT_SYNCED_AT = '2026-11-22T14:27:17Z';
 
 export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichment> = {
   "dinh-doc-lap": {
-    "coverImage": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7d/20190923_Independence_Palace-10.jpg/1280px-20190923_Independence_Palace-10.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7d/20190923_Independence_Palace-10.jpg/1280px-20190923_Independence_Palace-10.jpg",
     "mediaGallery": [
       {
         "id": "wk-dinhdoclap-1",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7d/20190923_Independence_Palace-10.jpg/1280px-20190923_Independence_Palace-10.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7d/20190923_Independence_Palace-10.jpg/1280px-20190923_Independence_Palace-10.jpg",
         "caption": {
           "vi": "Ảnh thực tế toàn cảnh Di tích Quốc gia Đặc biệt Dinh Độc Lập (Hội trường Thống Nhất) (Wikimedia Commons)",
           "en": "Real view of Independence Palace (Reunification Palace) (Wikimedia Commons)",
@@ -45,7 +45,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-dinhdoclap-2",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d0/Dinh_%C4%90%E1%BB%99c_L%E1%BA%ADp_v%C3%A0o_n%C3%A0m_2024.jpg/1280px-Dinh_%C4%90%E1%BB%99c_L%E1%BA%ADp_v%C3%A0o_n%C3%A0m_2024.jpg?utm_source=vi.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d0/Dinh_%C4%90%E1%BB%99c_L%E1%BA%ADp_v%C3%A0o_n%C3%A0m_2024.jpg/1280px-Dinh_%C4%90%E1%BB%99c_L%E1%BA%ADp_v%C3%A0o_n%C3%A0m_2024.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & không gian tại Di tích Quốc gia Đặc biệt Dinh Độc Lập (Hội trường Thống Nhất) (Ảnh 2)",
           "en": "Architecture & atmosphere at Independence Palace (Reunification Palace) (Photo 2)",
@@ -58,7 +58,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-dinhdoclap-3",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7d/20190923_Independence_Palace-10.jpg/1280px-20190923_Independence_Palace-10.jpg?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7d/20190923_Independence_Palace-10.jpg/1280px-20190923_Independence_Palace-10.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & không gian tại Di tích Quốc gia Đặc biệt Dinh Độc Lập (Hội trường Thống Nhất) (Ảnh 3)",
           "en": "Architecture & atmosphere at Independence Palace (Reunification Palace) (Photo 3)",
@@ -178,12 +178,12 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
     }
   },
   "nha-tho-duc-ba-sai-gon": {
-    "coverImage": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/29/Bas%C3%ADlica_de_Nuestra_Se%C3%B1ora%2C_Ciudad_Ho_Chi_Minh%2C_Vietnam%2C_2013-08-14%2C_DD_07.JPG/1280px-Bas%C3%ADlica_de_Nuestra_Se%C3%B1ora%2C_Ciudad_Ho_Chi_Minh%2C_Vietnam%2C_2013-08-14%2C_DD_07.JPG?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/29/Bas%C3%ADlica_de_Nuestra_Se%C3%B1ora%2C_Ciudad_Ho_Chi_Minh%2C_Vietnam%2C_2013-08-14%2C_DD_07.JPG/1280px-Bas%C3%ADlica_de_Nuestra_Se%C3%B1ora%2C_Ciudad_Ho_Chi_Minh%2C_Vietnam%2C_2013-08-14%2C_DD_07.JPG",
     "mediaGallery": [
       {
         "id": "wk-nhathoducbas-1",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/29/Bas%C3%ADlica_de_Nuestra_Se%C3%B1ora%2C_Ciudad_Ho_Chi_Minh%2C_Vietnam%2C_2013-08-14%2C_DD_07.JPG/1280px-Bas%C3%ADlica_de_Nuestra_Se%C3%B1ora%2C_Ciudad_Ho_Chi_Minh%2C_Vietnam%2C_2013-08-14%2C_DD_07.JPG?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/29/Bas%C3%ADlica_de_Nuestra_Se%C3%B1ora%2C_Ciudad_Ho_Chi_Minh%2C_Vietnam%2C_2013-08-14%2C_DD_07.JPG/1280px-Bas%C3%ADlica_de_Nuestra_Se%C3%B1ora%2C_Ciudad_Ho_Chi_Minh%2C_Vietnam%2C_2013-08-14%2C_DD_07.JPG",
         "caption": {
           "vi": "Ảnh thực tế toàn cảnh Nhà thờ Chính tòa Đức Bà Sài Gòn (Wikimedia Commons)",
           "en": "Real view of Saigon Notre-Dame Cathedral Basilica (Wikimedia Commons)",
@@ -196,7 +196,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-nhathoducbas-2",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/29/Bas%C3%ADlica_de_Nuestra_Se%C3%B1ora%2C_Ciudad_Ho_Chi_Minh%2C_Vietnam%2C_2013-08-14%2C_DD_07.JPG/1280px-Bas%C3%ADlica_de_Nuestra_Se%C3%B1ora%2C_Ciudad_Ho_Chi_Minh%2C_Vietnam%2C_2013-08-14%2C_DD_07.JPG?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/29/Bas%C3%ADlica_de_Nuestra_Se%C3%B1ora%2C_Ciudad_Ho_Chi_Minh%2C_Vietnam%2C_2013-08-14%2C_DD_07.JPG/1280px-Bas%C3%ADlica_de_Nuestra_Se%C3%B1ora%2C_Ciudad_Ho_Chi_Minh%2C_Vietnam%2C_2013-08-14%2C_DD_07.JPG",
         "caption": {
           "vi": "Góc nhìn kiến trúc & không gian tại Nhà thờ Chính tòa Đức Bà Sài Gòn (Ảnh 2)",
           "en": "Architecture & atmosphere at Saigon Notre-Dame Cathedral Basilica (Photo 2)",
@@ -209,7 +209,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-nhathoducbas-3",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/45/Bas%C3%ADlica_de_Nuestra_Se%C3%B1ora%2C_Ciudad_Ho_Chi_Minh%2C_Vietnam%2C_2013-08-14%2C_DD_11.JPG/1280px-Bas%C3%ADlica_de_Nuestra_Se%C3%B1ora%2C_Ciudad_Ho_Chi_Minh%2C_Vietnam%2C_2013-08-14%2C_DD_11.JPG?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/45/Bas%C3%ADlica_de_Nuestra_Se%C3%B1ora%2C_Ciudad_Ho_Chi_Minh%2C_Vietnam%2C_2013-08-14%2C_DD_11.JPG/1280px-Bas%C3%ADlica_de_Nuestra_Se%C3%B1ora%2C_Ciudad_Ho_Chi_Minh%2C_Vietnam%2C_2013-08-14%2C_DD_11.JPG",
         "caption": {
           "vi": "Góc nhìn kiến trúc & không gian tại Nhà thờ Chính tòa Đức Bà Sài Gòn (Ảnh 3)",
           "en": "Architecture & atmosphere at Saigon Notre-Dame Cathedral Basilica (Photo 3)",
@@ -330,12 +330,12 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
     }
   },
   "buu-dien-trung-tam-sai-gon": {
-    "coverImage": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/03/Saigon_Central_Post_Office_%2852681461470%29.jpg/1280px-Saigon_Central_Post_Office_%2852681461470%29.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/03/Saigon_Central_Post_Office_%2852681461470%29.jpg/1280px-Saigon_Central_Post_Office_%2852681461470%29.jpg",
     "mediaGallery": [
       {
         "id": "wk-buudientrung-1",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/03/Saigon_Central_Post_Office_%2852681461470%29.jpg/1280px-Saigon_Central_Post_Office_%2852681461470%29.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/03/Saigon_Central_Post_Office_%2852681461470%29.jpg/1280px-Saigon_Central_Post_Office_%2852681461470%29.jpg",
         "caption": {
           "vi": "Ảnh thực tế toàn cảnh Bưu điện Trung tâm Sài Gòn & Đường sách Nguyễn Văn Bình (Wikimedia Commons)",
           "en": "Real view of Saigon Central Post Office & Book Street (Wikimedia Commons)",
@@ -348,7 +348,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-buudientrung-2",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/fb/Saigon_Central_Post_Office_2022.jpg/1280px-Saigon_Central_Post_Office_2022.jpg?utm_source=vi.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/fb/Saigon_Central_Post_Office_2022.jpg/1280px-Saigon_Central_Post_Office_2022.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & không gian tại Bưu điện Trung tâm Sài Gòn & Đường sách Nguyễn Văn Bình (Ảnh 2)",
           "en": "Architecture & atmosphere at Saigon Central Post Office & Book Street (Photo 2)",
@@ -361,7 +361,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-buudientrung-3",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/05/Cochinchine_Sa%C3%AFgon_La_poste_-_%28...%29Salles_Andr%C3%A9_btv1b530132026.jpg/1280px-Cochinchine_Sa%C3%AFgon_La_poste_-_%28...%29Salles_Andr%C3%A9_btv1b530132026.jpg?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/05/Cochinchine_Sa%C3%AFgon_La_poste_-_%28...%29Salles_Andr%C3%A9_btv1b530132026.jpg/1280px-Cochinchine_Sa%C3%AFgon_La_poste_-_%28...%29Salles_Andr%C3%A9_btv1b530132026.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & không gian tại Bưu điện Trung tâm Sài Gòn & Đường sách Nguyễn Văn Bình (Ảnh 3)",
           "en": "Architecture & atmosphere at Saigon Central Post Office & Book Street (Photo 3)",
@@ -482,12 +482,12 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
     }
   },
   "ben-nha-rong": {
-    "coverImage": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c0/Ho_Chi_Minh_Museum%2C_Saigon.jpg/1280px-Ho_Chi_Minh_Museum%2C_Saigon.jpg?utm_source=vi.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c0/Ho_Chi_Minh_Museum%2C_Saigon.jpg/1280px-Ho_Chi_Minh_Museum%2C_Saigon.jpg",
     "mediaGallery": [
       {
         "id": "wk-bennharong-1",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c0/Ho_Chi_Minh_Museum%2C_Saigon.jpg/1280px-Ho_Chi_Minh_Museum%2C_Saigon.jpg?utm_source=vi.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c0/Ho_Chi_Minh_Museum%2C_Saigon.jpg/1280px-Ho_Chi_Minh_Museum%2C_Saigon.jpg",
         "caption": {
           "vi": "Ảnh thực tế toàn cảnh Di tích Lịch sử Bến Nhà Rồng (Bảo tàng Hồ Chí Minh) (Wikimedia Commons)",
           "en": "Real view of Nha Rong Wharf (Ho Chi Minh Museum) (Wikimedia Commons)",
@@ -500,7 +500,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-bennharong-2",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/34/20190923_Independence_Palace-13.jpg/1280px-20190923_Independence_Palace-13.jpg?utm_source=vi.wikipedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/34/20190923_Independence_Palace-13.jpg/1280px-20190923_Independence_Palace-13.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & không gian tại Di tích Lịch sử Bến Nhà Rồng (Bảo tàng Hồ Chí Minh) (Ảnh 2)",
           "en": "Architecture & atmosphere at Nha Rong Wharf (Ho Chi Minh Museum) (Photo 2)",
@@ -513,7 +513,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-bennharong-3",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/95/Ben_Nha_Rong_ve_dem.JPG/1280px-Ben_Nha_Rong_ve_dem.JPG?utm_source=vi.wikipedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/95/Ben_Nha_Rong_ve_dem.JPG/1280px-Ben_Nha_Rong_ve_dem.JPG",
         "caption": {
           "vi": "Góc nhìn kiến trúc & không gian tại Di tích Lịch sử Bến Nhà Rồng (Bảo tàng Hồ Chí Minh) (Ảnh 3)",
           "en": "Architecture & atmosphere at Nha Rong Wharf (Ho Chi Minh Museum) (Photo 3)",
@@ -619,12 +619,12 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
     }
   },
   "nha-hat-thanh-pho-hcm": {
-    "coverImage": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/ae/Lascar_Municipal_Theatre_%284608017466%29.jpg/1280px-Lascar_Municipal_Theatre_%284608017466%29.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/ae/Lascar_Municipal_Theatre_%284608017466%29.jpg/1280px-Lascar_Municipal_Theatre_%284608017466%29.jpg",
     "mediaGallery": [
       {
         "id": "wk-nhahatthanhp-1",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/ae/Lascar_Municipal_Theatre_%284608017466%29.jpg/1280px-Lascar_Municipal_Theatre_%284608017466%29.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/ae/Lascar_Municipal_Theatre_%284608017466%29.jpg/1280px-Lascar_Municipal_Theatre_%284608017466%29.jpg",
         "caption": {
           "vi": "Ảnh thực tế toàn cảnh Nhà hát Thành phố Hồ Chí Minh (Saigon Opera House) (Wikimedia Commons)",
           "en": "Real view of Saigon Opera House (Municipal Theatre) (Wikimedia Commons)",
@@ -637,7 +637,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-nhahatthanhp-2",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/23/%C3%93pera%2C_Ciudad_Ho_Chi_Minh%2C_Vietnam%2C_2013-08-14%2C_DD_02.JPG/1280px-%C3%93pera%2C_Ciudad_Ho_Chi_Minh%2C_Vietnam%2C_2013-08-14%2C_DD_02.JPG?utm_source=vi.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/23/%C3%93pera%2C_Ciudad_Ho_Chi_Minh%2C_Vietnam%2C_2013-08-14%2C_DD_02.JPG/1280px-%C3%93pera%2C_Ciudad_Ho_Chi_Minh%2C_Vietnam%2C_2013-08-14%2C_DD_02.JPG",
         "caption": {
           "vi": "Góc nhìn kiến trúc & không gian tại Nhà hát Thành phố Hồ Chí Minh (Saigon Opera House) (Ảnh 2)",
           "en": "Architecture & atmosphere at Saigon Opera House (Municipal Theatre) (Photo 2)",
@@ -650,7 +650,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-nhahatthanhp-3",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0c/Bi%E1%BB%83u_di%E1%BB%85n_t%E1%BA%A1i_nh%C3%A0_h%C3%A1t_l%E1%BB%9Bn_tp_HCM.jpg/1280px-Bi%E1%BB%83u_di%E1%BB%85n_t%E1%BA%A1i_nh%C3%A0_h%C3%A1t_l%E1%BB%9Bn_tp_HCM.jpg?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0c/Bi%E1%BB%83u_di%E1%BB%85n_t%E1%BA%A1i_nh%C3%A0_h%C3%A1t_l%E1%BB%9Bn_tp_HCM.jpg/1280px-Bi%E1%BB%83u_di%E1%BB%85n_t%E1%BA%A1i_nh%C3%A0_h%C3%A1t_l%E1%BB%9Bn_tp_HCM.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & không gian tại Nhà hát Thành phố Hồ Chí Minh (Saigon Opera House) (Ảnh 3)",
           "en": "Architecture & atmosphere at Saigon Opera House (Municipal Theatre) (Photo 3)",
@@ -759,12 +759,12 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
     }
   },
   "tru-so-ubnd-tphcm-dinh-xa-tay": {
-    "coverImage": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/3d/Ho_Chi_Minh_City%2C_City_Hall%2C_2020-01_CN-02.jpg/1280px-Ho_Chi_Minh_City%2C_City_Hall%2C_2020-01_CN-02.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3d/Ho_Chi_Minh_City%2C_City_Hall%2C_2020-01_CN-02.jpg/1280px-Ho_Chi_Minh_City%2C_City_Hall%2C_2020-01_CN-02.jpg",
     "mediaGallery": [
       {
         "id": "wk-trusoubndtph-1",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/3d/Ho_Chi_Minh_City%2C_City_Hall%2C_2020-01_CN-02.jpg/1280px-Ho_Chi_Minh_City%2C_City_Hall%2C_2020-01_CN-02.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3d/Ho_Chi_Minh_City%2C_City_Hall%2C_2020-01_CN-02.jpg/1280px-Ho_Chi_Minh_City%2C_City_Hall%2C_2020-01_CN-02.jpg",
         "caption": {
           "vi": "Ảnh thực tế toàn cảnh Trụ sở HĐND & UBND TP.HCM (Dinh Xã Tây) & Phố đi bộ Nguyễn Huệ (Wikimedia Commons)",
           "en": "Real view of Ho Chi Minh City Hall (People’s Committee Building) & Nguyen Hue Promenade (Wikimedia Commons)",
@@ -777,7 +777,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-trusoubndtph-2",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/4a/Ayuntamiento%2C_Ciudad_Ho_Chi_Minh%2C_Vietnam%2C_2013-08-14%2C_DD_01.JPG/1280px-Ayuntamiento%2C_Ciudad_Ho_Chi_Minh%2C_Vietnam%2C_2013-08-14%2C_DD_01.JPG?utm_source=vi.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4a/Ayuntamiento%2C_Ciudad_Ho_Chi_Minh%2C_Vietnam%2C_2013-08-14%2C_DD_01.JPG/1280px-Ayuntamiento%2C_Ciudad_Ho_Chi_Minh%2C_Vietnam%2C_2013-08-14%2C_DD_01.JPG",
         "caption": {
           "vi": "Góc nhìn kiến trúc & không gian tại Trụ sở HĐND & UBND TP.HCM (Dinh Xã Tây) & Phố đi bộ Nguyễn Huệ (Ảnh 2)",
           "en": "Architecture & atmosphere at Ho Chi Minh City Hall (People’s Committee Building) & Nguyen Hue Promenade (Photo 2)",
@@ -790,7 +790,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-trusoubndtph-3",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/02/Ayuntamiento%2C_Ciudad_Ho_Chi_Minh%2C_Vietnam%2C_2013-08-14%2C_DD_09.JPG/1280px-Ayuntamiento%2C_Ciudad_Ho_Chi_Minh%2C_Vietnam%2C_2013-08-14%2C_DD_09.JPG?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/02/Ayuntamiento%2C_Ciudad_Ho_Chi_Minh%2C_Vietnam%2C_2013-08-14%2C_DD_09.JPG/1280px-Ayuntamiento%2C_Ciudad_Ho_Chi_Minh%2C_Vietnam%2C_2013-08-14%2C_DD_09.JPG",
         "caption": {
           "vi": "Góc nhìn kiến trúc & không gian tại Trụ sở HĐND & UBND TP.HCM (Dinh Xã Tây) & Phố đi bộ Nguyễn Huệ (Ảnh 3)",
           "en": "Architecture & atmosphere at Ho Chi Minh City Hall (People’s Committee Building) & Nguyen Hue Promenade (Photo 3)",
@@ -900,12 +900,12 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
     }
   },
   "cho-ben-thanh": {
-    "coverImage": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f5/Ben_Thanh%2C_Ciudad_Ho_Chi_Minh%2C_Vietnam%2C_2013-08-14%2C_DD_01.JPG/1280px-Ben_Thanh%2C_Ciudad_Ho_Chi_Minh%2C_Vietnam%2C_2013-08-14%2C_DD_01.JPG?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f5/Ben_Thanh%2C_Ciudad_Ho_Chi_Minh%2C_Vietnam%2C_2013-08-14%2C_DD_01.JPG/1280px-Ben_Thanh%2C_Ciudad_Ho_Chi_Minh%2C_Vietnam%2C_2013-08-14%2C_DD_01.JPG",
     "mediaGallery": [
       {
         "id": "wk-chobenthanh-1",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f5/Ben_Thanh%2C_Ciudad_Ho_Chi_Minh%2C_Vietnam%2C_2013-08-14%2C_DD_01.JPG/1280px-Ben_Thanh%2C_Ciudad_Ho_Chi_Minh%2C_Vietnam%2C_2013-08-14%2C_DD_01.JPG?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f5/Ben_Thanh%2C_Ciudad_Ho_Chi_Minh%2C_Vietnam%2C_2013-08-14%2C_DD_01.JPG/1280px-Ben_Thanh%2C_Ciudad_Ho_Chi_Minh%2C_Vietnam%2C_2013-08-14%2C_DD_01.JPG",
         "caption": {
           "vi": "Ảnh thực tế toàn cảnh Chợ Bến Thành – Biểu tượng Giao thương 110 Năm Sài Gòn (Wikimedia Commons)",
           "en": "Real view of Ben Thanh Market (Wikimedia Commons)",
@@ -918,7 +918,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-chobenthanh-2",
         "type": "image",
-        "url": "https://upload.wikimedia.org/wikipedia/commons/9/91/Ben_Thanh_market_2.jpg?utm_source=vi.wikipedia.org&utm_campaign=api&utm_content=thumbnail_unscaled",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/9/91/Ben_Thanh_market_2.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & không gian tại Chợ Bến Thành – Biểu tượng Giao thương 110 Năm Sài Gòn (Ảnh 2)",
           "en": "Architecture & atmosphere at Ben Thanh Market (Photo 2)",
@@ -931,7 +931,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-chobenthanh-3",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f5/Ben_Thanh%2C_Ciudad_Ho_Chi_Minh%2C_Vietnam%2C_2013-08-14%2C_DD_01.JPG/1280px-Ben_Thanh%2C_Ciudad_Ho_Chi_Minh%2C_Vietnam%2C_2013-08-14%2C_DD_01.JPG?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f5/Ben_Thanh%2C_Ciudad_Ho_Chi_Minh%2C_Vietnam%2C_2013-08-14%2C_DD_01.JPG/1280px-Ben_Thanh%2C_Ciudad_Ho_Chi_Minh%2C_Vietnam%2C_2013-08-14%2C_DD_01.JPG",
         "caption": {
           "vi": "Góc nhìn kiến trúc & không gian tại Chợ Bến Thành – Biểu tượng Giao thương 110 Năm Sài Gòn (Ảnh 3)",
           "en": "Architecture & atmosphere at Ben Thanh Market (Photo 3)",
@@ -1042,12 +1042,12 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
     }
   },
   "bao-tang-chung-tich-chien-tranh": {
-    "coverImage": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/47/War_Remnants_Museum%2C_HCMC%2C_front.JPG/1280px-War_Remnants_Museum%2C_HCMC%2C_front.JPG?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/47/War_Remnants_Museum%2C_HCMC%2C_front.JPG/1280px-War_Remnants_Museum%2C_HCMC%2C_front.JPG",
     "mediaGallery": [
       {
         "id": "wk-baotangchung-1",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/47/War_Remnants_Museum%2C_HCMC%2C_front.JPG/1280px-War_Remnants_Museum%2C_HCMC%2C_front.JPG?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/47/War_Remnants_Museum%2C_HCMC%2C_front.JPG/1280px-War_Remnants_Museum%2C_HCMC%2C_front.JPG",
         "caption": {
           "vi": "Ảnh thực tế toàn cảnh Bảo tàng Chứng tích Chiến tranh (War Remnants Museum) (Wikimedia Commons)",
           "en": "Real view of War Remnants Museum (Wikimedia Commons)",
@@ -1060,7 +1060,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-baotangchung-2",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/47/War_Remnants_Museum%2C_HCMC%2C_front.JPG/1280px-War_Remnants_Museum%2C_HCMC%2C_front.JPG?utm_source=vi.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/47/War_Remnants_Museum%2C_HCMC%2C_front.JPG/1280px-War_Remnants_Museum%2C_HCMC%2C_front.JPG",
         "caption": {
           "vi": "Góc nhìn kiến trúc & không gian tại Bảo tàng Chứng tích Chiến tranh (War Remnants Museum) (Ảnh 2)",
           "en": "Architecture & atmosphere at War Remnants Museum (Photo 2)",
@@ -1073,7 +1073,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-baotangchung-3",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/4b/Ho_Chi_Minh_City%2C_Vietnam%2C_M41_Walker_Bulldog.jpg/1280px-Ho_Chi_Minh_City%2C_Vietnam%2C_M41_Walker_Bulldog.jpg?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4b/Ho_Chi_Minh_City%2C_Vietnam%2C_M41_Walker_Bulldog.jpg/1280px-Ho_Chi_Minh_City%2C_Vietnam%2C_M41_Walker_Bulldog.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & không gian tại Bảo tàng Chứng tích Chiến tranh (War Remnants Museum) (Ảnh 3)",
           "en": "Architecture & atmosphere at War Remnants Museum (Photo 3)",
@@ -1183,12 +1183,12 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
     }
   },
   "bao-tang-lich-su-thao-cam-vien": {
-    "coverImage": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6a/Vietnam_National_Museum_of_History%2C_Hanoi%2C_Vietnam.jpg/1280px-Vietnam_National_Museum_of_History%2C_Hanoi%2C_Vietnam.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6a/Vietnam_National_Museum_of_History%2C_Hanoi%2C_Vietnam.jpg/1280px-Vietnam_National_Museum_of_History%2C_Hanoi%2C_Vietnam.jpg",
     "mediaGallery": [
       {
         "id": "wk-baotanglichs-1",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6a/Vietnam_National_Museum_of_History%2C_Hanoi%2C_Vietnam.jpg/1280px-Vietnam_National_Museum_of_History%2C_Hanoi%2C_Vietnam.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6a/Vietnam_National_Museum_of_History%2C_Hanoi%2C_Vietnam.jpg/1280px-Vietnam_National_Museum_of_History%2C_Hanoi%2C_Vietnam.jpg",
         "caption": {
           "vi": "Ảnh thực tế toàn cảnh Bảo tàng Lịch sử TP.HCM, Đền thờ Vua Hùng & Thảo Cầm Viên Sài Gòn (Wikimedia Commons)",
           "en": "Real view of Museum of Vietnamese History & Saigon Zoo and Botanical Gardens (Wikimedia Commons)",
@@ -1201,7 +1201,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-baotanglichs-2",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/57/Vietnam_History_Museum_HCMC.JPG/1280px-Vietnam_History_Museum_HCMC.JPG?utm_source=vi.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/57/Vietnam_History_Museum_HCMC.JPG/1280px-Vietnam_History_Museum_HCMC.JPG",
         "caption": {
           "vi": "Góc nhìn kiến trúc & không gian tại Bảo tàng Lịch sử TP.HCM, Đền thờ Vua Hùng & Thảo Cầm Viên Sài Gòn (Ảnh 2)",
           "en": "Architecture & atmosphere at Museum of Vietnamese History & Saigon Zoo and Botanical Gardens (Photo 2)",
@@ -1214,7 +1214,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-baotanglichs-3",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/47/4G4A7248A_HDR.jpg/1280px-4G4A7248A_HDR.jpg?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/47/4G4A7248A_HDR.jpg/1280px-4G4A7248A_HDR.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & không gian tại Bảo tàng Lịch sử TP.HCM, Đền thờ Vua Hùng & Thảo Cầm Viên Sài Gòn (Ảnh 3)",
           "en": "Architecture & atmosphere at Museum of Vietnamese History & Saigon Zoo and Botanical Gardens (Photo 3)",
@@ -1329,12 +1329,12 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
     }
   },
   "bao-tang-my-thuat-tphcm-dinh-chu-hoa": {
-    "coverImage": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0f/B%E1%BA%A3o_t%C3%A0ng_M%E1%BB%B9_thu%E1%BA%ADt_Tp_%28ki%E1%BA%BFn_tr%C3%BAc_t%E1%BB%95ng_th%E1%BB%83%29_%282%29.jpg/1280px-B%E1%BA%A3o_t%C3%A0ng_M%E1%BB%B9_thu%E1%BA%ADt_Tp_%28ki%E1%BA%BFn_tr%C3%BAc_t%E1%BB%95ng_th%E1%BB%83%29_%282%29.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0f/B%E1%BA%A3o_t%C3%A0ng_M%E1%BB%B9_thu%E1%BA%ADt_Tp_%28ki%E1%BA%BFn_tr%C3%BAc_t%E1%BB%95ng_th%E1%BB%83%29_%282%29.jpg/1280px-B%E1%BA%A3o_t%C3%A0ng_M%E1%BB%B9_thu%E1%BA%ADt_Tp_%28ki%E1%BA%BFn_tr%C3%BAc_t%E1%BB%95ng_th%E1%BB%83%29_%282%29.jpg",
     "mediaGallery": [
       {
         "id": "wk-baotangmythu-1",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0f/B%E1%BA%A3o_t%C3%A0ng_M%E1%BB%B9_thu%E1%BA%ADt_Tp_%28ki%E1%BA%BFn_tr%C3%BAc_t%E1%BB%95ng_th%E1%BB%83%29_%282%29.jpg/1280px-B%E1%BA%A3o_t%C3%A0ng_M%E1%BB%B9_thu%E1%BA%ADt_Tp_%28ki%E1%BA%BFn_tr%C3%BAc_t%E1%BB%95ng_th%E1%BB%83%29_%282%29.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0f/B%E1%BA%A3o_t%C3%A0ng_M%E1%BB%B9_thu%E1%BA%ADt_Tp_%28ki%E1%BA%BFn_tr%C3%BAc_t%E1%BB%95ng_th%E1%BB%83%29_%282%29.jpg/1280px-B%E1%BA%A3o_t%C3%A0ng_M%E1%BB%B9_thu%E1%BA%ADt_Tp_%28ki%E1%BA%BFn_tr%C3%BAc_t%E1%BB%95ng_th%E1%BB%83%29_%282%29.jpg",
         "caption": {
           "vi": "Ảnh thực tế toàn cảnh Bảo tàng Mỹ thuật TP.HCM (Dinh thự Chú Hỏa) (Wikimedia Commons)",
           "en": "Real view of Ho Chi Minh City Museum of Fine Arts (Hua Bon Hoa Mansion) (Wikimedia Commons)",
@@ -1347,7 +1347,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-baotangmythu-2",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e5/B%E1%BA%A3o_t%C3%A0ng_M%E1%BB%B9_thu%E1%BA%ADt_Th%C3%A0nh_ph%E1%BB%91_H%E1%BB%93_Ch%C3%AD_Minh.jpg/1280px-B%E1%BA%A3o_t%C3%A0ng_M%E1%BB%B9_thu%E1%BA%ADt_Th%C3%A0nh_ph%E1%BB%91_H%E1%BB%93_Ch%C3%AD_Minh.jpg?utm_source=vi.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e5/B%E1%BA%A3o_t%C3%A0ng_M%E1%BB%B9_thu%E1%BA%ADt_Th%C3%A0nh_ph%E1%BB%91_H%E1%BB%93_Ch%C3%AD_Minh.jpg/1280px-B%E1%BA%A3o_t%C3%A0ng_M%E1%BB%B9_thu%E1%BA%ADt_Th%C3%A0nh_ph%E1%BB%91_H%E1%BB%93_Ch%C3%AD_Minh.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & không gian tại Bảo tàng Mỹ thuật TP.HCM (Dinh thự Chú Hỏa) (Ảnh 2)",
           "en": "Architecture & atmosphere at Ho Chi Minh City Museum of Fine Arts (Hua Bon Hoa Mansion) (Photo 2)",
@@ -1360,7 +1360,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-baotangmythu-3",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/01/B%E1%BA%A3o_t%C3%A0ng_M%E1%BB%B9_thu%E1%BA%ADt_TP.jpg/1280px-B%E1%BA%A3o_t%C3%A0ng_M%E1%BB%B9_thu%E1%BA%ADt_TP.jpg?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/01/B%E1%BA%A3o_t%C3%A0ng_M%E1%BB%B9_thu%E1%BA%ADt_TP.jpg/1280px-B%E1%BA%A3o_t%C3%A0ng_M%E1%BB%B9_thu%E1%BA%ADt_TP.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & không gian tại Bảo tàng Mỹ thuật TP.HCM (Dinh thự Chú Hỏa) (Ảnh 3)",
           "en": "Architecture & atmosphere at Ho Chi Minh City Museum of Fine Arts (Hua Bon Hoa Mansion) (Photo 3)",
@@ -1469,12 +1469,12 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
     }
   },
   "bao-tang-tphcm-dinh-gia-long": {
-    "coverImage": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/29/B%E1%BA%A3o_t%C3%A0ng_Th%C3%A0nh_ph%E1%BB%91_H%E1%BB%93_Ch%C3%AD_Minh_7.jpg/1280px-B%E1%BA%A3o_t%C3%A0ng_Th%C3%A0nh_ph%E1%BB%91_H%E1%BB%93_Ch%C3%AD_Minh_7.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/29/B%E1%BA%A3o_t%C3%A0ng_Th%C3%A0nh_ph%E1%BB%91_H%E1%BB%93_Ch%C3%AD_Minh_7.jpg/1280px-B%E1%BA%A3o_t%C3%A0ng_Th%C3%A0nh_ph%E1%BB%91_H%E1%BB%93_Ch%C3%AD_Minh_7.jpg",
     "mediaGallery": [
       {
         "id": "wk-baotangtphcm-1",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/29/B%E1%BA%A3o_t%C3%A0ng_Th%C3%A0nh_ph%E1%BB%91_H%E1%BB%93_Ch%C3%AD_Minh_7.jpg/1280px-B%E1%BA%A3o_t%C3%A0ng_Th%C3%A0nh_ph%E1%BB%91_H%E1%BB%93_Ch%C3%AD_Minh_7.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/29/B%E1%BA%A3o_t%C3%A0ng_Th%C3%A0nh_ph%E1%BB%91_H%E1%BB%93_Ch%C3%AD_Minh_7.jpg/1280px-B%E1%BA%A3o_t%C3%A0ng_Th%C3%A0nh_ph%E1%BB%91_H%E1%BB%93_Ch%C3%AD_Minh_7.jpg",
         "caption": {
           "vi": "Ảnh thực tế toàn cảnh Bảo tàng Thành phố Hồ Chí Minh (Dinh Gia Long) (Wikimedia Commons)",
           "en": "Real view of Museum of Ho Chi Minh City (Former Gia Long Palace) (Wikimedia Commons)",
@@ -1487,7 +1487,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-baotangtphcm-2",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/29/B%E1%BA%A3o_t%C3%A0ng_Th%C3%A0nh_ph%E1%BB%91_H%E1%BB%93_Ch%C3%AD_Minh_7.jpg/1280px-B%E1%BA%A3o_t%C3%A0ng_Th%C3%A0nh_ph%E1%BB%91_H%E1%BB%93_Ch%C3%AD_Minh_7.jpg?utm_source=vi.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/29/B%E1%BA%A3o_t%C3%A0ng_Th%C3%A0nh_ph%E1%BB%91_H%E1%BB%93_Ch%C3%AD_Minh_7.jpg/1280px-B%E1%BA%A3o_t%C3%A0ng_Th%C3%A0nh_ph%E1%BB%91_H%E1%BB%93_Ch%C3%AD_Minh_7.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & không gian tại Bảo tàng Thành phố Hồ Chí Minh (Dinh Gia Long) (Ảnh 2)",
           "en": "Architecture & atmosphere at Museum of Ho Chi Minh City (Former Gia Long Palace) (Photo 2)",
@@ -1500,7 +1500,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-baotangtphcm-3",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/68/Bao_tang_5a.jpg/1280px-Bao_tang_5a.jpg?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/68/Bao_tang_5a.jpg/1280px-Bao_tang_5a.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & không gian tại Bảo tàng Thành phố Hồ Chí Minh (Dinh Gia Long) (Ảnh 3)",
           "en": "Architecture & atmosphere at Museum of Ho Chi Minh City (Former Gia Long Palace) (Photo 3)",
@@ -1610,12 +1610,12 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
     }
   },
   "chua-ngoc-hoang-phuoc-hai-tu": {
-    "coverImage": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/10/Jade_Emperor_Pagoda_Saigon.jpg/1280px-Jade_Emperor_Pagoda_Saigon.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/10/Jade_Emperor_Pagoda_Saigon.jpg/1280px-Jade_Emperor_Pagoda_Saigon.jpg",
     "mediaGallery": [
       {
         "id": "wk-chuangochoan-1",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/10/Jade_Emperor_Pagoda_Saigon.jpg/1280px-Jade_Emperor_Pagoda_Saigon.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/10/Jade_Emperor_Pagoda_Saigon.jpg/1280px-Jade_Emperor_Pagoda_Saigon.jpg",
         "caption": {
           "vi": "Ảnh thực tế toàn cảnh Chùa Ngọc Hoàng (Phước Hải Tự – Di tích Quốc gia) (Wikimedia Commons)",
           "en": "Real view of Jade Emperor Pagoda (Phuoc Hai Tu) (Wikimedia Commons)",
@@ -1628,7 +1628,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-chuangochoan-2",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/4c/Ph%C6%B0%E1%BB%9Bc_H%E1%BA%A3i_T%E1%BB%B1.jpg/1280px-Ph%C6%B0%E1%BB%9Bc_H%E1%BA%A3i_T%E1%BB%B1.jpg?utm_source=vi.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4c/Ph%C6%B0%E1%BB%9Bc_H%E1%BA%A3i_T%E1%BB%B1.jpg/1280px-Ph%C6%B0%E1%BB%9Bc_H%E1%BA%A3i_T%E1%BB%B1.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & không gian tại Chùa Ngọc Hoàng (Phước Hải Tự – Di tích Quốc gia) (Ảnh 2)",
           "en": "Architecture & atmosphere at Jade Emperor Pagoda (Phuoc Hai Tu) (Photo 2)",
@@ -1641,7 +1641,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-chuangochoan-3",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/10/Jade_Emperor_Pagoda_Saigon.jpg/1280px-Jade_Emperor_Pagoda_Saigon.jpg?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/10/Jade_Emperor_Pagoda_Saigon.jpg/1280px-Jade_Emperor_Pagoda_Saigon.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & không gian tại Chùa Ngọc Hoàng (Phước Hải Tự – Di tích Quốc gia) (Ảnh 3)",
           "en": "Architecture & atmosphere at Jade Emperor Pagoda (Phuoc Hai Tu) (Photo 3)",
@@ -1751,12 +1751,12 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
     }
   },
   "lang-ong-ba-chieu-le-van-duyet": {
-    "coverImage": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/bf/Mi%E1%BA%BFu_th%E1%BB%9D_L%C3%AA_V%C4%83n_Duy%E1%BB%87t.jpg/1280px-Mi%E1%BA%BFu_th%E1%BB%9D_L%C3%AA_V%C4%83n_Duy%E1%BB%87t.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/bf/Mi%E1%BA%BFu_th%E1%BB%9D_L%C3%AA_V%C4%83n_Duy%E1%BB%87t.jpg/1280px-Mi%E1%BA%BFu_th%E1%BB%9D_L%C3%AA_V%C4%83n_Duy%E1%BB%87t.jpg",
     "mediaGallery": [
       {
         "id": "wk-langongbachi-1",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/bf/Mi%E1%BA%BFu_th%E1%BB%9D_L%C3%AA_V%C4%83n_Duy%E1%BB%87t.jpg/1280px-Mi%E1%BA%BFu_th%E1%BB%9D_L%C3%AA_V%C4%83n_Duy%E1%BB%87t.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/bf/Mi%E1%BA%BFu_th%E1%BB%9D_L%C3%AA_V%C4%83n_Duy%E1%BB%87t.jpg/1280px-Mi%E1%BA%BFu_th%E1%BB%9D_L%C3%AA_V%C4%83n_Duy%E1%BB%87t.jpg",
         "caption": {
           "vi": "Ảnh thực tế toàn cảnh Di tích Quốc gia Lăng Tả quân Lê Văn Duyệt (Lăng Ông Bà Chiểu) (Wikimedia Commons)",
           "en": "Real view of Mausoleum of General Le Van Duyet (Lang Ong Ba Chieu) (Wikimedia Commons)",
@@ -1769,7 +1769,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-langongbachi-2",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/vi/thumb/0/03/C%E1%BB%95ng_ch%C3%ADnh_L%C4%83ng_%C3%94ng_B%C3%A0_Chi%E1%BB%83u_n%C4%83m_2015.jpg/1280px-C%E1%BB%95ng_ch%C3%ADnh_L%C4%83ng_%C3%94ng_B%C3%A0_Chi%E1%BB%83u_n%C4%83m_2015.jpg?utm_source=vi.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/vi/thumb/0/03/C%E1%BB%95ng_ch%C3%ADnh_L%C4%83ng_%C3%94ng_B%C3%A0_Chi%E1%BB%83u_n%C4%83m_2015.jpg/1280px-C%E1%BB%95ng_ch%C3%ADnh_L%C4%83ng_%C3%94ng_B%C3%A0_Chi%E1%BB%83u_n%C4%83m_2015.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & không gian tại Di tích Quốc gia Lăng Tả quân Lê Văn Duyệt (Lăng Ông Bà Chiểu) (Ảnh 2)",
           "en": "Architecture & atmosphere at Mausoleum of General Le Van Duyet (Lang Ong Ba Chieu) (Photo 2)",
@@ -1782,7 +1782,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-langongbachi-3",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0d/L%C4%83ng_L%C3%AA_V%C4%83n_Duy%E1%BB%87t.jpg/1280px-L%C4%83ng_L%C3%AA_V%C4%83n_Duy%E1%BB%87t.jpg?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0d/L%C4%83ng_L%C3%AA_V%C4%83n_Duy%E1%BB%87t.jpg/1280px-L%C4%83ng_L%C3%AA_V%C4%83n_Duy%E1%BB%87t.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & không gian tại Di tích Quốc gia Lăng Tả quân Lê Văn Duyệt (Lăng Ông Bà Chiểu) (Ảnh 3)",
           "en": "Architecture & atmosphere at Mausoleum of General Le Van Duyet (Lang Ong Ba Chieu) (Photo 3)",
@@ -1893,12 +1893,12 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
     }
   },
   "chua-ba-thien-hau-cho-lon": {
-    "coverImage": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0a/Thien_Hau_Pagoda_%2810017896294%29.jpg/1280px-Thien_Hau_Pagoda_%2810017896294%29.jpg?utm_source=vi.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0a/Thien_Hau_Pagoda_%2810017896294%29.jpg/1280px-Thien_Hau_Pagoda_%2810017896294%29.jpg",
     "mediaGallery": [
       {
         "id": "wk-chuabathienh-1",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0a/Thien_Hau_Pagoda_%2810017896294%29.jpg/1280px-Thien_Hau_Pagoda_%2810017896294%29.jpg?utm_source=vi.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0a/Thien_Hau_Pagoda_%2810017896294%29.jpg/1280px-Thien_Hau_Pagoda_%2810017896294%29.jpg",
         "caption": {
           "vi": "Ảnh thực tế toàn cảnh Hội quán Tuệ Thành – Chùa Bà Thiên Hậu Chợ Lớn (Wikimedia Commons)",
           "en": "Real view of Thien Hau Temple (Tue Thanh Assembly Hall – Cho Lon) (Wikimedia Commons)",
@@ -1911,7 +1911,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-chuabathienh-2",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/59/2014-10-14_Chinatown_SF_CA_USA_002.JPG/1280px-2014-10-14_Chinatown_SF_CA_USA_002.JPG?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/59/2014-10-14_Chinatown_SF_CA_USA_002.JPG/1280px-2014-10-14_Chinatown_SF_CA_USA_002.JPG",
         "caption": {
           "vi": "Góc nhìn kiến trúc & không gian tại Hội quán Tuệ Thành – Chùa Bà Thiên Hậu Chợ Lớn (Ảnh 2)",
           "en": "Architecture & atmosphere at Thien Hau Temple (Tue Thanh Assembly Hall – Cho Lon) (Photo 2)",
@@ -1924,7 +1924,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-chuabathienh-3",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/39/A_Ma_Temple_200907.jpg/1280px-A_Ma_Temple_200907.jpg?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/39/A_Ma_Temple_200907.jpg/1280px-A_Ma_Temple_200907.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & không gian tại Hội quán Tuệ Thành – Chùa Bà Thiên Hậu Chợ Lớn (Ảnh 3)",
           "en": "Architecture & atmosphere at Thien Hau Temple (Tue Thanh Assembly Hall – Cho Lon) (Photo 3)",
@@ -2035,12 +2035,12 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
     }
   },
   "ham-chua-vu-khi-biet-dong-sai-gon": {
-    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/1/17/US_Embassy%2C_Saigon%2C_January_1968_%28Colorized%29.jpg?utm_source=vi.wikipedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/1/17/US_Embassy%2C_Saigon%2C_January_1968_%28Colorized%29.jpg",
     "mediaGallery": [
       {
         "id": "wk-hamchuavukhi-1",
         "type": "image",
-        "url": "https://upload.wikimedia.org/wikipedia/commons/1/17/US_Embassy%2C_Saigon%2C_January_1968_%28Colorized%29.jpg?utm_source=vi.wikipedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/1/17/US_Embassy%2C_Saigon%2C_January_1968_%28Colorized%29.jpg",
         "caption": {
           "vi": "Ảnh thực tế toàn cảnh Di tích Lịch sử Quốc gia Hầm chứa Vũ khí Biệt động Sài Gòn (Wikimedia Commons)",
           "en": "Real view of Saigon Commando Secret Weapons Bunker (District 3) (Wikimedia Commons)",
@@ -2053,7 +2053,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-hamchuavukhi-2",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/ba/Nga_tu_Truong_Dinh%2C_nguyen_dinh_chieu-_ph%C6%B0%E1%BB%9Dng_6%2C_Qu%E1%BA%ADn_3%2C_TPHCM%2C_Vi%E1%BB%87t_Nam_-_panoramio.jpg/1280px-Nga_tu_Truong_Dinh%2C_nguyen_dinh_chieu-_ph%C6%B0%E1%BB%9Dng_6%2C_Qu%E1%BA%ADn_3%2C_TPHCM%2C_Vi%E1%BB%87t_Nam_-_panoramio.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/ba/Nga_tu_Truong_Dinh%2C_nguyen_dinh_chieu-_ph%C6%B0%E1%BB%9Dng_6%2C_Qu%E1%BA%ADn_3%2C_TPHCM%2C_Vi%E1%BB%87t_Nam_-_panoramio.jpg/1280px-Nga_tu_Truong_Dinh%2C_nguyen_dinh_chieu-_ph%C6%B0%E1%BB%9Dng_6%2C_Qu%E1%BA%ADn_3%2C_TPHCM%2C_Vi%E1%BB%87t_Nam_-_panoramio.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & không gian tại Di tích Lịch sử Quốc gia Hầm chứa Vũ khí Biệt động Sài Gòn (Ảnh 2)",
           "en": "Architecture & atmosphere at Saigon Commando Secret Weapons Bunker (District 3) (Photo 2)",
@@ -2066,7 +2066,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-hamchuavukhi-3",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/26/Nga_tu_truong_Dinh_va_Ng_dinh_Chieu%2C_Chung_cu_Nguyen_Dinh_Chieu%2C_q3%2C_hcmvn_-_panoramio.jpg/1280px-Nga_tu_truong_Dinh_va_Ng_dinh_Chieu%2C_Chung_cu_Nguyen_Dinh_Chieu%2C_q3%2C_hcmvn_-_panoramio.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/26/Nga_tu_truong_Dinh_va_Ng_dinh_Chieu%2C_Chung_cu_Nguyen_Dinh_Chieu%2C_q3%2C_hcmvn_-_panoramio.jpg/1280px-Nga_tu_truong_Dinh_va_Ng_dinh_Chieu%2C_Chung_cu_Nguyen_Dinh_Chieu%2C_q3%2C_hcmvn_-_panoramio.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & không gian tại Di tích Lịch sử Quốc gia Hầm chứa Vũ khí Biệt động Sài Gòn (Ảnh 3)",
           "en": "Architecture & atmosphere at Saigon Commando Secret Weapons Bunker (District 3) (Photo 3)",
@@ -2171,12 +2171,12 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
     }
   },
   "dia-dao-cu-chi-ben-duoc": {
-    "coverImage": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/14/C%E1%BB%A7_Chi_tunnels_entrance.JPG/1280px-C%E1%BB%A7_Chi_tunnels_entrance.JPG?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/14/C%E1%BB%A7_Chi_tunnels_entrance.JPG/1280px-C%E1%BB%A7_Chi_tunnels_entrance.JPG",
     "mediaGallery": [
       {
         "id": "wk-diadaocuchib-1",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/14/C%E1%BB%A7_Chi_tunnels_entrance.JPG/1280px-C%E1%BB%A7_Chi_tunnels_entrance.JPG?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/14/C%E1%BB%A7_Chi_tunnels_entrance.JPG/1280px-C%E1%BB%A7_Chi_tunnels_entrance.JPG",
         "caption": {
           "vi": "Ảnh thực tế toàn cảnh Di tích Quốc gia Đặc biệt Địa đạo Củ Chi & Đền Tưởng niệm Bến Dược (Wikimedia Commons)",
           "en": "Real view of Cu Chi Tunnels & Ben Duoc Memorial Temple (Special National Monument) (Wikimedia Commons)",
@@ -2189,7 +2189,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-diadaocuchib-2",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/00/W_C%E1%BB%A7_Chi_%C4%90%E1%BB%8Ba_%C4%91%E1%BA%A1o_C%E1%BB%A7_Chi_ng%E1%BB%A5y_trang.JPG/1280px-W_C%E1%BB%A7_Chi_%C4%90%E1%BB%8Ba_%C4%91%E1%BA%A1o_C%E1%BB%A7_Chi_ng%E1%BB%A5y_trang.JPG?utm_source=vi.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/00/W_C%E1%BB%A7_Chi_%C4%90%E1%BB%8Ba_%C4%91%E1%BA%A1o_C%E1%BB%A7_Chi_ng%E1%BB%A5y_trang.JPG/1280px-W_C%E1%BB%A7_Chi_%C4%90%E1%BB%8Ba_%C4%91%E1%BA%A1o_C%E1%BB%A7_Chi_ng%E1%BB%A5y_trang.JPG",
         "caption": {
           "vi": "Góc nhìn kiến trúc & không gian tại Di tích Quốc gia Đặc biệt Địa đạo Củ Chi & Đền Tưởng niệm Bến Dược (Ảnh 2)",
           "en": "Architecture & atmosphere at Cu Chi Tunnels & Ben Duoc Memorial Temple (Special National Monument) (Photo 2)",
@@ -2202,7 +2202,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-diadaocuchib-3",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/35/A_few_rounds_in_an_M60._%2812110611696%29.jpg/1280px-A_few_rounds_in_an_M60._%2812110611696%29.jpg?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/35/A_few_rounds_in_an_M60._%2812110611696%29.jpg/1280px-A_few_rounds_in_an_M60._%2812110611696%29.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & không gian tại Di tích Quốc gia Đặc biệt Địa đạo Củ Chi & Đền Tưởng niệm Bến Dược (Ảnh 3)",
           "en": "Architecture & atmosphere at Cu Chi Tunnels & Ben Duoc Memorial Temple (Special National Monument) (Photo 3)",
@@ -2312,12 +2312,12 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
     }
   },
   "khu-du-tru-sinh-quyen-rung-sac-can-gio": {
-    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/e/e5/Mangrove_in_Can_Gio_forest.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail_unscaled",
+    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/e/e5/Mangrove_in_Can_Gio_forest.jpg",
     "mediaGallery": [
       {
         "id": "wk-khudutrusinh-1",
         "type": "image",
-        "url": "https://upload.wikimedia.org/wikipedia/commons/e/e5/Mangrove_in_Can_Gio_forest.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail_unscaled",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/e/e5/Mangrove_in_Can_Gio_forest.jpg",
         "caption": {
           "vi": "Ảnh thực tế toàn cảnh Khu Dự trữ Sinh quyển Thế giới Cần Giờ (UNESCO) & Di tích Căn cứ Rừng Sác (Wikimedia Commons)",
           "en": "Real view of Can Gio Mangrove Biosphere Reserve (UNESCO) & Rung Sac Historic Base (Wikimedia Commons)",
@@ -2330,7 +2330,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-khudutrusinh-2",
         "type": "image",
-        "url": "https://upload.wikimedia.org/wikipedia/commons/9/97/Lo_ren_river.jpg?utm_source=vi.wikipedia.org&utm_campaign=api&utm_content=thumbnail_unscaled",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/9/97/Lo_ren_river.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & không gian tại Khu Dự trữ Sinh quyển Thế giới Cần Giờ (UNESCO) & Di tích Căn cứ Rừng Sác (Ảnh 2)",
           "en": "Architecture & atmosphere at Can Gio Mangrove Biosphere Reserve (UNESCO) & Rung Sac Historic Base (Photo 2)",
@@ -2343,7 +2343,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-khudutrusinh-3",
         "type": "image",
-        "url": "https://upload.wikimedia.org/wikipedia/commons/e/e5/Mangrove_in_Can_Gio_forest.jpg?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/e/e5/Mangrove_in_Can_Gio_forest.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & không gian tại Khu Dự trữ Sinh quyển Thế giới Cần Giờ (UNESCO) & Di tích Căn cứ Rừng Sác (Ảnh 3)",
           "en": "Architecture & atmosphere at Can Gio Mangrove Biosphere Reserve (UNESCO) & Rung Sac Historic Base (Photo 3)",
@@ -2453,12 +2453,12 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
     }
   },
   "chua-giac-lam-tan-binh": {
-    "coverImage": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8d/ChuaGiacLam02.jpg/1280px-ChuaGiacLam02.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8d/ChuaGiacLam02.jpg/1280px-ChuaGiacLam02.jpg",
     "mediaGallery": [
       {
         "id": "wk-chuagiaclamt-1",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8d/ChuaGiacLam02.jpg/1280px-ChuaGiacLam02.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8d/ChuaGiacLam02.jpg/1280px-ChuaGiacLam02.jpg",
         "caption": {
           "vi": "Ảnh thực tế toàn cảnh Tổ đình Giác Lâm (Ngôi chùa cổ nhất TP.HCM – 1744) (Wikimedia Commons)",
           "en": "Real view of Giac Lam Pagoda (Oldest Temple in Ho Chi Minh City – 1744) (Wikimedia Commons)",
@@ -2471,7 +2471,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-chuagiaclamt-2",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/99/ChuaGiacLam01.jpg/1280px-ChuaGiacLam01.jpg?utm_source=vi.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/99/ChuaGiacLam01.jpg/1280px-ChuaGiacLam01.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & không gian tại Tổ đình Giác Lâm (Ngôi chùa cổ nhất TP.HCM – 1744) (Ảnh 2)",
           "en": "Architecture & atmosphere at Giac Lam Pagoda (Oldest Temple in Ho Chi Minh City – 1744) (Photo 2)",
@@ -2484,7 +2484,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-chuagiaclamt-3",
         "type": "image",
-        "url": "https://upload.wikimedia.org/wikipedia/commons/3/32/Bodhi_tree.jpg?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/3/32/Bodhi_tree.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & không gian tại Tổ đình Giác Lâm (Ngôi chùa cổ nhất TP.HCM – 1744) (Ảnh 3)",
           "en": "Architecture & atmosphere at Giac Lam Pagoda (Oldest Temple in Ho Chi Minh City – 1744) (Photo 3)",
@@ -2594,12 +2594,12 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
     }
   },
   "chua-vinh-nghiem-quan-3": {
-    "coverImage": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/27/C%E1%BB%95ng_ch%C3%B9a_V%C4%A9nh_Nghi%C3%AAm.jpg/1280px-C%E1%BB%95ng_ch%C3%B9a_V%C4%A9nh_Nghi%C3%AAm.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/27/C%E1%BB%95ng_ch%C3%B9a_V%C4%A9nh_Nghi%C3%AAm.jpg/1280px-C%E1%BB%95ng_ch%C3%B9a_V%C4%A9nh_Nghi%C3%AAm.jpg",
     "mediaGallery": [
       {
         "id": "wk-chuavinhnghi-1",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/27/C%E1%BB%95ng_ch%C3%B9a_V%C4%A9nh_Nghi%C3%AAm.jpg/1280px-C%E1%BB%95ng_ch%C3%B9a_V%C4%A9nh_Nghi%C3%AAm.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/27/C%E1%BB%95ng_ch%C3%B9a_V%C4%A9nh_Nghi%C3%AAm.jpg/1280px-C%E1%BB%95ng_ch%C3%B9a_V%C4%A9nh_Nghi%C3%AAm.jpg",
         "caption": {
           "vi": "Ảnh thực tế toàn cảnh Chùa Vĩnh Nghiêm & Bảo tháp Đá Quán Thế Âm (Quận 3) (Wikimedia Commons)",
           "en": "Real view of Vinh Nghiem Pagoda & Stone Stupa (District 3) (Wikimedia Commons)",
@@ -2612,7 +2612,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-chuavinhnghi-2",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/27/C%E1%BB%95ng_ch%C3%B9a_V%C4%A9nh_Nghi%C3%AAm.jpg/1280px-C%E1%BB%95ng_ch%C3%B9a_V%C4%A9nh_Nghi%C3%AAm.jpg?utm_source=vi.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/27/C%E1%BB%95ng_ch%C3%B9a_V%C4%A9nh_Nghi%C3%AAm.jpg/1280px-C%E1%BB%95ng_ch%C3%B9a_V%C4%A9nh_Nghi%C3%AAm.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & không gian tại Chùa Vĩnh Nghiêm & Bảo tháp Đá Quán Thế Âm (Quận 3) (Ảnh 2)",
           "en": "Architecture & atmosphere at Vinh Nghiem Pagoda & Stone Stupa (District 3) (Photo 2)",
@@ -2625,7 +2625,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-chuavinhnghi-3",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b4/Chua_Vinh_nghiem%2C_tphcm_vietnam_-_panoramio_%281%29.jpg/1280px-Chua_Vinh_nghiem%2C_tphcm_vietnam_-_panoramio_%281%29.jpg?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b4/Chua_Vinh_nghiem%2C_tphcm_vietnam_-_panoramio_%281%29.jpg/1280px-Chua_Vinh_nghiem%2C_tphcm_vietnam_-_panoramio_%281%29.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & không gian tại Chùa Vĩnh Nghiêm & Bảo tháp Đá Quán Thế Âm (Quận 3) (Ảnh 3)",
           "en": "Architecture & atmosphere at Vinh Nghiem Pagoda & Stone Stupa (District 3) (Photo 3)",
@@ -2735,12 +2735,12 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
     }
   },
   "den-tuong-niem-cac-vua-hung-thu-duc": {
-    "coverImage": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/4c/C%C3%B4ng_vi%C3%AAn_V%C4%83n_h%C3%B3a_l%E1%BB%8Bch_s%E1%BB%AD_d%C3%A2n_t%E1%BB%99c_qu%E1%BA%ADn_9.JPG/1280px-C%C3%B4ng_vi%C3%AAn_V%C4%83n_h%C3%B3a_l%E1%BB%8Bch_s%E1%BB%AD_d%C3%A2n_t%E1%BB%99c_qu%E1%BA%ADn_9.JPG?utm_source=vi.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4c/C%C3%B4ng_vi%C3%AAn_V%C4%83n_h%C3%B3a_l%E1%BB%8Bch_s%E1%BB%AD_d%C3%A2n_t%E1%BB%99c_qu%E1%BA%ADn_9.JPG/1280px-C%C3%B4ng_vi%C3%AAn_V%C4%83n_h%C3%B3a_l%E1%BB%8Bch_s%E1%BB%AD_d%C3%A2n_t%E1%BB%99c_qu%E1%BA%ADn_9.JPG",
     "mediaGallery": [
       {
         "id": "wk-dentuongniem-1",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/4c/C%C3%B4ng_vi%C3%AAn_V%C4%83n_h%C3%B3a_l%E1%BB%8Bch_s%E1%BB%AD_d%C3%A2n_t%E1%BB%99c_qu%E1%BA%ADn_9.JPG/1280px-C%C3%B4ng_vi%C3%AAn_V%C4%83n_h%C3%B3a_l%E1%BB%8Bch_s%E1%BB%AD_d%C3%A2n_t%E1%BB%99c_qu%E1%BA%ADn_9.JPG?utm_source=vi.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4c/C%C3%B4ng_vi%C3%AAn_V%C4%83n_h%C3%B3a_l%E1%BB%8Bch_s%E1%BB%AD_d%C3%A2n_t%E1%BB%99c_qu%E1%BA%ADn_9.JPG/1280px-C%C3%B4ng_vi%C3%AAn_V%C4%83n_h%C3%B3a_l%E1%BB%8Bch_s%E1%BB%AD_d%C3%A2n_t%E1%BB%99c_qu%E1%BA%ADn_9.JPG",
         "caption": {
           "vi": "Ảnh thực tế toàn cảnh Đền Tưởng niệm các Vua Hùng & Công viên Lịch sử Văn hóa Dân tộc (TP. Thủ Đức) (Wikimedia Commons)",
           "en": "Real view of Hung Kings Memorial Temple & National Historical-Cultural Park (Thu Duc City) (Wikimedia Commons)",
@@ -2753,7 +2753,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-dentuongniem-2",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/34/20190923_Independence_Palace-13.jpg/1280px-20190923_Independence_Palace-13.jpg?utm_source=vi.wikipedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/34/20190923_Independence_Palace-13.jpg/1280px-20190923_Independence_Palace-13.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & không gian tại Đền Tưởng niệm các Vua Hùng & Công viên Lịch sử Văn hóa Dân tộc (TP. Thủ Đức) (Ảnh 2)",
           "en": "Architecture & atmosphere at Hung Kings Memorial Temple & National Historical-Cultural Park (Thu Duc City) (Photo 2)",
@@ -2766,7 +2766,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-dentuongniem-3",
         "type": "image",
-        "url": "https://upload.wikimedia.org/wikipedia/commons/9/91/Ben_Thanh_market_2.jpg?utm_source=vi.wikipedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/9/91/Ben_Thanh_market_2.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & không gian tại Đền Tưởng niệm các Vua Hùng & Công viên Lịch sử Văn hóa Dân tộc (TP. Thủ Đức) (Ảnh 3)",
           "en": "Architecture & atmosphere at Hung Kings Memorial Temple & National Historical-Cultural Park (Thu Duc City) (Photo 3)",
@@ -2871,12 +2871,12 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
     }
   },
   "nha-tho-tan-dinh": {
-    "coverImage": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/11/T%C3%A2n_%C4%90%E1%BB%8Bnh_Church_20190922.jpg/1280px-T%C3%A2n_%C4%90%E1%BB%8Bnh_Church_20190922.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/11/T%C3%A2n_%C4%90%E1%BB%8Bnh_Church_20190922.jpg/1280px-T%C3%A2n_%C4%90%E1%BB%8Bnh_Church_20190922.jpg",
     "mediaGallery": [
       {
         "id": "wk-nhathotandin-1",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/11/T%C3%A2n_%C4%90%E1%BB%8Bnh_Church_20190922.jpg/1280px-T%C3%A2n_%C4%90%E1%BB%8Bnh_Church_20190922.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/11/T%C3%A2n_%C4%90%E1%BB%8Bnh_Church_20190922.jpg/1280px-T%C3%A2n_%C4%90%E1%BB%8Bnh_Church_20190922.jpg",
         "caption": {
           "vi": "Ảnh thực tế toàn cảnh Nhà thờ Tân Định (Nhà thờ Màu Hồng · 1876) (Wikimedia Commons)",
           "en": "Real view of Tan Dinh Church (The Pink Church · 1876) (Wikimedia Commons)",
@@ -2889,7 +2889,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-nhathotandin-2",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/11/T%C3%A2n_%C4%90%E1%BB%8Bnh_Church_20190922.jpg/1280px-T%C3%A2n_%C4%90%E1%BB%8Bnh_Church_20190922.jpg?utm_source=vi.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/11/T%C3%A2n_%C4%90%E1%BB%8Bnh_Church_20190922.jpg/1280px-T%C3%A2n_%C4%90%E1%BB%8Bnh_Church_20190922.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & không gian tại Nhà thờ Tân Định (Nhà thờ Màu Hồng · 1876) (Ảnh 2)",
           "en": "Architecture & atmosphere at Tan Dinh Church (The Pink Church · 1876) (Photo 2)",
@@ -2902,7 +2902,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-nhathotandin-3",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/ec/C_051.jpg/1280px-C_051.jpg?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/C_051.jpg/1280px-C_051.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & không gian tại Nhà thờ Tân Định (Nhà thờ Màu Hồng · 1876) (Ảnh 3)",
           "en": "Architecture & atmosphere at Tan Dinh Church (The Pink Church · 1876) (Photo 3)",
@@ -3012,12 +3012,12 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
     }
   },
   "pho-di-bo-nguyen-hue-chung-cu-42": {
-    "coverImage": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/75/Nguyen_Hue_Street_2020.jpg/1280px-Nguyen_Hue_Street_2020.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/75/Nguyen_Hue_Street_2020.jpg/1280px-Nguyen_Hue_Street_2020.jpg",
     "mediaGallery": [
       {
         "id": "wk-phodibonguye-1",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/75/Nguyen_Hue_Street_2020.jpg/1280px-Nguyen_Hue_Street_2020.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/75/Nguyen_Hue_Street_2020.jpg/1280px-Nguyen_Hue_Street_2020.jpg",
         "caption": {
           "vi": "Ảnh thực tế toàn cảnh Phố đi bộ Nguyễn Huệ & Chung cư 42 Nguyễn Huệ (Wikimedia Commons)",
           "en": "Real view of Nguyen Hue Walking Street & 42 Cafe Apartments (Wikimedia Commons)",
@@ -3030,7 +3030,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-phodibonguye-2",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d1/Ho_Chi_Minh_City%2C_Saigon%2C_Vietnam_%2849579818542%29.jpg/1280px-Ho_Chi_Minh_City%2C_Saigon%2C_Vietnam_%2849579818542%29.jpg?utm_source=vi.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d1/Ho_Chi_Minh_City%2C_Saigon%2C_Vietnam_%2849579818542%29.jpg/1280px-Ho_Chi_Minh_City%2C_Saigon%2C_Vietnam_%2849579818542%29.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & không gian tại Phố đi bộ Nguyễn Huệ & Chung cư 42 Nguyễn Huệ (Ảnh 2)",
           "en": "Architecture & atmosphere at Nguyen Hue Walking Street & 42 Cafe Apartments (Photo 2)",
@@ -3043,7 +3043,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-phodibonguye-3",
         "type": "image",
-        "url": "https://upload.wikimedia.org/wikipedia/commons/f/fa/%27Bitexco_Financial_Tower%27_as_seen_from_Bach_Dang_wharf..JPG?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/f/fa/%27Bitexco_Financial_Tower%27_as_seen_from_Bach_Dang_wharf..JPG",
         "caption": {
           "vi": "Góc nhìn kiến trúc & không gian tại Phố đi bộ Nguyễn Huệ & Chung cư 42 Nguyễn Huệ (Ảnh 3)",
           "en": "Architecture & atmosphere at Nguyen Hue Walking Street & 42 Cafe Apartments (Photo 3)",
@@ -3154,12 +3154,12 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
     }
   },
   "ben-bach-dang-cau-ba-son": {
-    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/5/58/Saigon_Skyline.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail_unscaled",
+    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/5/58/Saigon_Skyline.jpg",
     "mediaGallery": [
       {
         "id": "wk-benbachdangc-1",
         "type": "image",
-        "url": "https://upload.wikimedia.org/wikipedia/commons/5/58/Saigon_Skyline.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail_unscaled",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/5/58/Saigon_Skyline.jpg",
         "caption": {
           "vi": "Ảnh thực tế toàn cảnh Công viên Bến Bạch Đằng & Cầu Ba Son (Saigon Waterbus) (Wikimedia Commons)",
           "en": "Real view of Bach Dang Wharf Park & Ba Son Bridge (Saigon Waterbus) (Wikimedia Commons)",
@@ -3172,7 +3172,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-benbachdangc-2",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f9/Bach_Dang_Quay_%2852681304130%29.jpg/1280px-Bach_Dang_Quay_%2852681304130%29.jpg?utm_source=vi.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f9/Bach_Dang_Quay_%2852681304130%29.jpg/1280px-Bach_Dang_Quay_%2852681304130%29.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & không gian tại Công viên Bến Bạch Đằng & Cầu Ba Son (Saigon Waterbus) (Ảnh 2)",
           "en": "Architecture & atmosphere at Bach Dang Wharf Park & Ba Son Bridge (Saigon Waterbus) (Photo 2)",
@@ -3185,7 +3185,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-benbachdangc-3",
         "type": "image",
-        "url": "https://upload.wikimedia.org/wikipedia/commons/f/fd/Bach_Dang_Station_-_Sai_Gon_Water_Bus.jpg?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/f/fd/Bach_Dang_Station_-_Sai_Gon_Water_Bus.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & không gian tại Công viên Bến Bạch Đằng & Cầu Ba Son (Saigon Waterbus) (Ảnh 3)",
           "en": "Architecture & atmosphere at Bach Dang Wharf Park & Ba Son Bridge (Saigon Waterbus) (Photo 3)",
@@ -3290,12 +3290,12 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
     }
   },
   "cot-co-thu-ngu": {
-    "coverImage": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/10/C%E1%BB%99t_c%E1%BB%9D_Th%E1%BB%A7_Ng%E1%BB%AF.JPG/1280px-C%E1%BB%99t_c%E1%BB%9D_Th%E1%BB%A7_Ng%E1%BB%AF.JPG?utm_source=vi.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/10/C%E1%BB%99t_c%E1%BB%9D_Th%E1%BB%A7_Ng%E1%BB%AF.JPG/1280px-C%E1%BB%99t_c%E1%BB%9D_Th%E1%BB%A7_Ng%E1%BB%AF.JPG",
     "mediaGallery": [
       {
         "id": "wk-cotcothungu-1",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/10/C%E1%BB%99t_c%E1%BB%9D_Th%E1%BB%A7_Ng%E1%BB%AF.JPG/1280px-C%E1%BB%99t_c%E1%BB%9D_Th%E1%BB%A7_Ng%E1%BB%AF.JPG?utm_source=vi.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/10/C%E1%BB%99t_c%E1%BB%9D_Th%E1%BB%A7_Ng%E1%BB%AF.JPG/1280px-C%E1%BB%99t_c%E1%BB%9D_Th%E1%BB%A7_Ng%E1%BB%AF.JPG",
         "caption": {
           "vi": "Ảnh thực tế toàn cảnh Di tích Cột cờ Thủ Ngữ (1865) (Wikimedia Commons)",
           "en": "Real view of Thu Ngu Flagpole Historic Monument (1865) (Wikimedia Commons)",
@@ -3308,7 +3308,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-cotcothungu-2",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/10/C%E1%BB%99t_c%E1%BB%9D_Th%E1%BB%A7_Ng%E1%BB%AF.JPG/1280px-C%E1%BB%99t_c%E1%BB%9D_Th%E1%BB%A7_Ng%E1%BB%AF.JPG?utm_source=vi.wikipedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/10/C%E1%BB%99t_c%E1%BB%9D_Th%E1%BB%A7_Ng%E1%BB%AF.JPG/1280px-C%E1%BB%99t_c%E1%BB%9D_Th%E1%BB%A7_Ng%E1%BB%AF.JPG",
         "caption": {
           "vi": "Góc nhìn kiến trúc & không gian tại Di tích Cột cờ Thủ Ngữ (1865) (Ảnh 2)",
           "en": "Architecture & atmosphere at Thu Ngu Flagpole Historic Monument (1865) (Photo 2)",
@@ -3321,7 +3321,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-cotcothungu-3",
         "type": "image",
-        "url": "https://upload.wikimedia.org/wikipedia/commons/b/b8/Tramway_Saigon--Cholon_%281905%29.jpg?utm_source=vi.wikipedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/b/b8/Tramway_Saigon--Cholon_%281905%29.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & không gian tại Di tích Cột cờ Thủ Ngữ (1865) (Ảnh 3)",
           "en": "Architecture & atmosphere at Thu Ngu Flagpole Historic Monument (1865) (Photo 3)",
@@ -3422,12 +3422,12 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
     }
   },
   "cau-mong-sai-gon": {
-    "coverImage": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1b/M%E1%BB%91ng_Bridge_Ho_Chi_Minh_City.JPG/1280px-M%E1%BB%91ng_Bridge_Ho_Chi_Minh_City.JPG?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1b/M%E1%BB%91ng_Bridge_Ho_Chi_Minh_City.JPG/1280px-M%E1%BB%91ng_Bridge_Ho_Chi_Minh_City.JPG",
     "mediaGallery": [
       {
         "id": "wk-caumongsaigo-1",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1b/M%E1%BB%91ng_Bridge_Ho_Chi_Minh_City.JPG/1280px-M%E1%BB%91ng_Bridge_Ho_Chi_Minh_City.JPG?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1b/M%E1%BB%91ng_Bridge_Ho_Chi_Minh_City.JPG/1280px-M%E1%BB%91ng_Bridge_Ho_Chi_Minh_City.JPG",
         "caption": {
           "vi": "Ảnh thực tế toàn cảnh Cầu Mống Sài Gòn (Di tích Kiến trúc 1894) (Wikimedia Commons)",
           "en": "Real view of Mong Bridge (Historic 1894 Eiffel Iron Footbridge) (Wikimedia Commons)",
@@ -3440,7 +3440,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-caumongsaigo-2",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1b/M%E1%BB%91ng_Bridge_Ho_Chi_Minh_City.JPG/1280px-M%E1%BB%91ng_Bridge_Ho_Chi_Minh_City.JPG?utm_source=vi.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1b/M%E1%BB%91ng_Bridge_Ho_Chi_Minh_City.JPG/1280px-M%E1%BB%91ng_Bridge_Ho_Chi_Minh_City.JPG",
         "caption": {
           "vi": "Góc nhìn kiến trúc & không gian tại Cầu Mống Sài Gòn (Di tích Kiến trúc 1894) (Ảnh 2)",
           "en": "Architecture & atmosphere at Mong Bridge (Historic 1894 Eiffel Iron Footbridge) (Photo 2)",
@@ -3453,7 +3453,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-caumongsaigo-3",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1b/M%E1%BB%91ng_Bridge_Ho_Chi_Minh_City.JPG/1280px-M%E1%BB%91ng_Bridge_Ho_Chi_Minh_City.JPG?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1b/M%E1%BB%91ng_Bridge_Ho_Chi_Minh_City.JPG/1280px-M%E1%BB%91ng_Bridge_Ho_Chi_Minh_City.JPG",
         "caption": {
           "vi": "Góc nhìn kiến trúc & không gian tại Cầu Mống Sài Gòn (Di tích Kiến trúc 1894) (Ảnh 3)",
           "en": "Architecture & atmosphere at Mong Bridge (Historic 1894 Eiffel Iron Footbridge) (Photo 3)",
@@ -3558,12 +3558,12 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
     }
   },
   "ho-con-rua-cong-truong-quoc-te": {
-    "coverImage": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d6/Cong_truong_con_rua.jpg/1280px-Cong_truong_con_rua.jpg?utm_source=vi.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d6/Cong_truong_con_rua.jpg/1280px-Cong_truong_con_rua.jpg",
     "mediaGallery": [
       {
         "id": "wk-hoconruacong-1",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d6/Cong_truong_con_rua.jpg/1280px-Cong_truong_con_rua.jpg?utm_source=vi.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d6/Cong_truong_con_rua.jpg/1280px-Cong_truong_con_rua.jpg",
         "caption": {
           "vi": "Ảnh thực tế toàn cảnh Hồ Con Rùa (Công trường Quốc tế · 1967) (Wikimedia Commons)",
           "en": "Real view of Turtle Lake (International Square · 1967) (Wikimedia Commons)",
@@ -3576,7 +3576,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-hoconruacong-2",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/34/20190923_Independence_Palace-13.jpg/1280px-20190923_Independence_Palace-13.jpg?utm_source=vi.wikipedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/34/20190923_Independence_Palace-13.jpg/1280px-20190923_Independence_Palace-13.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & không gian tại Hồ Con Rùa (Công trường Quốc tế · 1967) (Ảnh 2)",
           "en": "Architecture & atmosphere at Turtle Lake (International Square · 1967) (Photo 2)",
@@ -3589,7 +3589,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-hoconruacong-3",
         "type": "image",
-        "url": "https://upload.wikimedia.org/wikipedia/commons/9/91/Ben_Thanh_market_2.jpg?utm_source=vi.wikipedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/9/91/Ben_Thanh_market_2.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & không gian tại Hồ Con Rùa (Công trường Quốc tế · 1967) (Ảnh 3)",
           "en": "Architecture & atmosphere at Turtle Lake (International Square · 1967) (Photo 3)",
@@ -3689,12 +3689,12 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
     }
   },
   "thap-bitexco-saigon-skydeck": {
-    "coverImage": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c4/DJI_0550-HDR-Pano_Bitexco_Financial_Tower.jpg/1280px-DJI_0550-HDR-Pano_Bitexco_Financial_Tower.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c4/DJI_0550-HDR-Pano_Bitexco_Financial_Tower.jpg/1280px-DJI_0550-HDR-Pano_Bitexco_Financial_Tower.jpg",
     "mediaGallery": [
       {
         "id": "wk-thapbitexcos-1",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c4/DJI_0550-HDR-Pano_Bitexco_Financial_Tower.jpg/1280px-DJI_0550-HDR-Pano_Bitexco_Financial_Tower.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c4/DJI_0550-HDR-Pano_Bitexco_Financial_Tower.jpg/1280px-DJI_0550-HDR-Pano_Bitexco_Financial_Tower.jpg",
         "caption": {
           "vi": "Ảnh thực tế toàn cảnh Tháp Tài chính Bitexco & Đài quan sát Saigon Skydeck (Wikimedia Commons)",
           "en": "Real view of Bitexco Financial Tower & Saigon Skydeck (Wikimedia Commons)",
@@ -3707,7 +3707,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-thapbitexcos-2",
         "type": "image",
-        "url": "https://upload.wikimedia.org/wikipedia/commons/f/fa/%27Bitexco_Financial_Tower%27_as_seen_from_Bach_Dang_wharf..JPG?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/f/fa/%27Bitexco_Financial_Tower%27_as_seen_from_Bach_Dang_wharf..JPG",
         "caption": {
           "vi": "Góc nhìn kiến trúc & không gian tại Tháp Tài chính Bitexco & Đài quan sát Saigon Skydeck (Ảnh 2)",
           "en": "Architecture & atmosphere at Bitexco Financial Tower & Saigon Skydeck (Photo 2)",
@@ -3720,7 +3720,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-thapbitexcos-3",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/ca/BFTlookingup.jpg/1280px-BFTlookingup.jpg?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/ca/BFTlookingup.jpg/1280px-BFTlookingup.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & không gian tại Tháp Tài chính Bitexco & Đài quan sát Saigon Skydeck (Ảnh 3)",
           "en": "Architecture & atmosphere at Bitexco Financial Tower & Saigon Skydeck (Photo 3)",
@@ -3825,12 +3825,12 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
     }
   },
   "landmark-81-central-park": {
-    "coverImage": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e6/Ho_Chi_Minh_City_panorama_2019_%28cropped%29.jpg/1280px-Ho_Chi_Minh_City_panorama_2019_%28cropped%29.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e6/Ho_Chi_Minh_City_panorama_2019_%28cropped%29.jpg/1280px-Ho_Chi_Minh_City_panorama_2019_%28cropped%29.jpg",
     "mediaGallery": [
       {
         "id": "wk-landmark81ce-1",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e6/Ho_Chi_Minh_City_panorama_2019_%28cropped%29.jpg/1280px-Ho_Chi_Minh_City_panorama_2019_%28cropped%29.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e6/Ho_Chi_Minh_City_panorama_2019_%28cropped%29.jpg/1280px-Ho_Chi_Minh_City_panorama_2019_%28cropped%29.jpg",
         "caption": {
           "vi": "Ảnh thực tế toàn cảnh Landmark 81 SkyView & Công viên Vinhomes Central Park (Wikimedia Commons)",
           "en": "Real view of Landmark 81 SkyView & Vinhomes Central Park (Wikimedia Commons)",
@@ -3843,7 +3843,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-landmark81ce-2",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/fa/Landmark_81_%282%29.jpg/1280px-Landmark_81_%282%29.jpg?utm_source=vi.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/fa/Landmark_81_%282%29.jpg/1280px-Landmark_81_%282%29.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & không gian tại Landmark 81 SkyView & Công viên Vinhomes Central Park (Ảnh 2)",
           "en": "Architecture & atmosphere at Landmark 81 SkyView & Vinhomes Central Park (Photo 2)",
@@ -3856,7 +3856,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-landmark81ce-3",
         "type": "image",
-        "url": "https://upload.wikimedia.org/wikipedia/commons/7/75/A_huge_superstructure_in_Ho_Chi_Minh_City_%2837806415345%29.jpg?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/7/75/A_huge_superstructure_in_Ho_Chi_Minh_City_%2837806415345%29.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & không gian tại Landmark 81 SkyView & Công viên Vinhomes Central Park (Ảnh 3)",
           "en": "Architecture & atmosphere at Landmark 81 SkyView & Vinhomes Central Park (Photo 3)",
@@ -3960,12 +3960,12 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
     }
   },
   "cau-anh-sao-ho-ban-nguyet": {
-    "coverImage": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d8/Khu_%C4%91%C3%B4_th%E1%BB%8B_Ph%C3%BA_M%E1%BB%B9_H%C6%B0ng_Qu%E1%BA%ADn_7_Th%C3%A0nh_Ph%E1%BB%91_H%E1%BB%93_Ch%C3%AD_Minh.jpg/1280px-Khu_%C4%91%C3%B4_th%E1%BB%8B_Ph%C3%BA_M%E1%BB%B9_H%C6%B0ng_Qu%E1%BA%ADn_7_Th%C3%A0nh_Ph%E1%BB%91_H%E1%BB%93_Ch%C3%AD_Minh.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d8/Khu_%C4%91%C3%B4_th%E1%BB%8B_Ph%C3%BA_M%E1%BB%B9_H%C6%B0ng_Qu%E1%BA%ADn_7_Th%C3%A0nh_Ph%E1%BB%91_H%E1%BB%93_Ch%C3%AD_Minh.jpg/1280px-Khu_%C4%91%C3%B4_th%E1%BB%8B_Ph%C3%BA_M%E1%BB%B9_H%C6%B0ng_Qu%E1%BA%ADn_7_Th%C3%A0nh_Ph%E1%BB%91_H%E1%BB%93_Ch%C3%AD_Minh.jpg",
     "mediaGallery": [
       {
         "id": "wk-cauanhsaohob-1",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d8/Khu_%C4%91%C3%B4_th%E1%BB%8B_Ph%C3%BA_M%E1%BB%B9_H%C6%B0ng_Qu%E1%BA%ADn_7_Th%C3%A0nh_Ph%E1%BB%91_H%E1%BB%93_Ch%C3%AD_Minh.jpg/1280px-Khu_%C4%91%C3%B4_th%E1%BB%8B_Ph%C3%BA_M%E1%BB%B9_H%C6%B0ng_Qu%E1%BA%ADn_7_Th%C3%A0nh_Ph%E1%BB%91_H%E1%BB%93_Ch%C3%AD_Minh.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d8/Khu_%C4%91%C3%B4_th%E1%BB%8B_Ph%C3%BA_M%E1%BB%B9_H%C6%B0ng_Qu%E1%BA%ADn_7_Th%C3%A0nh_Ph%E1%BB%91_H%E1%BB%93_Ch%C3%AD_Minh.jpg/1280px-Khu_%C4%91%C3%B4_th%E1%BB%8B_Ph%C3%BA_M%E1%BB%B9_H%C6%B0ng_Qu%E1%BA%ADn_7_Th%C3%A0nh_Ph%E1%BB%91_H%E1%BB%93_Ch%C3%AD_Minh.jpg",
         "caption": {
           "vi": "Ảnh thực tế toàn cảnh Cầu Ánh Sao & Hồ Bán Nguyệt (Phú Mỹ Hưng) (Wikimedia Commons)",
           "en": "Real view of Starlight Bridge & Crescent Lake (Phu My Hung) (Wikimedia Commons)",
@@ -3978,7 +3978,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-cauanhsaohob-2",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/55/Khu_%C4%90%C3%B4_TH%E1%BB%8B_Ph%C3%BA_M%E1%BB%B9_H%C6%B0ng.jpg/1280px-Khu_%C4%90%C3%B4_TH%E1%BB%8B_Ph%C3%BA_M%E1%BB%B9_H%C6%B0ng.jpg?utm_source=vi.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/55/Khu_%C4%90%C3%B4_TH%E1%BB%8B_Ph%C3%BA_M%E1%BB%B9_H%C6%B0ng.jpg/1280px-Khu_%C4%90%C3%B4_TH%E1%BB%8B_Ph%C3%BA_M%E1%BB%B9_H%C6%B0ng.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & không gian tại Cầu Ánh Sao & Hồ Bán Nguyệt (Phú Mỹ Hưng) (Ảnh 2)",
           "en": "Architecture & atmosphere at Starlight Bridge & Crescent Lake (Phu My Hung) (Photo 2)",
@@ -3991,7 +3991,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-cauanhsaohob-3",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d8/Khu_%C4%91%C3%B4_th%E1%BB%8B_Ph%C3%BA_M%E1%BB%B9_H%C6%B0ng_Qu%E1%BA%ADn_7_Th%C3%A0nh_Ph%E1%BB%91_H%E1%BB%93_Ch%C3%AD_Minh.jpg/1280px-Khu_%C4%91%C3%B4_th%E1%BB%8B_Ph%C3%BA_M%E1%BB%B9_H%C6%B0ng_Qu%E1%BA%ADn_7_Th%C3%A0nh_Ph%E1%BB%91_H%E1%BB%93_Ch%C3%AD_Minh.jpg?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d8/Khu_%C4%91%C3%B4_th%E1%BB%8B_Ph%C3%BA_M%E1%BB%B9_H%C6%B0ng_Qu%E1%BA%ADn_7_Th%C3%A0nh_Ph%E1%BB%91_H%E1%BB%93_Ch%C3%AD_Minh.jpg/1280px-Khu_%C4%91%C3%B4_th%E1%BB%8B_Ph%C3%BA_M%E1%BB%B9_H%C6%B0ng_Qu%E1%BA%ADn_7_Th%C3%A0nh_Ph%E1%BB%91_H%E1%BB%93_Ch%C3%AD_Minh.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & không gian tại Cầu Ánh Sao & Hồ Bán Nguyệt (Phú Mỹ Hưng) (Ảnh 3)",
           "en": "Architecture & atmosphere at Starlight Bridge & Crescent Lake (Phu My Hung) (Photo 3)",
@@ -4097,12 +4097,12 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
     }
   },
   "den-hindu-mariamman": {
-    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/4/48/Mariamman_Temple%2C_HCMC.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail_unscaled",
+    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/4/48/Mariamman_Temple%2C_HCMC.jpg",
     "mediaGallery": [
       {
         "id": "wk-denhindumari-1",
         "type": "image",
-        "url": "https://upload.wikimedia.org/wikipedia/commons/4/48/Mariamman_Temple%2C_HCMC.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail_unscaled",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/4/48/Mariamman_Temple%2C_HCMC.jpg",
         "caption": {
           "vi": "Ảnh thực tế toàn cảnh Đền Ấn Độ giáo Mariamman (Chùa Bà Ấn · 1885) (Wikimedia Commons)",
           "en": "Real view of Mariamman Hindu Temple (Saigon · 1885) (Wikimedia Commons)",
@@ -4115,7 +4115,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-denhindumari-2",
         "type": "image",
-        "url": "https://upload.wikimedia.org/wikipedia/commons/4/48/Mariamman_Temple%2C_HCMC.jpg?utm_source=vi.wikipedia.org&utm_campaign=api&utm_content=thumbnail_unscaled",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/4/48/Mariamman_Temple%2C_HCMC.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & không gian tại Đền Ấn Độ giáo Mariamman (Chùa Bà Ấn · 1885) (Ảnh 2)",
           "en": "Architecture & atmosphere at Mariamman Hindu Temple (Saigon · 1885) (Photo 2)",
@@ -4128,7 +4128,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-denhindumari-3",
         "type": "image",
-        "url": "https://upload.wikimedia.org/wikipedia/commons/2/26/Hanoi_temple_de_la_litterature_1.jpg?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/2/26/Hanoi_temple_de_la_litterature_1.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & không gian tại Đền Ấn Độ giáo Mariamman (Chùa Bà Ấn · 1885) (Ảnh 3)",
           "en": "Architecture & atmosphere at Mariamman Hindu Temple (Saigon · 1885) (Photo 3)",
@@ -4233,12 +4233,12 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
     }
   },
   "thanh-duong-hoi-giao-saigon": {
-    "coverImage": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/11/Mosque_in_Ho_Chi_Minh_City.jpg/1280px-Mosque_in_Ho_Chi_Minh_City.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/11/Mosque_in_Ho_Chi_Minh_City.jpg/1280px-Mosque_in_Ho_Chi_Minh_City.jpg",
     "mediaGallery": [
       {
         "id": "wk-thanhduongho-1",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/11/Mosque_in_Ho_Chi_Minh_City.jpg/1280px-Mosque_in_Ho_Chi_Minh_City.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/11/Mosque_in_Ho_Chi_Minh_City.jpg/1280px-Mosque_in_Ho_Chi_Minh_City.jpg",
         "caption": {
           "vi": "Ảnh thực tế toàn cảnh Thánh đường Hồi giáo Jamia Al-Musulman (Saigon Central Mosque · 1935) (Wikimedia Commons)",
           "en": "Real view of Saigon Central Mosque (Jamia Al-Musulman · 1935) (Wikimedia Commons)",
@@ -4251,7 +4251,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-thanhduongho-2",
         "type": "image",
-        "url": "https://upload.wikimedia.org/wikipedia/commons/3/37/Indian_mosque_in_Saigon_1911.jpg?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/3/37/Indian_mosque_in_Saigon_1911.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & không gian tại Thánh đường Hồi giáo Jamia Al-Musulman (Saigon Central Mosque · 1935) (Ảnh 2)",
           "en": "Architecture & atmosphere at Saigon Central Mosque (Jamia Al-Musulman · 1935) (Photo 2)",
@@ -4264,7 +4264,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-thanhduongho-3",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/11/Mosque_in_Ho_Chi_Minh_City.jpg/1280px-Mosque_in_Ho_Chi_Minh_City.jpg?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/11/Mosque_in_Ho_Chi_Minh_City.jpg/1280px-Mosque_in_Ho_Chi_Minh_City.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & không gian tại Thánh đường Hồi giáo Jamia Al-Musulman (Saigon Central Mosque · 1935) (Ảnh 3)",
           "en": "Architecture & atmosphere at Saigon Central Mosque (Jamia Al-Musulman · 1935) (Photo 3)",
@@ -4366,12 +4366,12 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
     ]
   },
   "nha-tho-huyen-sy": {
-    "coverImage": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b1/Nh%C3%A0_th%E1%BB%9D_huy%E1%BB%87n_S%E1%BB%B9_%E1%BB%9F_HCM.jpg/1280px-Nh%C3%A0_th%E1%BB%9D_huy%E1%BB%87n_S%E1%BB%B9_%E1%BB%9F_HCM.jpg?utm_source=vi.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b1/Nh%C3%A0_th%E1%BB%9D_huy%E1%BB%87n_S%E1%BB%B9_%E1%BB%9F_HCM.jpg/1280px-Nh%C3%A0_th%E1%BB%9D_huy%E1%BB%87n_S%E1%BB%B9_%E1%BB%9F_HCM.jpg",
     "mediaGallery": [
       {
         "id": "wk-nhathohuyens-1",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b1/Nh%C3%A0_th%E1%BB%9D_huy%E1%BB%87n_S%E1%BB%B9_%E1%BB%9F_HCM.jpg/1280px-Nh%C3%A0_th%E1%BB%9D_huy%E1%BB%87n_S%E1%BB%B9_%E1%BB%9F_HCM.jpg?utm_source=vi.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b1/Nh%C3%A0_th%E1%BB%9D_huy%E1%BB%87n_S%E1%BB%B9_%E1%BB%9F_HCM.jpg/1280px-Nh%C3%A0_th%E1%BB%9D_huy%E1%BB%87n_S%E1%BB%B9_%E1%BB%9F_HCM.jpg",
         "caption": {
           "vi": "Ảnh thực tế toàn cảnh Nhà thờ Huyện Sỹ (Thánh Phi-líp-phê · 1902) (Wikimedia Commons)",
           "en": "Real view of Huyen Sy Church (St. Philip Church · 1902) (Wikimedia Commons)",
@@ -4384,7 +4384,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-nhathohuyens-2",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/34/20190923_Independence_Palace-13.jpg/1280px-20190923_Independence_Palace-13.jpg?utm_source=vi.wikipedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/34/20190923_Independence_Palace-13.jpg/1280px-20190923_Independence_Palace-13.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & không gian tại Nhà thờ Huyện Sỹ (Thánh Phi-líp-phê · 1902) (Ảnh 2)",
           "en": "Architecture & atmosphere at Huyen Sy Church (St. Philip Church · 1902) (Photo 2)",
@@ -4397,7 +4397,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-nhathohuyens-3",
         "type": "image",
-        "url": "https://upload.wikimedia.org/wikipedia/commons/9/91/Ben_Thanh_market_2.jpg?utm_source=vi.wikipedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/9/91/Ben_Thanh_market_2.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & không gian tại Nhà thờ Huyện Sỹ (Thánh Phi-líp-phê · 1902) (Ảnh 3)",
           "en": "Architecture & atmosphere at Huyen Sy Church (St. Philip Church · 1902) (Photo 3)",
@@ -4498,12 +4498,12 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
     }
   },
   "bao-tang-ton-duc-thang": {
-    "coverImage": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/83/B%E1%BA%BFn_Ngh%C3%A9%2C_Qu%E1%BA%ADn_1%2C_TPHCM%2C_Vi%E1%BB%87t_Nam_B%E1%BA%A3o_t%C3%A0ng_T%C3%B4n_%C4%90%E1%BB%A9c_Th%E1%BA%AFng_-_panoramio.jpg/1280px-B%E1%BA%BFn_Ngh%C3%A9%2C_Qu%E1%BA%ADn_1%2C_TPHCM%2C_Vi%E1%BB%87t_Nam_B%E1%BA%A3o_t%C3%A0ng_T%C3%B4n_%C4%90%E1%BB%A9c_Th%E1%BA%AFng_-_panoramio.jpg?utm_source=vi.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/83/B%E1%BA%BFn_Ngh%C3%A9%2C_Qu%E1%BA%ADn_1%2C_TPHCM%2C_Vi%E1%BB%87t_Nam_B%E1%BA%A3o_t%C3%A0ng_T%C3%B4n_%C4%90%E1%BB%A9c_Th%E1%BA%AFng_-_panoramio.jpg/1280px-B%E1%BA%BFn_Ngh%C3%A9%2C_Qu%E1%BA%ADn_1%2C_TPHCM%2C_Vi%E1%BB%87t_Nam_B%E1%BA%A3o_t%C3%A0ng_T%C3%B4n_%C4%90%E1%BB%A9c_Th%E1%BA%AFng_-_panoramio.jpg",
     "mediaGallery": [
       {
         "id": "wk-baotangtondu-1",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/83/B%E1%BA%BFn_Ngh%C3%A9%2C_Qu%E1%BA%ADn_1%2C_TPHCM%2C_Vi%E1%BB%87t_Nam_B%E1%BA%A3o_t%C3%A0ng_T%C3%B4n_%C4%90%E1%BB%A9c_Th%E1%BA%AFng_-_panoramio.jpg/1280px-B%E1%BA%BFn_Ngh%C3%A9%2C_Qu%E1%BA%ADn_1%2C_TPHCM%2C_Vi%E1%BB%87t_Nam_B%E1%BA%A3o_t%C3%A0ng_T%C3%B4n_%C4%90%E1%BB%A9c_Th%E1%BA%AFng_-_panoramio.jpg?utm_source=vi.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/83/B%E1%BA%BFn_Ngh%C3%A9%2C_Qu%E1%BA%ADn_1%2C_TPHCM%2C_Vi%E1%BB%87t_Nam_B%E1%BA%A3o_t%C3%A0ng_T%C3%B4n_%C4%90%E1%BB%A9c_Th%E1%BA%AFng_-_panoramio.jpg/1280px-B%E1%BA%BFn_Ngh%C3%A9%2C_Qu%E1%BA%ADn_1%2C_TPHCM%2C_Vi%E1%BB%87t_Nam_B%E1%BA%A3o_t%C3%A0ng_T%C3%B4n_%C4%90%E1%BB%A9c_Th%E1%BA%AFng_-_panoramio.jpg",
         "caption": {
           "vi": "Ảnh thực tế toàn cảnh Bảo tàng Tôn Đức Thắng (Wikimedia Commons)",
           "en": "Real view of Ton Duc Thang Museum (Wikimedia Commons)",
@@ -4516,7 +4516,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-baotangtondu-2",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/34/20190923_Independence_Palace-13.jpg/1280px-20190923_Independence_Palace-13.jpg?utm_source=vi.wikipedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/34/20190923_Independence_Palace-13.jpg/1280px-20190923_Independence_Palace-13.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & không gian tại Bảo tàng Tôn Đức Thắng (Ảnh 2)",
           "en": "Architecture & atmosphere at Ton Duc Thang Museum (Photo 2)",
@@ -4529,7 +4529,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-baotangtondu-3",
         "type": "image",
-        "url": "https://upload.wikimedia.org/wikipedia/commons/9/91/Ben_Thanh_market_2.jpg?utm_source=vi.wikipedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/9/91/Ben_Thanh_market_2.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & không gian tại Bảo tàng Tôn Đức Thắng (Ảnh 3)",
           "en": "Architecture & atmosphere at Ton Duc Thang Museum (Photo 3)",
@@ -4629,12 +4629,12 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
     }
   },
   "bao-tang-phu-nu-nam-bo": {
-    "coverImage": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e3/Mission_letter_from_the_southern_Vietnamese_Communist_Party_to_Ho_Thi_Bi%2C_who_led_the_economic_affairs_of_a_resistance_group%2C_Saigon%2C_1951_-_Vietnamese_Women%27s_Museum_-_Hanoi%2C_Vietnam_-_DSC04202.JPG/1280px-thumbnail.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e3/Mission_letter_from_the_southern_Vietnamese_Communist_Party_to_Ho_Thi_Bi%2C_who_led_the_economic_affairs_of_a_resistance_group%2C_Saigon%2C_1951_-_Vietnamese_Women%27s_Museum_-_Hanoi%2C_Vietnam_-_DSC04202.JPG/1280px-thumbnail.jpg",
     "mediaGallery": [
       {
         "id": "wk-baotangphunu-1",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e3/Mission_letter_from_the_southern_Vietnamese_Communist_Party_to_Ho_Thi_Bi%2C_who_led_the_economic_affairs_of_a_resistance_group%2C_Saigon%2C_1951_-_Vietnamese_Women%27s_Museum_-_Hanoi%2C_Vietnam_-_DSC04202.JPG/1280px-thumbnail.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e3/Mission_letter_from_the_southern_Vietnamese_Communist_Party_to_Ho_Thi_Bi%2C_who_led_the_economic_affairs_of_a_resistance_group%2C_Saigon%2C_1951_-_Vietnamese_Women%27s_Museum_-_Hanoi%2C_Vietnam_-_DSC04202.JPG/1280px-thumbnail.jpg",
         "caption": {
           "vi": "Ảnh thực tế tại Bảo tàng Phụ nữ Nam Bộ (Wikimedia Commons)",
           "en": "Real view of Southern Women’s Museum (Wikimedia Commons)",
@@ -4647,7 +4647,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-baotangphunu-2",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/31/Mari%2C_Mordva_female_clothes_-_State_Historical_Museum_of_the_Southern_Urals.jpg/1280px-Mari%2C_Mordva_female_clothes_-_State_Historical_Museum_of_the_Southern_Urals.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/31/Mari%2C_Mordva_female_clothes_-_State_Historical_Museum_of_the_Southern_Urals.jpg/1280px-Mari%2C_Mordva_female_clothes_-_State_Historical_Museum_of_the_Southern_Urals.jpg",
         "caption": {
           "vi": "Ảnh thực tế tại Bảo tàng Phụ nữ Nam Bộ (Wikimedia Commons)",
           "en": "Real view of Southern Women’s Museum (Wikimedia Commons)",
@@ -4660,7 +4660,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-baotangphunu-3",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/9e/Bashkir%2C_Tatar_female_clothes_-_State_Historical_Museum_of_the_Southern_Urals.jpg/1280px-Bashkir%2C_Tatar_female_clothes_-_State_Historical_Museum_of_the_Southern_Urals.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9e/Bashkir%2C_Tatar_female_clothes_-_State_Historical_Museum_of_the_Southern_Urals.jpg/1280px-Bashkir%2C_Tatar_female_clothes_-_State_Historical_Museum_of_the_Southern_Urals.jpg",
         "caption": {
           "vi": "Ảnh thực tế tại Bảo tàng Phụ nữ Nam Bộ (Wikimedia Commons)",
           "en": "Real view of Southern Women’s Museum (Wikimedia Commons)",
@@ -4765,12 +4765,12 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
     }
   },
   "bao-tang-biet-dong-sai-gon-145": {
-    "coverImage": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c3/Tran_quang_khai-T%C3%A2n_%C4%90%E1%BB%8Bnh%2C_Qu%E1%BA%ADn_1%2C_TPHCM%2C_Vi%E1%BB%87t_Nam_-_panoramio.jpg/1280px-Tran_quang_khai-T%C3%A2n_%C4%90%E1%BB%8Bnh%2C_Qu%E1%BA%ADn_1%2C_TPHCM%2C_Vi%E1%BB%87t_Nam_-_panoramio.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c3/Tran_quang_khai-T%C3%A2n_%C4%90%E1%BB%8Bnh%2C_Qu%E1%BA%ADn_1%2C_TPHCM%2C_Vi%E1%BB%87t_Nam_-_panoramio.jpg/1280px-Tran_quang_khai-T%C3%A2n_%C4%90%E1%BB%8Bnh%2C_Qu%E1%BA%ADn_1%2C_TPHCM%2C_Vi%E1%BB%87t_Nam_-_panoramio.jpg",
     "mediaGallery": [
       {
         "id": "wk-baotangbietd-1",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c3/Tran_quang_khai-T%C3%A2n_%C4%90%E1%BB%8Bnh%2C_Qu%E1%BA%ADn_1%2C_TPHCM%2C_Vi%E1%BB%87t_Nam_-_panoramio.jpg/1280px-Tran_quang_khai-T%C3%A2n_%C4%90%E1%BB%8Bnh%2C_Qu%E1%BA%ADn_1%2C_TPHCM%2C_Vi%E1%BB%87t_Nam_-_panoramio.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c3/Tran_quang_khai-T%C3%A2n_%C4%90%E1%BB%8Bnh%2C_Qu%E1%BA%ADn_1%2C_TPHCM%2C_Vi%E1%BB%87t_Nam_-_panoramio.jpg/1280px-Tran_quang_khai-T%C3%A2n_%C4%90%E1%BB%8Bnh%2C_Qu%E1%BA%ADn_1%2C_TPHCM%2C_Vi%E1%BB%87t_Nam_-_panoramio.jpg",
         "caption": {
           "vi": "Ảnh thực tế toàn cảnh Bảo tàng Biệt động Sài Gòn – Gia Định (145 Trần Quang Khải) (Wikimedia Commons)",
           "en": "Real view of Saigon Commando Museum (145 Tran Quang Khai) (Wikimedia Commons)",
@@ -4783,7 +4783,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-baotangbietd-2",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b2/Hai_Ba_trung_va_Tran_quang_khai-Qu%E1%BA%ADn_3%2C_TPHCM%2C_Vi%E1%BB%87t_Nam_-_panoramio.jpg/1280px-Hai_Ba_trung_va_Tran_quang_khai-Qu%E1%BA%ADn_3%2C_TPHCM%2C_Vi%E1%BB%87t_Nam_-_panoramio.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b2/Hai_Ba_trung_va_Tran_quang_khai-Qu%E1%BA%ADn_3%2C_TPHCM%2C_Vi%E1%BB%87t_Nam_-_panoramio.jpg/1280px-Hai_Ba_trung_va_Tran_quang_khai-Qu%E1%BA%ADn_3%2C_TPHCM%2C_Vi%E1%BB%87t_Nam_-_panoramio.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & không gian tại Bảo tàng Biệt động Sài Gòn – Gia Định (145 Trần Quang Khải) (Ảnh 2)",
           "en": "Architecture & atmosphere at Saigon Commando Museum (145 Tran Quang Khai) (Photo 2)",
@@ -4796,7 +4796,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-baotangbietd-3",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/3a/TRan_Quang_khai_q1%2C_saigon_2011_-_panoramio.jpg/1280px-TRan_Quang_khai_q1%2C_saigon_2011_-_panoramio.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/TRan_Quang_khai_q1%2C_saigon_2011_-_panoramio.jpg/1280px-TRan_Quang_khai_q1%2C_saigon_2011_-_panoramio.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & không gian tại Bảo tàng Biệt động Sài Gòn – Gia Định (145 Trần Quang Khải) (Ảnh 3)",
           "en": "Architecture & atmosphere at Saigon Commando Museum (145 Tran Quang Khai) (Photo 3)",
@@ -4898,12 +4898,12 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
     ]
   },
   "hoi-quan-nghia-an-chua-ong": {
-    "coverImage": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1b/Nghia_An_Hoi_Quan_Pagoda_%2810018256906%29.jpg/1280px-Nghia_An_Hoi_Quan_Pagoda_%2810018256906%29.jpg?utm_source=vi.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1b/Nghia_An_Hoi_Quan_Pagoda_%2810018256906%29.jpg/1280px-Nghia_An_Hoi_Quan_Pagoda_%2810018256906%29.jpg",
     "mediaGallery": [
       {
         "id": "wk-hoiquannghia-1",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1b/Nghia_An_Hoi_Quan_Pagoda_%2810018256906%29.jpg/1280px-Nghia_An_Hoi_Quan_Pagoda_%2810018256906%29.jpg?utm_source=vi.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1b/Nghia_An_Hoi_Quan_Pagoda_%2810018256906%29.jpg/1280px-Nghia_An_Hoi_Quan_Pagoda_%2810018256906%29.jpg",
         "caption": {
           "vi": "Ảnh thực tế toàn cảnh Hội quán Nghĩa An (Chùa Ông – Chợ Lớn) (Wikimedia Commons)",
           "en": "Real view of Nghia An Assembly Hall (Quan Cong Temple · Cho Lon) (Wikimedia Commons)",
@@ -4916,7 +4916,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-hoiquannghia-2",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/34/20190923_Independence_Palace-13.jpg/1280px-20190923_Independence_Palace-13.jpg?utm_source=vi.wikipedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/34/20190923_Independence_Palace-13.jpg/1280px-20190923_Independence_Palace-13.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & không gian tại Hội quán Nghĩa An (Chùa Ông – Chợ Lớn) (Ảnh 2)",
           "en": "Architecture & atmosphere at Nghia An Assembly Hall (Quan Cong Temple · Cho Lon) (Photo 2)",
@@ -4929,7 +4929,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-hoiquannghia-3",
         "type": "image",
-        "url": "https://upload.wikimedia.org/wikipedia/commons/9/91/Ben_Thanh_market_2.jpg?utm_source=vi.wikipedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/9/91/Ben_Thanh_market_2.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & không gian tại Hội quán Nghĩa An (Chùa Ông – Chợ Lớn) (Ảnh 3)",
           "en": "Architecture & atmosphere at Nghia An Assembly Hall (Quan Cong Temple · Cho Lon) (Photo 3)",
@@ -5030,12 +5030,12 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
     }
   },
   "hoi-quan-on-lang-chua-quan-am": {
-    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/9/9d/Quan_%C3%82m_Pagoda_-_Front_entrance_edited.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail_unscaled",
+    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/9/9d/Quan_%C3%82m_Pagoda_-_Front_entrance_edited.jpg",
     "mediaGallery": [
       {
         "id": "wk-hoiquanonlan-1",
         "type": "image",
-        "url": "https://upload.wikimedia.org/wikipedia/commons/9/9d/Quan_%C3%82m_Pagoda_-_Front_entrance_edited.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail_unscaled",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/9/9d/Quan_%C3%82m_Pagoda_-_Front_entrance_edited.jpg",
         "caption": {
           "vi": "Ảnh thực tế toàn cảnh Hội quán Ôn Lăng (Chùa Quan Âm · 1740) (Wikimedia Commons)",
           "en": "Real view of On Lang Assembly Hall (Quan Am Pagoda · 1740) (Wikimedia Commons)",
@@ -5048,7 +5048,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-hoiquanonlan-2",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e7/Ch%C3%B9a_%C3%94n_L%C4%83ng.jpg/1280px-Ch%C3%B9a_%C3%94n_L%C4%83ng.jpg?utm_source=vi.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/Ch%C3%B9a_%C3%94n_L%C4%83ng.jpg/1280px-Ch%C3%B9a_%C3%94n_L%C4%83ng.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & không gian tại Hội quán Ôn Lăng (Chùa Quan Âm · 1740) (Ảnh 2)",
           "en": "Architecture & atmosphere at On Lang Assembly Hall (Quan Am Pagoda · 1740) (Photo 2)",
@@ -5061,7 +5061,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-hoiquanonlan-3",
         "type": "image",
-        "url": "https://upload.wikimedia.org/wikipedia/commons/f/f1/Altar_of_Thien_Hau_and_Dragon.jpg?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/f/f1/Altar_of_Thien_Hau_and_Dragon.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & không gian tại Hội quán Ôn Lăng (Chùa Quan Âm · 1740) (Ảnh 3)",
           "en": "Architecture & atmosphere at On Lang Assembly Hall (Quan Am Pagoda · 1740) (Photo 3)",
@@ -5166,12 +5166,12 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
     }
   },
   "chua-van-phat-quan-5": {
-    "coverImage": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d4/Ten_Thousand_Buddha_Pagoda_in_HCMC.jpg/1280px-Ten_Thousand_Buddha_Pagoda_in_HCMC.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4/Ten_Thousand_Buddha_Pagoda_in_HCMC.jpg/1280px-Ten_Thousand_Buddha_Pagoda_in_HCMC.jpg",
     "mediaGallery": [
       {
         "id": "wk-chuavanphatq-1",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d4/Ten_Thousand_Buddha_Pagoda_in_HCMC.jpg/1280px-Ten_Thousand_Buddha_Pagoda_in_HCMC.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4/Ten_Thousand_Buddha_Pagoda_in_HCMC.jpg/1280px-Ten_Thousand_Buddha_Pagoda_in_HCMC.jpg",
         "caption": {
           "vi": "Ảnh thực tế toàn cảnh Chùa Vạn Phật (Chùa 10.000 Tượng Phật · Quận 5) (Wikimedia Commons)",
           "en": "Real view of Van Phat Pagoda (Ten Thousand Buddhas Temple) (Wikimedia Commons)",
@@ -5184,7 +5184,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-chuavanphatq-2",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/89/Ch%C3%B9a_V%E1%BA%A1n_Ph%E1%BA%ADt_%28N%E1%BB%99i_th%E1%BA%A5t_Ch%C3%A1nh_%C4%91i%E1%BB%87n%2C_b%E1%BB%A9c_t%C6%B0%E1%BB%9Dng_v%E1%BA%A1n_t%C6%B0%E1%BB%A3ng_Ph%E1%BA%ADt%29_%284%29.jpg/1280px-Ch%C3%B9a_V%E1%BA%A1n_Ph%E1%BA%ADt_%28N%E1%BB%99i_th%E1%BA%A5t_Ch%C3%A1nh_%C4%91i%E1%BB%87n%2C_b%E1%BB%A9c_t%C6%B0%E1%BB%9Dng_v%E1%BA%A1n_t%C6%B0%E1%BB%A3ng_Ph%E1%BA%ADt%29_%284%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/89/Ch%C3%B9a_V%E1%BA%A1n_Ph%E1%BA%ADt_%28N%E1%BB%99i_th%E1%BA%A5t_Ch%C3%A1nh_%C4%91i%E1%BB%87n%2C_b%E1%BB%A9c_t%C6%B0%E1%BB%9Dng_v%E1%BA%A1n_t%C6%B0%E1%BB%A3ng_Ph%E1%BA%ADt%29_%284%29.jpg/1280px-Ch%C3%B9a_V%E1%BA%A1n_Ph%E1%BA%ADt_%28N%E1%BB%99i_th%E1%BA%A5t_Ch%C3%A1nh_%C4%91i%E1%BB%87n%2C_b%E1%BB%A9c_t%C6%B0%E1%BB%9Dng_v%E1%BA%A1n_t%C6%B0%E1%BB%A3ng_Ph%E1%BA%ADt%29_%284%29.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & không gian tại Chùa Vạn Phật (Chùa 10.000 Tượng Phật · Quận 5) (Ảnh 2)",
           "en": "Architecture & atmosphere at Van Phat Pagoda (Ten Thousand Buddhas Temple) (Photo 2)",
@@ -5197,7 +5197,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-chuavanphatq-3",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/28/Ch%C3%B9a_V%E1%BA%A1n_Ph%E1%BA%ADt_%28N%E1%BB%99i_th%E1%BA%A5t_Ch%C3%A1nh_%C4%91i%E1%BB%87n%2C_b%E1%BB%A9c_t%C6%B0%E1%BB%9Dng_v%E1%BA%A1n_t%C6%B0%E1%BB%A3ng_Ph%E1%BA%ADt%29_%281%29.jpg/1280px-Ch%C3%B9a_V%E1%BA%A1n_Ph%E1%BA%ADt_%28N%E1%BB%99i_th%E1%BA%A5t_Ch%C3%A1nh_%C4%91i%E1%BB%87n%2C_b%E1%BB%A9c_t%C6%B0%E1%BB%9Dng_v%E1%BA%A1n_t%C6%B0%E1%BB%A3ng_Ph%E1%BA%ADt%29_%281%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/28/Ch%C3%B9a_V%E1%BA%A1n_Ph%E1%BA%ADt_%28N%E1%BB%99i_th%E1%BA%A5t_Ch%C3%A1nh_%C4%91i%E1%BB%87n%2C_b%E1%BB%A9c_t%C6%B0%E1%BB%9Dng_v%E1%BA%A1n_t%C6%B0%E1%BB%A3ng_Ph%E1%BA%ADt%29_%281%29.jpg/1280px-Ch%C3%B9a_V%E1%BA%A1n_Ph%E1%BA%ADt_%28N%E1%BB%99i_th%E1%BA%A5t_Ch%C3%A1nh_%C4%91i%E1%BB%87n%2C_b%E1%BB%A9c_t%C6%B0%E1%BB%9Dng_v%E1%BA%A1n_t%C6%B0%E1%BB%A3ng_Ph%E1%BA%ADt%29_%281%29.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & không gian tại Chùa Vạn Phật (Chùa 10.000 Tượng Phật · Quận 5) (Ảnh 3)",
           "en": "Architecture & atmosphere at Van Phat Pagoda (Ten Thousand Buddhas Temple) (Photo 3)",
@@ -5299,12 +5299,12 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
     ]
   },
   "nha-tho-cho-quan": {
-    "coverImage": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/81/Nh%C3%A0_th%E1%BB%9D_Th%C3%A1nh_T%C3%A2m_Ch%C3%BAa_Gi%C3%AAsu%2C_Th%C3%A0nh_ph%E1%BB%91_H%E1%BB%93_Ch%C3%AD_Minh.jpg/1280px-Nh%C3%A0_th%E1%BB%9D_Th%C3%A1nh_T%C3%A2m_Ch%C3%BAa_Gi%C3%AAsu%2C_Th%C3%A0nh_ph%E1%BB%91_H%E1%BB%93_Ch%C3%AD_Minh.jpg?utm_source=vi.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/81/Nh%C3%A0_th%E1%BB%9D_Th%C3%A1nh_T%C3%A2m_Ch%C3%BAa_Gi%C3%AAsu%2C_Th%C3%A0nh_ph%E1%BB%91_H%E1%BB%93_Ch%C3%AD_Minh.jpg/1280px-Nh%C3%A0_th%E1%BB%9D_Th%C3%A1nh_T%C3%A2m_Ch%C3%BAa_Gi%C3%AAsu%2C_Th%C3%A0nh_ph%E1%BB%91_H%E1%BB%93_Ch%C3%AD_Minh.jpg",
     "mediaGallery": [
       {
         "id": "wk-nhathochoqua-1",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/81/Nh%C3%A0_th%E1%BB%9D_Th%C3%A1nh_T%C3%A2m_Ch%C3%BAa_Gi%C3%AAsu%2C_Th%C3%A0nh_ph%E1%BB%91_H%E1%BB%93_Ch%C3%AD_Minh.jpg/1280px-Nh%C3%A0_th%E1%BB%9D_Th%C3%A1nh_T%C3%A2m_Ch%C3%BAa_Gi%C3%AAsu%2C_Th%C3%A0nh_ph%E1%BB%91_H%E1%BB%93_Ch%C3%AD_Minh.jpg?utm_source=vi.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/81/Nh%C3%A0_th%E1%BB%9D_Th%C3%A1nh_T%C3%A2m_Ch%C3%BAa_Gi%C3%AAsu%2C_Th%C3%A0nh_ph%E1%BB%91_H%E1%BB%93_Ch%C3%AD_Minh.jpg/1280px-Nh%C3%A0_th%E1%BB%9D_Th%C3%A1nh_T%C3%A2m_Ch%C3%BAa_Gi%C3%AAsu%2C_Th%C3%A0nh_ph%E1%BB%91_H%E1%BB%93_Ch%C3%AD_Minh.jpg",
         "caption": {
           "vi": "Ảnh thực tế toàn cảnh Nhà thờ Chợ Quán (Nhà thờ cổ nhất TP.HCM · 1722) (Wikimedia Commons)",
           "en": "Real view of Cho Quan Church (Oldest Catholic Parish in HCMC · 1722) (Wikimedia Commons)",
@@ -5317,7 +5317,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-nhathochoqua-2",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/34/20190923_Independence_Palace-13.jpg/1280px-20190923_Independence_Palace-13.jpg?utm_source=vi.wikipedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/34/20190923_Independence_Palace-13.jpg/1280px-20190923_Independence_Palace-13.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & không gian tại Nhà thờ Chợ Quán (Nhà thờ cổ nhất TP.HCM · 1722) (Ảnh 2)",
           "en": "Architecture & atmosphere at Cho Quan Church (Oldest Catholic Parish in HCMC · 1722) (Photo 2)",
@@ -5330,7 +5330,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-nhathochoqua-3",
         "type": "image",
-        "url": "https://upload.wikimedia.org/wikipedia/commons/9/91/Ben_Thanh_market_2.jpg?utm_source=vi.wikipedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/9/91/Ben_Thanh_market_2.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & không gian tại Nhà thờ Chợ Quán (Nhà thờ cổ nhất TP.HCM · 1722) (Ảnh 3)",
           "en": "Architecture & atmosphere at Cho Quan Church (Oldest Catholic Parish in HCMC · 1722) (Photo 3)",
@@ -5431,12 +5431,12 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
     }
   },
   "lang-du-lich-binh-quoi": {
-    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/7/70/Thanh_Da_area.jpg?utm_source=vi.wikipedia.org&utm_campaign=api&utm_content=thumbnail_unscaled",
+    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/7/70/Thanh_Da_area.jpg",
     "mediaGallery": [
       {
         "id": "wk-langdulichbi-1",
         "type": "image",
-        "url": "https://upload.wikimedia.org/wikipedia/commons/7/70/Thanh_Da_area.jpg?utm_source=vi.wikipedia.org&utm_campaign=api&utm_content=thumbnail_unscaled",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/7/70/Thanh_Da_area.jpg",
         "caption": {
           "vi": "Ảnh thực tế toàn cảnh Làng Du lịch Bình Quới (Bán đảo Thanh Đa) (Wikimedia Commons)",
           "en": "Real view of Binh Quoi Tourist Village (Thanh Da Peninsula) (Wikimedia Commons)",
@@ -5449,7 +5449,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-langdulichbi-2",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/34/20190923_Independence_Palace-13.jpg/1280px-20190923_Independence_Palace-13.jpg?utm_source=vi.wikipedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/34/20190923_Independence_Palace-13.jpg/1280px-20190923_Independence_Palace-13.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & không gian tại Làng Du lịch Bình Quới (Bán đảo Thanh Đa) (Ảnh 2)",
           "en": "Architecture & atmosphere at Binh Quoi Tourist Village (Thanh Da Peninsula) (Photo 2)",
@@ -5462,7 +5462,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-langdulichbi-3",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a9/Ao_Sen%2C_khu_du_lich_Binh_quoi_-ph%C6%B0%E1%BB%9Dng_28%2C_B%C3%ACnh_Th%E1%BA%A1nh%2C_TPHCM%2C_Vi%E1%BB%87t_Nam_-_panoramio.jpg/1280px-Ao_Sen%2C_khu_du_lich_Binh_quoi_-ph%C6%B0%E1%BB%9Dng_28%2C_B%C3%ACnh_Th%E1%BA%A1nh%2C_TPHCM%2C_Vi%E1%BB%87t_Nam_-_panoramio.jpg?utm_source=vi.wikipedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a9/Ao_Sen%2C_khu_du_lich_Binh_quoi_-ph%C6%B0%E1%BB%9Dng_28%2C_B%C3%ACnh_Th%E1%BA%A1nh%2C_TPHCM%2C_Vi%E1%BB%87t_Nam_-_panoramio.jpg/1280px-Ao_Sen%2C_khu_du_lich_Binh_quoi_-ph%C6%B0%E1%BB%9Dng_28%2C_B%C3%ACnh_Th%E1%BA%A1nh%2C_TPHCM%2C_Vi%E1%BB%87t_Nam_-_panoramio.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & không gian tại Làng Du lịch Bình Quới (Bán đảo Thanh Đa) (Ảnh 3)",
           "en": "Architecture & atmosphere at Binh Quoi Tourist Village (Thanh Da Peninsula) (Photo 3)",
@@ -5563,12 +5563,12 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
     }
   },
   "hem-hao-si-phuong-cho-lon": {
-    "coverImage": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/af/HCMC_Binh_Tay.jpg/1280px-HCMC_Binh_Tay.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/af/HCMC_Binh_Tay.jpg/1280px-HCMC_Binh_Tay.jpg",
     "mediaGallery": [
       {
         "id": "wk-hemhaosiphuo-1",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/af/HCMC_Binh_Tay.jpg/1280px-HCMC_Binh_Tay.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/af/HCMC_Binh_Tay.jpg/1280px-HCMC_Binh_Tay.jpg",
         "caption": {
           "vi": "Ảnh thực tế toàn cảnh Hẻm cổ Hào Sĩ Phường (Hơn 100 năm tuổi) (Wikimedia Commons)",
           "en": "Real view of Hao Si Phuong Historic Alley (1910) (Wikimedia Commons)",
@@ -5581,7 +5581,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-hemhaosiphuo-2",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/af/HCMC_Binh_Tay.jpg/1280px-HCMC_Binh_Tay.jpg?utm_source=vi.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/af/HCMC_Binh_Tay.jpg/1280px-HCMC_Binh_Tay.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & không gian tại Hẻm cổ Hào Sĩ Phường (Hơn 100 năm tuổi) (Ảnh 2)",
           "en": "Architecture & atmosphere at Hao Si Phuong Historic Alley (1910) (Photo 2)",
@@ -5594,7 +5594,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-hemhaosiphuo-3",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c5/Binh_Tay_market_3.jpg/1280px-Binh_Tay_market_3.jpg?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/Binh_Tay_market_3.jpg/1280px-Binh_Tay_market_3.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & không gian tại Hẻm cổ Hào Sĩ Phường (Hơn 100 năm tuổi) (Ảnh 3)",
           "en": "Architecture & atmosphere at Hao Si Phuong Historic Alley (1910) (Photo 3)",
@@ -5700,12 +5700,12 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
     }
   },
   "cho-binh-tay-cho-lon": {
-    "coverImage": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/bf/Vn-hcm-cho-binh-tay-27-07-07.JPG/1280px-Vn-hcm-cho-binh-tay-27-07-07.JPG?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/bf/Vn-hcm-cho-binh-tay-27-07-07.JPG/1280px-Vn-hcm-cho-binh-tay-27-07-07.JPG",
     "mediaGallery": [
       {
         "id": "wk-chobinhtaych-1",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/bf/Vn-hcm-cho-binh-tay-27-07-07.JPG/1280px-Vn-hcm-cho-binh-tay-27-07-07.JPG?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/bf/Vn-hcm-cho-binh-tay-27-07-07.JPG/1280px-Vn-hcm-cho-binh-tay-27-07-07.JPG",
         "caption": {
           "vi": "Ảnh thực tế toàn cảnh Chợ Bình Tây (Chợ Lớn Mới · 1928) (Wikimedia Commons)",
           "en": "Real view of Binh Tay Market (Cho Lon Historic Market · 1928) (Wikimedia Commons)",
@@ -5718,7 +5718,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-chobinhtaych-2",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/bf/Vn-hcm-cho-binh-tay-27-07-07.JPG/1280px-Vn-hcm-cho-binh-tay-27-07-07.JPG?utm_source=vi.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/bf/Vn-hcm-cho-binh-tay-27-07-07.JPG/1280px-Vn-hcm-cho-binh-tay-27-07-07.JPG",
         "caption": {
           "vi": "Góc nhìn kiến trúc & không gian tại Chợ Bình Tây (Chợ Lớn Mới · 1928) (Ảnh 2)",
           "en": "Architecture & atmosphere at Binh Tay Market (Cho Lon Historic Market · 1928) (Photo 2)",
@@ -5731,7 +5731,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-chobinhtaych-3",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b2/Binh_Tay_Market%2C_interior.jpg/1280px-Binh_Tay_Market%2C_interior.jpg?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b2/Binh_Tay_Market%2C_interior.jpg/1280px-Binh_Tay_Market%2C_interior.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & không gian tại Chợ Bình Tây (Chợ Lớn Mới · 1928) (Ảnh 3)",
           "en": "Architecture & atmosphere at Binh Tay Market (Cho Lon Historic Market · 1928) (Photo 3)",
@@ -5837,12 +5837,12 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
     }
   },
   "bao-tang-y-hoc-co-truyen-fito": {
-    "coverImage": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b2/Hai_Thuong_Lan_Ong_Blvd%2C_Cholon%2C_HCMC.jpg/1280px-Hai_Thuong_Lan_Ong_Blvd%2C_Cholon%2C_HCMC.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b2/Hai_Thuong_Lan_Ong_Blvd%2C_Cholon%2C_HCMC.jpg/1280px-Hai_Thuong_Lan_Ong_Blvd%2C_Cholon%2C_HCMC.jpg",
     "mediaGallery": [
       {
         "id": "wk-baotangyhocc-1",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b2/Hai_Thuong_Lan_Ong_Blvd%2C_Cholon%2C_HCMC.jpg/1280px-Hai_Thuong_Lan_Ong_Blvd%2C_Cholon%2C_HCMC.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b2/Hai_Thuong_Lan_Ong_Blvd%2C_Cholon%2C_HCMC.jpg/1280px-Hai_Thuong_Lan_Ong_Blvd%2C_Cholon%2C_HCMC.jpg",
         "caption": {
           "vi": "Ảnh thực tế tại Bảo tàng Y học Cổ truyền Việt Nam (FITO Museum) (Wikimedia Commons)",
           "en": "Real view of FITO Museum (Museum of Traditional Vietnamese Medicine) (Wikimedia Commons)",
@@ -5855,7 +5855,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-baotangyhocc-2",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/18/Hai_Thuong_Lan_Ong_Blvd%2C_Cholon%2C_HCMC_%281%29.jpg/1280px-Hai_Thuong_Lan_Ong_Blvd%2C_Cholon%2C_HCMC_%281%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/18/Hai_Thuong_Lan_Ong_Blvd%2C_Cholon%2C_HCMC_%281%29.jpg/1280px-Hai_Thuong_Lan_Ong_Blvd%2C_Cholon%2C_HCMC_%281%29.jpg",
         "caption": {
           "vi": "Ảnh thực tế tại Bảo tàng Y học Cổ truyền Việt Nam (FITO Museum) (Wikimedia Commons)",
           "en": "Real view of FITO Museum (Museum of Traditional Vietnamese Medicine) (Wikimedia Commons)",
@@ -5868,7 +5868,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-baotangyhocc-3",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/86/Hai_thuong_lang_ong_street-_ph%C6%B0%E1%BB%9Dng_10%2C_Qu%E1%BA%ADn_5%2C_TPHCM%2C_Vi%E1%BB%87t_Nam_-_panoramio.jpg/1280px-Hai_thuong_lang_ong_street-_ph%C6%B0%E1%BB%9Dng_10%2C_Qu%E1%BA%ADn_5%2C_TPHCM%2C_Vi%E1%BB%87t_Nam_-_panoramio.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/86/Hai_thuong_lang_ong_street-_ph%C6%B0%E1%BB%9Dng_10%2C_Qu%E1%BA%ADn_5%2C_TPHCM%2C_Vi%E1%BB%87t_Nam_-_panoramio.jpg/1280px-Hai_thuong_lang_ong_street-_ph%C6%B0%E1%BB%9Dng_10%2C_Qu%E1%BA%ADn_5%2C_TPHCM%2C_Vi%E1%BB%87t_Nam_-_panoramio.jpg",
         "caption": {
           "vi": "Ảnh thực tế tại Bảo tàng Y học Cổ truyền Việt Nam (FITO Museum) (Wikimedia Commons)",
           "en": "Real view of FITO Museum (Museum of Traditional Vietnamese Medicine) (Wikimedia Commons)",
@@ -5970,12 +5970,12 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
     ]
   },
   "cho-hoa-pho-am-thuc-ho-thi-ky": {
-    "coverImage": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1e/20180413_190400Saigon_Hotpot_Night_Food_Tour_Ho_Thi_Ky_Flower_Market.jpg/1280px-20180413_190400Saigon_Hotpot_Night_Food_Tour_Ho_Thi_Ky_Flower_Market.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1e/20180413_190400Saigon_Hotpot_Night_Food_Tour_Ho_Thi_Ky_Flower_Market.jpg/1280px-20180413_190400Saigon_Hotpot_Night_Food_Tour_Ho_Thi_Ky_Flower_Market.jpg",
     "mediaGallery": [
       {
         "id": "wk-chohoaphoamt-1",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1e/20180413_190400Saigon_Hotpot_Night_Food_Tour_Ho_Thi_Ky_Flower_Market.jpg/1280px-20180413_190400Saigon_Hotpot_Night_Food_Tour_Ho_Thi_Ky_Flower_Market.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1e/20180413_190400Saigon_Hotpot_Night_Food_Tour_Ho_Thi_Ky_Flower_Market.jpg/1280px-20180413_190400Saigon_Hotpot_Night_Food_Tour_Ho_Thi_Ky_Flower_Market.jpg",
         "caption": {
           "vi": "Ảnh thực tế toàn cảnh Chợ hoa & Phố ẩm thực Hồ Thị Kỷ (Quận 10) (Wikimedia Commons)",
           "en": "Real view of Ho Thi Ky Flower Market & Night Food Street (Wikimedia Commons)",
@@ -5988,7 +5988,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-chohoaphoamt-2",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f9/20180413_201709Saigon_Hotpot_Night_Food_Tour_Ho_Thi_Ky_Flower_Market_Thanh_H%E1%BA%B1ng_L%C3%BD_Th%C3%A1i_Minh_Hi%E1%BA%BFu_Kim_Euncheol_Lee_Junho_Choi_Kwangmo.jpg/1280px-20180413_201709Saigon_Hotpot_Night_Food_Tour_Ho_Thi_Ky_Flower_Market_Thanh_H%E1%BA%B1ng_L%C3%BD_Th%C3%A1i_Minh_Hi%E1%BA%BFu_Kim_Euncheol_Lee_Junho_Choi_Kwangmo.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f9/20180413_201709Saigon_Hotpot_Night_Food_Tour_Ho_Thi_Ky_Flower_Market_Thanh_H%E1%BA%B1ng_L%C3%BD_Th%C3%A1i_Minh_Hi%E1%BA%BFu_Kim_Euncheol_Lee_Junho_Choi_Kwangmo.jpg/1280px-20180413_201709Saigon_Hotpot_Night_Food_Tour_Ho_Thi_Ky_Flower_Market_Thanh_H%E1%BA%B1ng_L%C3%BD_Th%C3%A1i_Minh_Hi%E1%BA%BFu_Kim_Euncheol_Lee_Junho_Choi_Kwangmo.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & không gian tại Chợ hoa & Phố ẩm thực Hồ Thị Kỷ (Quận 10) (Ảnh 2)",
           "en": "Architecture & atmosphere at Ho Thi Ky Flower Market & Night Food Street (Photo 2)",
@@ -6001,7 +6001,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-chohoaphoamt-3",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/07/20180413_204934Saigon_Hotpot_Night_Food_Tour_Ho_Thi_Ky_Flower_Market_Thanh_H%E1%BA%B1ng_L%C3%BD_Th%C3%A1i_Minh_Hi%E1%BA%BFu_Kim_Euncheol_Lee_Junho_Choi_Kwangmo.jpg/1280px-20180413_204934Saigon_Hotpot_Night_Food_Tour_Ho_Thi_Ky_Flower_Market_Thanh_H%E1%BA%B1ng_L%C3%BD_Th%C3%A1i_Minh_Hi%E1%BA%BFu_Kim_Euncheol_Lee_Junho_Choi_Kwangmo.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/07/20180413_204934Saigon_Hotpot_Night_Food_Tour_Ho_Thi_Ky_Flower_Market_Thanh_H%E1%BA%B1ng_L%C3%BD_Th%C3%A1i_Minh_Hi%E1%BA%BFu_Kim_Euncheol_Lee_Junho_Choi_Kwangmo.jpg/1280px-20180413_204934Saigon_Hotpot_Night_Food_Tour_Ho_Thi_Ky_Flower_Market_Thanh_H%E1%BA%B1ng_L%C3%BD_Th%C3%A1i_Minh_Hi%E1%BA%BFu_Kim_Euncheol_Lee_Junho_Choi_Kwangmo.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & không gian tại Chợ hoa & Phố ẩm thực Hồ Thị Kỷ (Quận 10) (Ảnh 3)",
           "en": "Architecture & atmosphere at Ho Thi Ky Flower Market & Night Food Street (Photo 3)",
@@ -6103,12 +6103,12 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
     ]
   },
   "pho-di-bo-bui-vien": {
-    "coverImage": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/52/Bui_Vien_Walking_Street_1.jpg/1280px-Bui_Vien_Walking_Street_1.jpg?utm_source=vi.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/52/Bui_Vien_Walking_Street_1.jpg/1280px-Bui_Vien_Walking_Street_1.jpg",
     "mediaGallery": [
       {
         "id": "wk-phodibobuivi-1",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/52/Bui_Vien_Walking_Street_1.jpg/1280px-Bui_Vien_Walking_Street_1.jpg?utm_source=vi.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/52/Bui_Vien_Walking_Street_1.jpg/1280px-Bui_Vien_Walking_Street_1.jpg",
         "caption": {
           "vi": "Ảnh thực tế toàn cảnh Phố đi bộ Bùi Viện (Phố Tây Sài Gòn) (Wikimedia Commons)",
           "en": "Real view of Bui Vien Walking Street (Saigon Backpacker Street) (Wikimedia Commons)",
@@ -6121,7 +6121,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-phodibobuivi-2",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/34/20190923_Independence_Palace-13.jpg/1280px-20190923_Independence_Palace-13.jpg?utm_source=vi.wikipedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/34/20190923_Independence_Palace-13.jpg/1280px-20190923_Independence_Palace-13.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & không gian tại Phố đi bộ Bùi Viện (Phố Tây Sài Gòn) (Ảnh 2)",
           "en": "Architecture & atmosphere at Bui Vien Walking Street (Saigon Backpacker Street) (Photo 2)",
@@ -6134,7 +6134,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-phodibobuivi-3",
         "type": "image",
-        "url": "https://upload.wikimedia.org/wikipedia/commons/9/91/Ben_Thanh_market_2.jpg?utm_source=vi.wikipedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/9/91/Ben_Thanh_market_2.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & không gian tại Phố đi bộ Bùi Viện (Phố Tây Sài Gòn) (Ảnh 3)",
           "en": "Architecture & atmosphere at Bui Vien Walking Street (Saigon Backpacker Street) (Photo 3)",
@@ -6235,12 +6235,12 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
     }
   },
   "cong-vien-bo-song-sai-gon-thu-thiem": {
-    "coverImage": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a9/C%E1%BA%A7u_Ba_Son%2C_TP.HCM%2C_042022.jpg/1280px-C%E1%BA%A7u_Ba_Son%2C_TP.HCM%2C_042022.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a9/C%E1%BA%A7u_Ba_Son%2C_TP.HCM%2C_042022.jpg/1280px-C%E1%BA%A7u_Ba_Son%2C_TP.HCM%2C_042022.jpg",
     "mediaGallery": [
       {
         "id": "wk-congvienboso-1",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a9/C%E1%BA%A7u_Ba_Son%2C_TP.HCM%2C_042022.jpg/1280px-C%E1%BA%A7u_Ba_Son%2C_TP.HCM%2C_042022.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a9/C%E1%BA%A7u_Ba_Son%2C_TP.HCM%2C_042022.jpg/1280px-C%E1%BA%A7u_Ba_Son%2C_TP.HCM%2C_042022.jpg",
         "caption": {
           "vi": "Ảnh thực tế tại Công viên Bờ sông Sài Gòn (Thủ Thiêm) (Wikimedia Commons)",
           "en": "Real view of Saigon Riverside Park (Thu Thiem) (Wikimedia Commons)",
@@ -6253,7 +6253,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-congvienboso-2",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c0/Thu_Thiem_2_Bridge_construction.png/1280px-Thu_Thiem_2_Bridge_construction.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c0/Thu_Thiem_2_Bridge_construction.png/1280px-Thu_Thiem_2_Bridge_construction.png",
         "caption": {
           "vi": "Ảnh thực tế tại Công viên Bờ sông Sài Gòn (Thủ Thiêm) (Wikimedia Commons)",
           "en": "Real view of Saigon Riverside Park (Thu Thiem) (Wikimedia Commons)",
@@ -6266,7 +6266,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-congvienboso-3",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a8/Ba-Son-bridge-HCMC.jpg/1280px-Ba-Son-bridge-HCMC.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a8/Ba-Son-bridge-HCMC.jpg/1280px-Ba-Son-bridge-HCMC.jpg",
         "caption": {
           "vi": "Ảnh thực tế tại Công viên Bờ sông Sài Gòn (Thủ Thiêm) (Wikimedia Commons)",
           "en": "Real view of Saigon Riverside Park (Thu Thiem) (Wikimedia Commons)",
@@ -6371,12 +6371,12 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
     }
   },
   "chua-buu-long-thu-duc": {
-    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/e/ef/Th%C3%A1p_ch%C3%ADnh_ch%C3%B9a_B%E1%BB%ADu_Long.jpg?utm_source=vi.wikipedia.org&utm_campaign=api&utm_content=thumbnail_unscaled",
+    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/e/ef/Th%C3%A1p_ch%C3%ADnh_ch%C3%B9a_B%E1%BB%ADu_Long.jpg",
     "mediaGallery": [
       {
         "id": "wk-chuabuulongt-1",
         "type": "image",
-        "url": "https://upload.wikimedia.org/wikipedia/commons/e/ef/Th%C3%A1p_ch%C3%ADnh_ch%C3%B9a_B%E1%BB%ADu_Long.jpg?utm_source=vi.wikipedia.org&utm_campaign=api&utm_content=thumbnail_unscaled",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/e/ef/Th%C3%A1p_ch%C3%ADnh_ch%C3%B9a_B%E1%BB%ADu_Long.jpg",
         "caption": {
           "vi": "Ảnh thực tế toàn cảnh Chùa Bửu Long (Thiền viện Tổ đình Bửu Long) (Wikimedia Commons)",
           "en": "Real view of Buu Long Pagoda (Gotama Cetiya Stupa · Thu Duc) (Wikimedia Commons)",
@@ -6389,7 +6389,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-chuabuulongt-2",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a4/Hoa_Y%C3%AAn.JPG/1280px-Hoa_Y%C3%AAn.JPG?utm_source=vi.wikipedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a4/Hoa_Y%C3%AAn.JPG/1280px-Hoa_Y%C3%AAn.JPG",
         "caption": {
           "vi": "Góc nhìn kiến trúc & không gian tại Chùa Bửu Long (Thiền viện Tổ đình Bửu Long) (Ảnh 2)",
           "en": "Architecture & atmosphere at Buu Long Pagoda (Gotama Cetiya Stupa · Thu Duc) (Photo 2)",
@@ -6402,7 +6402,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-chuabuulongt-3",
         "type": "image",
-        "url": "https://upload.wikimedia.org/wikipedia/commons/e/ef/Th%C3%A1p_ch%C3%ADnh_ch%C3%B9a_B%E1%BB%ADu_Long.jpg?utm_source=vi.wikipedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/e/ef/Th%C3%A1p_ch%C3%ADnh_ch%C3%B9a_B%E1%BB%ADu_Long.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & không gian tại Chùa Bửu Long (Thiền viện Tổ đình Bửu Long) (Ảnh 3)",
           "en": "Architecture & atmosphere at Buu Long Pagoda (Gotama Cetiya Stupa · Thu Duc) (Photo 3)",
@@ -6502,12 +6502,12 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
     }
   },
   "bao-tang-ao-dai-thu-duc": {
-    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/1/1a/%C3%81o_d%C3%A0i_hoa_ph%C6%B0%E1%BB%A3ng_-_Ph%C3%A1t_Tr%C6%B0%C6%A1ng_-_51231007393_%28cropped%29.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail_unscaled",
+    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/1/1a/%C3%81o_d%C3%A0i_hoa_ph%C6%B0%E1%BB%A3ng_-_Ph%C3%A1t_Tr%C6%B0%C6%A1ng_-_51231007393_%28cropped%29.jpg",
     "mediaGallery": [
       {
         "id": "wk-baotangaodai-1",
         "type": "image",
-        "url": "https://upload.wikimedia.org/wikipedia/commons/1/1a/%C3%81o_d%C3%A0i_hoa_ph%C6%B0%E1%BB%A3ng_-_Ph%C3%A1t_Tr%C6%B0%C6%A1ng_-_51231007393_%28cropped%29.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail_unscaled",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/1/1a/%C3%81o_d%C3%A0i_hoa_ph%C6%B0%E1%BB%A3ng_-_Ph%C3%A1t_Tr%C6%B0%C6%A1ng_-_51231007393_%28cropped%29.jpg",
         "caption": {
           "vi": "Ảnh thực tế toàn cảnh Bảo tàng Áo Dài Việt Nam (TP. Thủ Đức) (Wikimedia Commons)",
           "en": "Real view of Ao Dai Museum (Vietnamese National Dress Museum) (Wikimedia Commons)",
@@ -6520,7 +6520,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-baotangaodai-2",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/10/%C3%81o_D%C3%A0i_HCM_2013.jpg/1280px-%C3%81o_D%C3%A0i_HCM_2013.jpg?utm_source=vi.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/10/%C3%81o_D%C3%A0i_HCM_2013.jpg/1280px-%C3%81o_D%C3%A0i_HCM_2013.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & không gian tại Bảo tàng Áo Dài Việt Nam (TP. Thủ Đức) (Ảnh 2)",
           "en": "Architecture & atmosphere at Ao Dai Museum (Vietnamese National Dress Museum) (Photo 2)",
@@ -6533,7 +6533,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-baotangaodai-3",
         "type": "image",
-        "url": "https://upload.wikimedia.org/wikipedia/commons/0/08/Aodai.PNG?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/0/08/Aodai.PNG",
         "caption": {
           "vi": "Góc nhìn kiến trúc & không gian tại Bảo tàng Áo Dài Việt Nam (TP. Thủ Đức) (Ảnh 3)",
           "en": "Architecture & atmosphere at Ao Dai Museum (Vietnamese National Dress Museum) (Photo 3)",
@@ -6638,12 +6638,12 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
     }
   },
   "bao-tang-nghe-thuat-quang-san": {
-    "coverImage": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/fb/Thao_Dien_Station_%28MRT_1%29%2C_Qu%E1%BB%91c_H%C6%B0%C6%A1ng%2C_Th%E1%BA%A3o_%C4%90i%E1%BB%81n%2C_H%E1%BB%93_Ch%C3%AD_Minh_-_54690900645.jpg/1280px-Thao_Dien_Station_%28MRT_1%29%2C_Qu%E1%BB%91c_H%C6%B0%C6%A1ng%2C_Th%E1%BA%A3o_%C4%90i%E1%BB%81n%2C_H%E1%BB%93_Ch%C3%AD_Minh_-_54690900645.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/fb/Thao_Dien_Station_%28MRT_1%29%2C_Qu%E1%BB%91c_H%C6%B0%C6%A1ng%2C_Th%E1%BA%A3o_%C4%90i%E1%BB%81n%2C_H%E1%BB%93_Ch%C3%AD_Minh_-_54690900645.jpg/1280px-Thao_Dien_Station_%28MRT_1%29%2C_Qu%E1%BB%91c_H%C6%B0%C6%A1ng%2C_Th%E1%BA%A3o_%C4%90i%E1%BB%81n%2C_H%E1%BB%93_Ch%C3%AD_Minh_-_54690900645.jpg",
     "mediaGallery": [
       {
         "id": "wk-baotangnghet-1",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/fb/Thao_Dien_Station_%28MRT_1%29%2C_Qu%E1%BB%91c_H%C6%B0%C6%A1ng%2C_Th%E1%BA%A3o_%C4%90i%E1%BB%81n%2C_H%E1%BB%93_Ch%C3%AD_Minh_-_54690900645.jpg/1280px-Thao_Dien_Station_%28MRT_1%29%2C_Qu%E1%BB%91c_H%C6%B0%C6%A1ng%2C_Th%E1%BA%A3o_%C4%90i%E1%BB%81n%2C_H%E1%BB%93_Ch%C3%AD_Minh_-_54690900645.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/fb/Thao_Dien_Station_%28MRT_1%29%2C_Qu%E1%BB%91c_H%C6%B0%C6%A1ng%2C_Th%E1%BA%A3o_%C4%90i%E1%BB%81n%2C_H%E1%BB%93_Ch%C3%AD_Minh_-_54690900645.jpg/1280px-Thao_Dien_Station_%28MRT_1%29%2C_Qu%E1%BB%91c_H%C6%B0%C6%A1ng%2C_Th%E1%BA%A3o_%C4%90i%E1%BB%81n%2C_H%E1%BB%93_Ch%C3%AD_Minh_-_54690900645.jpg",
         "caption": {
           "vi": "Ảnh thực tế tại Bảo tàng Nghệ thuật Quang San (Thảo Điền) (Wikimedia Commons)",
           "en": "Real view of Quang San Art Museum (Thao Dien) (Wikimedia Commons)",
@@ -6656,7 +6656,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-baotangnghet-2",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/28/Thao_Dien_Station_%28MRT_1%29%2C_Qu%E1%BB%91c_H%C6%B0%C6%A1ng%2C_Th%E1%BA%A3o_%C4%90i%E1%BB%81n%2C_H%E1%BB%93_Ch%C3%AD_Minh_-_54689750152.jpg/1280px-Thao_Dien_Station_%28MRT_1%29%2C_Qu%E1%BB%91c_H%C6%B0%C6%A1ng%2C_Th%E1%BA%A3o_%C4%90i%E1%BB%81n%2C_H%E1%BB%93_Ch%C3%AD_Minh_-_54689750152.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/28/Thao_Dien_Station_%28MRT_1%29%2C_Qu%E1%BB%91c_H%C6%B0%C6%A1ng%2C_Th%E1%BA%A3o_%C4%90i%E1%BB%81n%2C_H%E1%BB%93_Ch%C3%AD_Minh_-_54689750152.jpg/1280px-Thao_Dien_Station_%28MRT_1%29%2C_Qu%E1%BB%91c_H%C6%B0%C6%A1ng%2C_Th%E1%BA%A3o_%C4%90i%E1%BB%81n%2C_H%E1%BB%93_Ch%C3%AD_Minh_-_54689750152.jpg",
         "caption": {
           "vi": "Ảnh thực tế tại Bảo tàng Nghệ thuật Quang San (Thảo Điền) (Wikimedia Commons)",
           "en": "Real view of Quang San Art Museum (Thao Dien) (Wikimedia Commons)",
@@ -6669,7 +6669,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-baotangnghet-3",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/ec/Thao_Dien_Station_%28MRT_1%29%2C_Qu%E1%BB%91c_H%C6%B0%C6%A1ng%2C_Th%E1%BA%A3o_%C4%90i%E1%BB%81n%2C_H%E1%BB%93_Ch%C3%AD_Minh_-_54690818339.jpg/1280px-Thao_Dien_Station_%28MRT_1%29%2C_Qu%E1%BB%91c_H%C6%B0%C6%A1ng%2C_Th%E1%BA%A3o_%C4%90i%E1%BB%81n%2C_H%E1%BB%93_Ch%C3%AD_Minh_-_54690818339.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/Thao_Dien_Station_%28MRT_1%29%2C_Qu%E1%BB%91c_H%C6%B0%C6%A1ng%2C_Th%E1%BA%A3o_%C4%90i%E1%BB%81n%2C_H%E1%BB%93_Ch%C3%AD_Minh_-_54690818339.jpg/1280px-Thao_Dien_Station_%28MRT_1%29%2C_Qu%E1%BB%91c_H%C6%B0%C6%A1ng%2C_Th%E1%BA%A3o_%C4%90i%E1%BB%81n%2C_H%E1%BB%93_Ch%C3%AD_Minh_-_54690818339.jpg",
         "caption": {
           "vi": "Ảnh thực tế tại Bảo tàng Nghệ thuật Quang San (Thảo Điền) (Wikimedia Commons)",
           "en": "Real view of Quang San Art Museum (Thao Dien) (Wikimedia Commons)",
@@ -6775,12 +6775,12 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
     }
   },
   "tu-vien-khanh-an-quan-12": {
-    "coverImage": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c5/Hoi_Khanh_Pagoda_in_Binh_Duong.jpg/1280px-Hoi_Khanh_Pagoda_in_Binh_Duong.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/Hoi_Khanh_Pagoda_in_Binh_Duong.jpg/1280px-Hoi_Khanh_Pagoda_in_Binh_Duong.jpg",
     "mediaGallery": [
       {
         "id": "wk-tuvienkhanha-1",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c5/Hoi_Khanh_Pagoda_in_Binh_Duong.jpg/1280px-Hoi_Khanh_Pagoda_in_Binh_Duong.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/Hoi_Khanh_Pagoda_in_Binh_Duong.jpg/1280px-Hoi_Khanh_Pagoda_in_Binh_Duong.jpg",
         "caption": {
           "vi": "Ảnh thực tế tại Tu viện Khánh An (\"Tiểu Nhật Bản\" giữa Sài Gòn · Quận 12) (Wikimedia Commons)",
           "en": "Real view of Khanh An Monastery (\"Little Japan\" of Saigon · District 12) (Wikimedia Commons)",
@@ -6793,7 +6793,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-tuvienkhanha-2",
         "type": "image",
-        "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/Thap_mo_Ly_Khanh_Van.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/Thap_mo_Ly_Khanh_Van.jpg",
         "caption": {
           "vi": "Ảnh thực tế tại Tu viện Khánh An (\"Tiểu Nhật Bản\" giữa Sài Gòn · Quận 12) (Wikimedia Commons)",
           "en": "Real view of Khanh An Monastery (\"Little Japan\" of Saigon · District 12) (Wikimedia Commons)",
@@ -6806,7 +6806,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-tuvienkhanha-3",
         "type": "image",
-        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/5a/Pagode_bouddhiste_viet_Khanh_Anh_de_Bagneux.jpg/1280px-Pagode_bouddhiste_viet_Khanh_Anh_de_Bagneux.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5a/Pagode_bouddhiste_viet_Khanh_Anh_de_Bagneux.jpg/1280px-Pagode_bouddhiste_viet_Khanh_Anh_de_Bagneux.jpg",
         "caption": {
           "vi": "Ảnh thực tế tại Tu viện Khánh An (\"Tiểu Nhật Bản\" giữa Sài Gòn · Quận 12) (Wikimedia Commons)",
           "en": "Real view of Khanh An Monastery (\"Little Japan\" of Saigon · District 12) (Wikimedia Commons)",
@@ -6911,12 +6911,12 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
     }
   },
   "chua-hoi-khanh-thu-dau-mot": {
-    "coverImage": "https://commons.wikimedia.org/wiki/Special:FilePath/Reclining_Buddha_at_Hoi_Khanh_Temple.png?width=1200",
+    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/6/63/Reclining_Buddha_at_Hoi_Khanh_Temple.png",
     "mediaGallery": [
       {
         "id": "wk-chuahoikhanh-1",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Reclining_Buddha_at_Hoi_Khanh_Temple.png?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/6/63/Reclining_Buddha_at_Hoi_Khanh_Temple.png",
         "caption": {
           "vi": "Ảnh thực tế toàn cảnh Chùa Hội Khánh (Tượng Phật Nhập Niết Bàn 52m) (Wikimedia Commons)",
           "en": "Real view of Hoi Khanh Pagoda (52m Reclining Buddha) (Wikimedia Commons)",
@@ -6929,7 +6929,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-chuahoikhanh-2",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Hoi_Khanh_Pagoda_in_Binh_Duong.jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/c/c5/Hoi_Khanh_Pagoda_in_Binh_Duong.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & cảnh quan tại Chùa Hội Khánh (Tượng Phật Nhập Niết Bàn 52m) (Ảnh 2)",
           "en": "Architecture & scenery at Hoi Khanh Pagoda (52m Reclining Buddha) (Photo 2)",
@@ -6942,7 +6942,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-chuahoikhanh-3",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Ch%C3%B9a_B%C3%A0_B%C3%ACnh_D%C6%B0%C6%A1ng.jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/f/f0/Ch%C3%B9a_B%C3%A0_B%C3%ACnh_D%C6%B0%C6%A1ng.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & cảnh quan tại Chùa Hội Khánh (Tượng Phật Nhập Niết Bàn 52m) (Ảnh 3)",
           "en": "Architecture & scenery at Hoi Khanh Pagoda (52m Reclining Buddha) (Photo 3)",
@@ -6965,12 +6965,12 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
     ]
   },
   "chua-ba-thien-hau-thu-dau-mot": {
-    "coverImage": "https://commons.wikimedia.org/wiki/Special:FilePath/Ch%C3%B9a_B%C3%A0_B%C3%ACnh_D%C6%B0%C6%A1ng.jpg?width=1200",
+    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/f/f0/Ch%C3%B9a_B%C3%A0_B%C3%ACnh_D%C6%B0%C6%A1ng.jpg",
     "mediaGallery": [
       {
         "id": "wk-chuabathienh-1",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Ch%C3%B9a_B%C3%A0_B%C3%ACnh_D%C6%B0%C6%A1ng.jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/f/f0/Ch%C3%B9a_B%C3%A0_B%C3%ACnh_D%C6%B0%C6%A1ng.jpg",
         "caption": {
           "vi": "Ảnh thực tế toàn cảnh Miếu Bà Thiên Hậu Thủ Dầu Một (Wikimedia Commons)",
           "en": "Real view of Thien Hau Temple Thu Dau Mot (Wikimedia Commons)",
@@ -6983,7 +6983,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-chuabathienh-2",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Mi%E1%BA%BFu_B%C3%A0_Thi%C3%AAn_H%E1%BA%ADu_%E1%BB%9F_Th%E1%BB%A7_D%E1%BA%A7u_M%E1%BB%99t.jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/c/c7/Mi%E1%BA%BFu_B%C3%A0_Thi%C3%AAn_H%E1%BA%ADu_%E1%BB%9F_Th%E1%BB%A7_D%E1%BA%A7u_M%E1%BB%99t.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & cảnh quan tại Miếu Bà Thiên Hậu Thủ Dầu Một (Ảnh 2)",
           "en": "Architecture & scenery at Thien Hau Temple Thu Dau Mot (Photo 2)",
@@ -6996,7 +6996,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-chuabathienh-3",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Th%C3%A1p_%C4%91%E1%BB%93ng_h%E1%BB%93.jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/9/96/Th%C3%A1p_%C4%91%E1%BB%93ng_h%E1%BB%93.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & cảnh quan tại Miếu Bà Thiên Hậu Thủ Dầu Một (Ảnh 3)",
           "en": "Architecture & scenery at Thien Hau Temple Thu Dau Mot (Photo 3)",
@@ -7019,12 +7019,12 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
     ]
   },
   "nha-tu-phu-loi-thu-dau-mot": {
-    "coverImage": "https://commons.wikimedia.org/wiki/Special:FilePath/Nha_tu_Phu_Loi.JPG?width=1200",
+    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/3/3e/Nha_tu_Phu_Loi.JPG",
     "mediaGallery": [
       {
         "id": "wk-nhatuphuloit-1",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Nha_tu_Phu_Loi.JPG?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/3/3e/Nha_tu_Phu_Loi.JPG",
         "caption": {
           "vi": "Ảnh thực tế toàn cảnh Di tích Lịch sử Nhà tù Phú Lợi (Wikimedia Commons)",
           "en": "Real view of Phu Loi Prison Historical Monument (Wikimedia Commons)",
@@ -7037,7 +7037,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-nhatuphuloit-2",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Khu_nh%C3%A0_giam_%E1%BB%9F_Nh%C3%A0_t%C3%B9_Ph%C3%BA_L%E1%BB%A3i.JPG?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/1/12/Khu_nh%C3%A0_giam_%E1%BB%9F_Nh%C3%A0_t%C3%B9_Ph%C3%BA_L%E1%BB%A3i.JPG",
         "caption": {
           "vi": "Góc nhìn kiến trúc & cảnh quan tại Di tích Lịch sử Nhà tù Phú Lợi (Ảnh 2)",
           "en": "Architecture & scenery at Phu Loi Prison Historical Monument (Photo 2)",
@@ -7050,7 +7050,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-nhatuphuloit-3",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/%C4%90%E1%BB%81n_t%C6%B0%E1%BB%9Fng_ni%E1%BB%87m_n%E1%BA%A1n_nh%C3%A2n_%E1%BB%9F_Nh%C3%A0_T%C3%B9_Ph%C3%BA_L%E1%BB%A3i_1.JPG?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/8/88/%C4%90%E1%BB%81n_t%C6%B0%E1%BB%9Fng_ni%E1%BB%87m_n%E1%BA%A1n_nh%C3%A2n_%E1%BB%9F_Nh%C3%A0_T%C3%B9_Ph%C3%BA_L%E1%BB%A3i_1.JPG",
         "caption": {
           "vi": "Góc nhìn kiến trúc & cảnh quan tại Di tích Lịch sử Nhà tù Phú Lợi (Ảnh 3)",
           "en": "Architecture & scenery at Phu Loi Prison Historical Monument (Photo 3)",
@@ -7073,12 +7073,12 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
     ]
   },
   "khu-du-lich-dai-nam-binh-duong": {
-    "coverImage": "https://commons.wikimedia.org/wiki/Special:FilePath/Cong_vao_Dai_Nam_Quoc_Tu.jpg?width=1200",
+    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/d/d1/Cong_vao_Dai_Nam_Quoc_Tu.jpg",
     "mediaGallery": [
       {
         "id": "wk-khudulichdai-1",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Cong_vao_Dai_Nam_Quoc_Tu.jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/d/d1/Cong_vao_Dai_Nam_Quoc_Tu.jpg",
         "caption": {
           "vi": "Ảnh thực tế toàn cảnh Lạc Cảnh Đại Nam Văn Hiến (Kim Điện & Bảo Sơn) (Wikimedia Commons)",
           "en": "Real view of Dai Nam Van Hien Cultural Complex (Golden Temple) (Wikimedia Commons)",
@@ -7091,7 +7091,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-khudulichdai-2",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/250624_Khu_Du_l%E1%BB%8Bch_%C4%90%E1%BA%A1i_Nam_(1).jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/b/bf/250624_Khu_Du_l%E1%BB%8Bch_%C4%90%E1%BA%A1i_Nam_(1).jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & cảnh quan tại Lạc Cảnh Đại Nam Văn Hiến (Kim Điện & Bảo Sơn) (Ảnh 2)",
           "en": "Architecture & scenery at Dai Nam Van Hien Cultural Complex (Golden Temple) (Photo 2)",
@@ -7104,7 +7104,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-khudulichdai-3",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/C%E1%BB%95ng_Thanh_V%C3%A2n.jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/0/0a/C%E1%BB%95ng_Thanh_V%C3%A2n.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & cảnh quan tại Lạc Cảnh Đại Nam Văn Hiến (Kim Điện & Bảo Sơn) (Ảnh 3)",
           "en": "Architecture & scenery at Dai Nam Van Hien Cultural Complex (Golden Temple) (Photo 3)",
@@ -7127,12 +7127,12 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
     ]
   },
   "nha-co-tran-van-ho-thu-dau-mot": {
-    "coverImage": "https://commons.wikimedia.org/wiki/Special:FilePath/Nh%C3%A0_c%E1%BB%95_%C4%90%E1%BB%91c_ph%E1%BB%A7_%C4%90%E1%BA%A9u.jpg?width=1200",
+    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/0/0b/Nh%C3%A0_c%E1%BB%95_%C4%90%E1%BB%91c_ph%E1%BB%A7_%C4%90%E1%BA%A9u.jpg",
     "mediaGallery": [
       {
         "id": "wk-nhacotranvan-1",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Nh%C3%A0_c%E1%BB%95_%C4%90%E1%BB%91c_ph%E1%BB%A7_%C4%90%E1%BA%A9u.jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/0/0b/Nh%C3%A0_c%E1%BB%95_%C4%90%E1%BB%91c_ph%E1%BB%A7_%C4%90%E1%BA%A9u.jpg",
         "caption": {
           "vi": "Ảnh thực tế toàn cảnh Nhà cổ Trần Văn Hổ (Kiến trúc gỗ Nam Bộ 1890) (Wikimedia Commons)",
           "en": "Real view of Tran Van Ho Ancient House (1890) (Wikimedia Commons)",
@@ -7145,7 +7145,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-nhacotranvan-2",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Ch%E1%BB%A3_Th%E1%BB%A7_D%E1%BA%A7u_M%E1%BB%99t_1.jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/8/89/Ch%E1%BB%A3_Th%E1%BB%A7_D%E1%BA%A7u_M%E1%BB%99t_1.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & cảnh quan tại Nhà cổ Trần Văn Hổ (Kiến trúc gỗ Nam Bộ 1890) (Ảnh 2)",
           "en": "Architecture & scenery at Tran Van Ho Ancient House (1890) (Photo 2)",
@@ -7158,7 +7158,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-nhacotranvan-3",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/M%E1%BB%99t_g%C3%B3c_ch%E1%BB%A3_Th%E1%BB%A7_D%E1%BA%A7u_M%E1%BB%99t.jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/8/8e/M%E1%BB%99t_g%C3%B3c_ch%E1%BB%A3_Th%E1%BB%A7_D%E1%BA%A7u_M%E1%BB%99t.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & cảnh quan tại Nhà cổ Trần Văn Hổ (Kiến trúc gỗ Nam Bộ 1890) (Ảnh 3)",
           "en": "Architecture & scenery at Tran Van Ho Ancient House (1890) (Photo 3)",
@@ -7181,12 +7181,12 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
     ]
   },
   "lang-gom-lai-thieu-thuan-an": {
-    "coverImage": "https://commons.wikimedia.org/wiki/Special:FilePath/Ch%E1%BB%A3_L%C3%A1i_Thi%C3%AAu,_D%C4%A9_An,_B%C3%ACnh_D%C6%B0%C6%A1ng.jpg?width=1200",
+    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/5/56/Ch%E1%BB%A3_L%C3%A1i_Thi%C3%AAu,_D%C4%A9_An,_B%C3%ACnh_D%C6%B0%C6%A1ng.jpg",
     "mediaGallery": [
       {
         "id": "wk-langgomlaith-1",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Ch%E1%BB%A3_L%C3%A1i_Thi%C3%AAu,_D%C4%A9_An,_B%C3%ACnh_D%C6%B0%C6%A1ng.jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/5/56/Ch%E1%BB%A3_L%C3%A1i_Thi%C3%AAu,_D%C4%A9_An,_B%C3%ACnh_D%C6%B0%C6%A1ng.jpg",
         "caption": {
           "vi": "Ảnh thực tế toàn cảnh Làng Gốm Lái Thiêu & Vườn cây ăn trái Lái Thiêu (Wikimedia Commons)",
           "en": "Real view of Lai Thieu Ceramic Village & Fruit Orchards (Wikimedia Commons)",
@@ -7199,7 +7199,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-langgomlaith-2",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Tetlaithieu2.jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/7/73/Tetlaithieu2.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & cảnh quan tại Làng Gốm Lái Thiêu & Vườn cây ăn trái Lái Thiêu (Ảnh 2)",
           "en": "Architecture & scenery at Lai Thieu Ceramic Village & Fruit Orchards (Photo 2)",
@@ -7212,7 +7212,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-langgomlaith-3",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/%C4%90%C6%B0%E1%BB%9Dng_Nguy%E1%BB%85n_Tr%C3%A3i,_L%C3%A1i_Thi%C3%AAu,_Thu%E1%BA%ADn_An.jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/2/29/%C4%90%C6%B0%E1%BB%9Dng_Nguy%E1%BB%85n_Tr%C3%A3i,_L%C3%A1i_Thi%C3%AAu,_Thu%E1%BA%ADn_An.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & cảnh quan tại Làng Gốm Lái Thiêu & Vườn cây ăn trái Lái Thiêu (Ảnh 3)",
           "en": "Architecture & scenery at Lai Thieu Ceramic Village & Fruit Orchards (Photo 3)",
@@ -7235,12 +7235,12 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
     ]
   },
   "chua-chau-thoi-di-an": {
-    "coverImage": "https://commons.wikimedia.org/wiki/Special:FilePath/N%C3%BAi_Ch%C3%A2u_Th%E1%BB%9Bi_ng%C3%A0y_nay.jpg?width=1200",
+    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/8/80/N%C3%BAi_Ch%C3%A2u_Th%E1%BB%9Bi_ng%C3%A0y_nay.jpg",
     "mediaGallery": [
       {
         "id": "wk-chuachauthoi-1",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/N%C3%BAi_Ch%C3%A2u_Th%E1%BB%9Bi_ng%C3%A0y_nay.jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/8/80/N%C3%BAi_Ch%C3%A2u_Th%E1%BB%9Bi_ng%C3%A0y_nay.jpg",
         "caption": {
           "vi": "Ảnh thực tế toàn cảnh Chùa Núi Châu Thới (Cổ tự 1612 trên đỉnh núi) (Wikimedia Commons)",
           "en": "Real view of Chau Thoi Mountain Pagoda (1612) (Wikimedia Commons)",
@@ -7253,7 +7253,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-chuachauthoi-2",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Ch%C3%A2u_Th%E1%BB%9Bi_ph%C3%A1p.jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/e/e2/Ch%C3%A2u_Th%E1%BB%9Bi_ph%C3%A1p.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & cảnh quan tại Chùa Núi Châu Thới (Cổ tự 1612 trên đỉnh núi) (Ảnh 2)",
           "en": "Architecture & scenery at Chau Thoi Mountain Pagoda (1612) (Photo 2)",
@@ -7266,7 +7266,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-chuachauthoi-3",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Ch%C3%B9a_T%C3%A2y_T%E1%BA%A1ng_%E1%BB%9F_B%C3%ACnh_D%C6%B0%C6%A1ng.jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/1/18/Ch%C3%B9a_T%C3%A2y_T%E1%BA%A1ng_%E1%BB%9F_B%C3%ACnh_D%C6%B0%C6%A1ng.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & cảnh quan tại Chùa Núi Châu Thới (Cổ tự 1612 trên đỉnh núi) (Ảnh 3)",
           "en": "Architecture & scenery at Chau Thoi Mountain Pagoda (1612) (Photo 3)",
@@ -7289,12 +7289,12 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
     ]
   },
   "dia-dao-tam-giac-sat-ben-cat": {
-    "coverImage": "https://commons.wikimedia.org/wiki/Special:FilePath/Trung_t%C3%A2m_h%C3%A0nh_ch%C3%ADnh_m%E1%BB%9Bi_B%C3%ACnh_D%C6%B0%C6%A1ng.JPG?width=1200",
+    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/1/1a/Trung_t%C3%A2m_h%C3%A0nh_ch%C3%ADnh_m%E1%BB%9Bi_B%C3%ACnh_D%C6%B0%C6%A1ng.JPG",
     "mediaGallery": [
       {
         "id": "wk-diadaotamgia-1",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Trung_t%C3%A2m_h%C3%A0nh_ch%C3%ADnh_m%E1%BB%9Bi_B%C3%ACnh_D%C6%B0%C6%A1ng.JPG?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/1/1a/Trung_t%C3%A2m_h%C3%A0nh_ch%C3%ADnh_m%E1%BB%9Bi_B%C3%ACnh_D%C6%B0%C6%A1ng.JPG",
         "caption": {
           "vi": "Ảnh thực tế toàn cảnh Di tích Địa đạo Tây Nam Bến Cát (Tam Giác Sắt) (Wikimedia Commons)",
           "en": "Real view of Iron Triangle Tunnels (Ben Cat Historic Tunnels) (Wikimedia Commons)",
@@ -7307,7 +7307,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-diadaotamgia-2",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Khu_nh%C3%A0_giam_%E1%BB%9F_Nh%C3%A0_t%C3%B9_Ph%C3%BA_L%E1%BB%A3i.JPG?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/1/12/Khu_nh%C3%A0_giam_%E1%BB%9F_Nh%C3%A0_t%C3%B9_Ph%C3%BA_L%E1%BB%A3i.JPG",
         "caption": {
           "vi": "Góc nhìn kiến trúc & cảnh quan tại Di tích Địa đạo Tây Nam Bến Cát (Tam Giác Sắt) (Ảnh 2)",
           "en": "Architecture & scenery at Iron Triangle Tunnels (Ben Cat Historic Tunnels) (Photo 2)",
@@ -7320,7 +7320,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-diadaotamgia-3",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/%C4%90%E1%BB%81n_t%C6%B0%E1%BB%9Fng_ni%E1%BB%87m_n%E1%BA%A1n_nh%C3%A2n_%E1%BB%9F_Nh%C3%A0_T%C3%B9_Ph%C3%BA_L%E1%BB%A3i_1.JPG?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/8/88/%C4%90%E1%BB%81n_t%C6%B0%E1%BB%9Fng_ni%E1%BB%87m_n%E1%BA%A1n_nh%C3%A2n_%E1%BB%9F_Nh%C3%A0_T%C3%B9_Ph%C3%BA_L%E1%BB%A3i_1.JPG",
         "caption": {
           "vi": "Góc nhìn kiến trúc & cảnh quan tại Di tích Địa đạo Tây Nam Bến Cát (Tam Giác Sắt) (Ảnh 3)",
           "en": "Architecture & scenery at Iron Triangle Tunnels (Ben Cat Historic Tunnels) (Photo 3)",
@@ -7343,12 +7343,12 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
     ]
   },
   "tuong-chua-kito-vua-vung-tau": {
-    "coverImage": "https://commons.wikimedia.org/wiki/Special:FilePath/Statue_of_Jesus_in_Vung_Tau.jpg?width=1200",
+    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/7/75/Statue_of_Jesus_in_Vung_Tau.jpg",
     "mediaGallery": [
       {
         "id": "wk-tuongchuakit-1",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Statue_of_Jesus_in_Vung_Tau.jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/7/75/Statue_of_Jesus_in_Vung_Tau.jpg",
         "caption": {
           "vi": "Ảnh thực tế toàn cảnh Tượng Chúa Kitô Vua (Tượng Chúa Dang Tay – Núi Nhỏ) (Wikimedia Commons)",
           "en": "Real view of Christ the King Statue (Nho Mountain, Vung Tau) (Wikimedia Commons)",
@@ -7361,7 +7361,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-tuongchuakit-2",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Vung_Tau_Thanh_Gioc_3.JPG?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/e/e1/Vung_Tau_Thanh_Gioc_3.JPG",
         "caption": {
           "vi": "Góc nhìn kiến trúc & cảnh quan tại Tượng Chúa Kitô Vua (Tượng Chúa Dang Tay – Núi Nhỏ) (Ảnh 2)",
           "en": "Architecture & scenery at Christ the King Statue (Nho Mountain, Vung Tau) (Photo 2)",
@@ -7374,7 +7374,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-tuongchuakit-3",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/T%C6%B0%E1%BB%A3ng_Ch%C3%BAa_V%C5%A9ng_T%C3%A0u.jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/2/2d/T%C6%B0%E1%BB%A3ng_Ch%C3%BAa_V%C5%A9ng_T%C3%A0u.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & cảnh quan tại Tượng Chúa Kitô Vua (Tượng Chúa Dang Tay – Núi Nhỏ) (Ảnh 3)",
           "en": "Architecture & scenery at Christ the King Statue (Nho Mountain, Vung Tau) (Photo 3)",
@@ -7397,12 +7397,12 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
     ]
   },
   "bach-dinh-vung-tau": {
-    "coverImage": "https://commons.wikimedia.org/wiki/Special:FilePath/Vung_Tau_Bach_Dinh.JPG?width=1200",
+    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/9/91/Vung_Tau_Bach_Dinh.JPG",
     "mediaGallery": [
       {
         "id": "wk-bachdinhvung-1",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Vung_Tau_Bach_Dinh.JPG?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/9/91/Vung_Tau_Bach_Dinh.JPG",
         "caption": {
           "vi": "Ảnh thực tế toàn cảnh Di tích Lịch sử – Văn hóa Bạch Dinh (Villa Blanche) (Wikimedia Commons)",
           "en": "Real view of White Palace (Bach Dinh / Villa Blanche) (Wikimedia Commons)",
@@ -7415,7 +7415,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-bachdinhvung-2",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/VN-vungtau-bach-dinh-1.jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/6/6b/VN-vungtau-bach-dinh-1.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & cảnh quan tại Di tích Lịch sử – Văn hóa Bạch Dinh (Villa Blanche) (Ảnh 2)",
           "en": "Architecture & scenery at White Palace (Bach Dinh / Villa Blanche) (Photo 2)",
@@ -7428,7 +7428,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-bachdinhvung-3",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/C%E1%BB%ADa_s%E1%BB%95_B%E1%BA%A1ch_Dinh_nh%C3%ACn_ra_bi%E1%BB%83n.JPG?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/e/ec/C%E1%BB%ADa_s%E1%BB%95_B%E1%BA%A1ch_Dinh_nh%C3%ACn_ra_bi%E1%BB%83n.JPG",
         "caption": {
           "vi": "Góc nhìn kiến trúc & cảnh quan tại Di tích Lịch sử – Văn hóa Bạch Dinh (Villa Blanche) (Ảnh 3)",
           "en": "Architecture & scenery at White Palace (Bach Dinh / Villa Blanche) (Photo 3)",
@@ -7451,12 +7451,12 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
     ]
   },
   "hai-dang-vung-tau": {
-    "coverImage": "https://commons.wikimedia.org/wiki/Special:FilePath/H%E1%BA%A3i_%C4%91%C4%83ng_V%C5%A9ng_T%C3%A0u.JPG?width=1200",
+    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/0/03/H%E1%BA%A3i_%C4%91%C4%83ng_V%C5%A9ng_T%C3%A0u.JPG",
     "mediaGallery": [
       {
         "id": "wk-haidangvungt-1",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/H%E1%BA%A3i_%C4%91%C4%83ng_V%C5%A9ng_T%C3%A0u.JPG?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/0/03/H%E1%BA%A3i_%C4%91%C4%83ng_V%C5%A9ng_T%C3%A0u.JPG",
         "caption": {
           "vi": "Ảnh thực tế toàn cảnh Ngọn Hải Đăng Vũng Tàu (1862) (Wikimedia Commons)",
           "en": "Real view of Vung Tau Lighthouse (1862) (Wikimedia Commons)",
@@ -7469,7 +7469,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-haidangvungt-2",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Vung_Tau_lighthouse.JPG?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/d/df/Vung_Tau_lighthouse.JPG",
         "caption": {
           "vi": "Góc nhìn kiến trúc & cảnh quan tại Ngọn Hải Đăng Vũng Tàu (1862) (Ảnh 2)",
           "en": "Architecture & scenery at Vung Tau Lighthouse (1862) (Photo 2)",
@@ -7482,7 +7482,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-haidangvungt-3",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/View_of_Vung_Tau_from_Vung_Tau_lighthouse_(August_3,_2018)_(43913501292).jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/0/02/View_of_Vung_Tau_from_Vung_Tau_lighthouse_(August_3,_2018)_(43913501292).jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & cảnh quan tại Ngọn Hải Đăng Vũng Tàu (1862) (Ảnh 3)",
           "en": "Architecture & scenery at Vung Tau Lighthouse (1862) (Photo 3)",
@@ -7505,12 +7505,12 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
     ]
   },
   "thich-ca-phat-dai-vung-tau": {
-    "coverImage": "https://commons.wikimedia.org/wiki/Special:FilePath/T%C6%B0%E1%BB%A3ng_Ph%E1%BA%ADt_Th%C3%ADch_Ca.jpg?width=1200",
+    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/e/e2/T%C6%B0%E1%BB%A3ng_Ph%E1%BA%ADt_Th%C3%ADch_Ca.jpg",
     "mediaGallery": [
       {
         "id": "wk-thichcaphatd-1",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/T%C6%B0%E1%BB%A3ng_Ph%E1%BA%ADt_Th%C3%ADch_Ca.jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/e/e2/T%C6%B0%E1%BB%A3ng_Ph%E1%BA%ADt_Th%C3%ADch_Ca.jpg",
         "caption": {
           "vi": "Ảnh thực tế toàn cảnh Thích Ca Phật Đài (Sườn Bắc Núi Lớn) (Wikimedia Commons)",
           "en": "Real view of Thich Ca Phat Dai Buddhist Complex (Wikimedia Commons)",
@@ -7523,7 +7523,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-thichcaphatd-2",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Ch%C3%B9a_Thi%E1%BB%81n_L%C3%A2m_T%E1%BB%B1_(c%E1%BB%95ng_v%C3%A0o_Th%C3%ADch_Ca_Ph%E1%BA%ADt_%C4%90%C3%A0i),_V%C5%A9ng_T%C3%A0u,_ng%C3%A0y_19_th%C3%A1ng_5_n%C4%83m_2014_(1).jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/1/19/Ch%C3%B9a_Thi%E1%BB%81n_L%C3%A2m_T%E1%BB%B1_(c%E1%BB%95ng_v%C3%A0o_Th%C3%ADch_Ca_Ph%E1%BA%ADt_%C4%90%C3%A0i),_V%C5%A9ng_T%C3%A0u,_ng%C3%A0y_19_th%C3%A1ng_5_n%C4%83m_2014_(1).jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & cảnh quan tại Thích Ca Phật Đài (Sườn Bắc Núi Lớn) (Ảnh 2)",
           "en": "Architecture & scenery at Thich Ca Phat Dai Buddhist Complex (Photo 2)",
@@ -7536,7 +7536,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-thichcaphatd-3",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Ch%C3%B9a_Thi%E1%BB%81n_L%C3%A2m_T%E1%BB%B1,_V%C5%A9ng_T%C3%A0u_(l%E1%BB%91i_l%C3%AAn_Th%C3%ADch_Ca_Ph%E1%BA%ADt_%C4%90%C3%A0i),_ng%C3%A0y_19_th%C3%A1ng_5_n%C4%83m_2014_(3).jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/b/b4/Ch%C3%B9a_Thi%E1%BB%81n_L%C3%A2m_T%E1%BB%B1,_V%C5%A9ng_T%C3%A0u_(l%E1%BB%91i_l%C3%AAn_Th%C3%ADch_Ca_Ph%E1%BA%ADt_%C4%90%C3%A0i),_ng%C3%A0y_19_th%C3%A1ng_5_n%C4%83m_2014_(3).jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & cảnh quan tại Thích Ca Phật Đài (Sườn Bắc Núi Lớn) (Ảnh 3)",
           "en": "Architecture & scenery at Thich Ca Phat Dai Buddhist Complex (Photo 3)",
@@ -7559,12 +7559,12 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
     ]
   },
   "mieu-hon-ba-vung-tau": {
-    "coverImage": "https://commons.wikimedia.org/wiki/Special:FilePath/Vung_Tau_Hon_Ba.JPG?width=1200",
+    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/0/04/Vung_Tau_Hon_Ba.JPG",
     "mediaGallery": [
       {
         "id": "wk-mieuhonbavun-1",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Vung_Tau_Hon_Ba.JPG?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/0/04/Vung_Tau_Hon_Ba.JPG",
         "caption": {
           "vi": "Ảnh thực tế toàn cảnh Miếu Hòn Bà & Con đường rẽ biển Bãi Sau (Wikimedia Commons)",
           "en": "Real view of Hon Ba Islet Shrine & Sea-Parting Stone Path (Wikimedia Commons)",
@@ -7577,7 +7577,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-mieuhonbavun-2",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/M%C5%A9i_Nghinh_Phong.JPG?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/2/2c/M%C5%A9i_Nghinh_Phong.JPG",
         "caption": {
           "vi": "Góc nhìn kiến trúc & cảnh quan tại Miếu Hòn Bà & Con đường rẽ biển Bãi Sau (Ảnh 2)",
           "en": "Architecture & scenery at Hon Ba Islet Shrine & Sea-Parting Stone Path (Photo 2)",
@@ -7590,7 +7590,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-mieuhonbavun-3",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Sau_Beach_in_Vungtau.jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/c/c7/Sau_Beach_in_Vungtau.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & cảnh quan tại Miếu Hòn Bà & Con đường rẽ biển Bãi Sau (Ảnh 3)",
           "en": "Architecture & scenery at Hon Ba Islet Shrine & Sea-Parting Stone Path (Photo 3)",
@@ -7613,12 +7613,12 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
     ]
   },
   "dinh-than-thang-tam-vung-tau": {
-    "coverImage": "https://commons.wikimedia.org/wiki/Special:FilePath/%C4%90%C3%ACnh_Th%E1%BA%AFng_Tam_ng%C3%A0y_18_th%C3%A1ng_5_n%C4%83m_2014_(m%C3%B4_h%C3%ACnh_c%C3%A1_voi_th%E1%BB%9D_%E1%BB%9F_L%C4%83ng_%C3%94ng_Nam_H%E1%BA%A3i).jpg?width=1200",
+    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/b/b7/%C4%90%C3%ACnh_Th%E1%BA%AFng_Tam_ng%C3%A0y_18_th%C3%A1ng_5_n%C4%83m_2014_(m%C3%B4_h%C3%ACnh_c%C3%A1_voi_th%E1%BB%9D_%E1%BB%9F_L%C4%83ng_%C3%94ng_Nam_H%E1%BA%A3i).jpg",
     "mediaGallery": [
       {
         "id": "wk-dinhthanthan-1",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/%C4%90%C3%ACnh_Th%E1%BA%AFng_Tam_ng%C3%A0y_18_th%C3%A1ng_5_n%C4%83m_2014_(m%C3%B4_h%C3%ACnh_c%C3%A1_voi_th%E1%BB%9D_%E1%BB%9F_L%C4%83ng_%C3%94ng_Nam_H%E1%BA%A3i).jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/b/b7/%C4%90%C3%ACnh_Th%E1%BA%AFng_Tam_ng%C3%A0y_18_th%C3%A1ng_5_n%C4%83m_2014_(m%C3%B4_h%C3%ACnh_c%C3%A1_voi_th%E1%BB%9D_%E1%BB%9F_L%C4%83ng_%C3%94ng_Nam_H%E1%BA%A3i).jpg",
         "caption": {
           "vi": "Ảnh thực tế toàn cảnh Đình Thần Thắng Tam & Lăng Cá Ông Nam Hải (1820) (Wikimedia Commons)",
           "en": "Real view of Thang Tam Communal House & Whale Temple (1820) (Wikimedia Commons)",
@@ -7631,7 +7631,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-dinhthanthan-2",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Sau_Beach_in_Vungtau.jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/c/c7/Sau_Beach_in_Vungtau.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & cảnh quan tại Đình Thần Thắng Tam & Lăng Cá Ông Nam Hải (1820) (Ảnh 2)",
           "en": "Architecture & scenery at Thang Tam Communal House & Whale Temple (1820) (Photo 2)",
@@ -7644,7 +7644,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-dinhthanthan-3",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/B%E1%BB%9D_bi%E1%BB%83n_V%C5%A9ng_T%C3%A0u.JPG?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/8/83/B%E1%BB%9D_bi%E1%BB%83n_V%C5%A9ng_T%C3%A0u.JPG",
         "caption": {
           "vi": "Góc nhìn kiến trúc & cảnh quan tại Đình Thần Thắng Tam & Lăng Cá Ông Nam Hải (1820) (Ảnh 3)",
           "en": "Architecture & scenery at Thang Tam Communal House & Whale Temple (1820) (Photo 3)",
@@ -7667,12 +7667,12 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
     ]
   },
   "linh-son-co-tu-vung-tau": {
-    "coverImage": "https://commons.wikimedia.org/wiki/Special:FilePath/Ch%C3%B9a_Thi%E1%BB%81n_L%C3%A2m_T%E1%BB%B1_(c%E1%BB%95ng_v%C3%A0o_Th%C3%ADch_Ca_Ph%E1%BA%ADt_%C4%90%C3%A0i),_V%C5%A9ng_T%C3%A0u,_ng%C3%A0y_19_th%C3%A1ng_5_n%C4%83m_2014_(1).jpg?width=1200",
+    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/1/19/Ch%C3%B9a_Thi%E1%BB%81n_L%C3%A2m_T%E1%BB%B1_(c%E1%BB%95ng_v%C3%A0o_Th%C3%ADch_Ca_Ph%E1%BA%ADt_%C4%90%C3%A0i),_V%C5%A9ng_T%C3%A0u,_ng%C3%A0y_19_th%C3%A1ng_5_n%C4%83m_2014_(1).jpg",
     "mediaGallery": [
       {
         "id": "wk-linhsoncotuv-1",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Ch%C3%B9a_Thi%E1%BB%81n_L%C3%A2m_T%E1%BB%B1_(c%E1%BB%95ng_v%C3%A0o_Th%C3%ADch_Ca_Ph%E1%BA%ADt_%C4%90%C3%A0i),_V%C5%A9ng_T%C3%A0u,_ng%C3%A0y_19_th%C3%A1ng_5_n%C4%83m_2014_(1).jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/1/19/Ch%C3%B9a_Thi%E1%BB%81n_L%C3%A2m_T%E1%BB%B1_(c%E1%BB%95ng_v%C3%A0o_Th%C3%ADch_Ca_Ph%E1%BA%ADt_%C4%90%C3%A0i),_V%C5%A9ng_T%C3%A0u,_ng%C3%A0y_19_th%C3%A1ng_5_n%C4%83m_2014_(1).jpg",
         "caption": {
           "vi": "Ảnh thực tế toàn cảnh Linh Sơn Cổ Tự (Ngôi chùa cổ nhất Vũng Tàu) (Wikimedia Commons)",
           "en": "Real view of Linh Son Ancient Pagoda (Oldest Temple in Vung Tau) (Wikimedia Commons)",
@@ -7685,7 +7685,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-linhsoncotuv-2",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/T%C6%B0%E1%BB%A3ng_Ph%E1%BA%ADt_Th%C3%ADch_Ca.jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/e/e2/T%C6%B0%E1%BB%A3ng_Ph%E1%BA%ADt_Th%C3%ADch_Ca.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & cảnh quan tại Linh Sơn Cổ Tự (Ngôi chùa cổ nhất Vũng Tàu) (Ảnh 2)",
           "en": "Architecture & scenery at Linh Son Ancient Pagoda (Oldest Temple in Vung Tau) (Photo 2)",
@@ -7698,7 +7698,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-linhsoncotuv-3",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Vung_Tau_Niet_Ban_Tinh_Xa_1.JPG?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/7/7d/Vung_Tau_Niet_Ban_Tinh_Xa_1.JPG",
         "caption": {
           "vi": "Góc nhìn kiến trúc & cảnh quan tại Linh Sơn Cổ Tự (Ngôi chùa cổ nhất Vũng Tàu) (Ảnh 3)",
           "en": "Architecture & scenery at Linh Son Ancient Pagoda (Oldest Temple in Vung Tau) (Photo 3)",
@@ -7721,12 +7721,12 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
     ]
   },
   "niet-ban-tinh-xa-vung-tau": {
-    "coverImage": "https://commons.wikimedia.org/wiki/Special:FilePath/Vung_Tau_Niet_Ban_Tinh_Xa_1.JPG?width=1200",
+    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/7/7d/Vung_Tau_Niet_Ban_Tinh_Xa_1.JPG",
     "mediaGallery": [
       {
         "id": "wk-nietbantinhx-1",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Vung_Tau_Niet_Ban_Tinh_Xa_1.JPG?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/7/7d/Vung_Tau_Niet_Ban_Tinh_Xa_1.JPG",
         "caption": {
           "vi": "Ảnh thực tế toàn cảnh Niết Bàn Tịnh Xá – Chùa Phật Nằm Bãi Dứa (Wikimedia Commons)",
           "en": "Real view of Niet Ban Tinh Xa (Reclining Buddha Pagoda, Bai Dua) (Wikimedia Commons)",
@@ -7739,7 +7739,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-nietbantinhx-2",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Vung_Tau_Niet_Ban_Tinh_Xa_3.JPG?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/8/8e/Vung_Tau_Niet_Ban_Tinh_Xa_3.JPG",
         "caption": {
           "vi": "Góc nhìn kiến trúc & cảnh quan tại Niết Bàn Tịnh Xá – Chùa Phật Nằm Bãi Dứa (Ảnh 2)",
           "en": "Architecture & scenery at Niet Ban Tinh Xa (Reclining Buddha Pagoda, Bai Dua) (Photo 2)",
@@ -7752,7 +7752,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-nietbantinhx-3",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Ha_Long_Road_in_Vungtau.jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/6/61/Ha_Long_Road_in_Vungtau.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & cảnh quan tại Niết Bàn Tịnh Xá – Chùa Phật Nằm Bãi Dứa (Ảnh 3)",
           "en": "Architecture & scenery at Niet Ban Tinh Xa (Reclining Buddha Pagoda, Bai Dua) (Photo 3)",
@@ -7775,12 +7775,12 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
     ]
   },
   "bao-tang-vu-khi-co-robert-taylor": {
-    "coverImage": "https://commons.wikimedia.org/wiki/Special:FilePath/Ba_Ria_-_Vung_Tau_museum_030324.jpg?width=1200",
+    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/1/1c/Ba_Ria_-_Vung_Tau_museum_030324.jpg",
     "mediaGallery": [
       {
         "id": "wk-baotangvukhi-1",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Ba_Ria_-_Vung_Tau_museum_030324.jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/1/1c/Ba_Ria_-_Vung_Tau_museum_030324.jpg",
         "caption": {
           "vi": "Ảnh thực tế toàn cảnh Bảo tàng Vũ khí Cổ Toàn cầu (Robert Taylor Museum) (Wikimedia Commons)",
           "en": "Real view of Worldwide Arms Museum (Robert Taylor Collection) (Wikimedia Commons)",
@@ -7793,7 +7793,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-baotangvukhi-2",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Vung_Tau_Bach_Dinh.JPG?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/9/91/Vung_Tau_Bach_Dinh.JPG",
         "caption": {
           "vi": "Góc nhìn kiến trúc & cảnh quan tại Bảo tàng Vũ khí Cổ Toàn cầu (Robert Taylor Museum) (Ảnh 2)",
           "en": "Architecture & scenery at Worldwide Arms Museum (Robert Taylor Collection) (Photo 2)",
@@ -7806,7 +7806,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-baotangvukhi-3",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Bai_Truoc_Vung_Tau.jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/7/77/Bai_Truoc_Vung_Tau.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & cảnh quan tại Bảo tàng Vũ khí Cổ Toàn cầu (Robert Taylor Museum) (Ảnh 3)",
           "en": "Architecture & scenery at Worldwide Arms Museum (Robert Taylor Collection) (Photo 3)",
@@ -7829,12 +7829,12 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
     ]
   },
   "mui-nghinh-phong-cong-troi": {
-    "coverImage": "https://commons.wikimedia.org/wiki/Special:FilePath/M%C5%A9i_Nghinh_Phong.JPG?width=1200",
+    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/2/2c/M%C5%A9i_Nghinh_Phong.JPG",
     "mediaGallery": [
       {
         "id": "wk-muinghinhpho-1",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/M%C5%A9i_Nghinh_Phong.JPG?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/2/2c/M%C5%A9i_Nghinh_Phong.JPG",
         "caption": {
           "vi": "Ảnh thực tế toàn cảnh Mũi Nghinh Phong & Cổng Trời Vũng Tàu (Wikimedia Commons)",
           "en": "Real view of Nghinh Phong Cape & Heaven’s Gate (Wikimedia Commons)",
@@ -7847,7 +7847,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-muinghinhpho-2",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Vung_Tau_Hon_Ba.JPG?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/0/04/Vung_Tau_Hon_Ba.JPG",
         "caption": {
           "vi": "Góc nhìn kiến trúc & cảnh quan tại Mũi Nghinh Phong & Cổng Trời Vũng Tàu (Ảnh 2)",
           "en": "Architecture & scenery at Nghinh Phong Cape & Heaven’s Gate (Photo 2)",
@@ -7860,7 +7860,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-muinghinhpho-3",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Ha_Long_Road_in_Vungtau.jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/6/61/Ha_Long_Road_in_Vungtau.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & cảnh quan tại Mũi Nghinh Phong & Cổng Trời Vũng Tàu (Ảnh 3)",
           "en": "Architecture & scenery at Nghinh Phong Cape & Heaven’s Gate (Photo 3)",
@@ -7883,12 +7883,12 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
     ]
   },
   "ho-may-park-nui-lon-vung-tau": {
-    "coverImage": "https://commons.wikimedia.org/wiki/Special:FilePath/Nh%C3%ACn_to%C3%A0n_c%E1%BA%A3nh_TP.V%C5%A8NG_T%C3%80U_t%E1%BB%AB_C%C3%A1p_treo_V%C5%A9ng_T%C3%A0u.jpg?width=1200",
+    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/3/31/Nh%C3%ACn_to%C3%A0n_c%E1%BA%A3nh_TP.V%C5%A8NG_T%C3%80U_t%E1%BB%AB_C%C3%A1p_treo_V%C5%A9ng_T%C3%A0u.jpg",
     "mediaGallery": [
       {
         "id": "wk-homayparknui-1",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Nh%C3%ACn_to%C3%A0n_c%E1%BA%A3nh_TP.V%C5%A8NG_T%C3%80U_t%E1%BB%AB_C%C3%A1p_treo_V%C5%A9ng_T%C3%A0u.jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/3/31/Nh%C3%ACn_to%C3%A0n_c%E1%BA%A3nh_TP.V%C5%A8NG_T%C3%80U_t%E1%BB%AB_C%C3%A1p_treo_V%C5%A9ng_T%C3%A0u.jpg",
         "caption": {
           "vi": "Ảnh thực tế toàn cảnh Khu Du lịch Hồ Mây – Cáp treo Núi Lớn & Trận địa Pháo cổ (Wikimedia Commons)",
           "en": "Real view of Ho May Park (Lon Mountain Cable Car & Historic Cannon Battery) (Wikimedia Commons)",
@@ -7901,7 +7901,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-homayparknui-2",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Bai_Truoc_Vung_Tau.jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/7/77/Bai_Truoc_Vung_Tau.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & cảnh quan tại Khu Du lịch Hồ Mây – Cáp treo Núi Lớn & Trận địa Pháo cổ (Ảnh 2)",
           "en": "Architecture & scenery at Ho May Park (Lon Mountain Cable Car & Historic Cannon Battery) (Photo 2)",
@@ -7914,7 +7914,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-homayparknui-3",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/View_of_Vung_Tau_from_Vung_Tau_lighthouse_(August_3,_2018)_(43913501292).jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/0/02/View_of_Vung_Tau_from_Vung_Tau_lighthouse_(August_3,_2018)_(43913501292).jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & cảnh quan tại Khu Du lịch Hồ Mây – Cáp treo Núi Lớn & Trận địa Pháo cổ (Ảnh 3)",
           "en": "Architecture & scenery at Ho May Park (Lon Mountain Cable Car & Historic Cannon Battery) (Photo 3)",
@@ -7937,12 +7937,12 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
     ]
   },
   "bao-tang-ba-ria-vung-tau": {
-    "coverImage": "https://commons.wikimedia.org/wiki/Special:FilePath/Ba_Ria_-_Vung_Tau_museum_030324.jpg?width=1200",
+    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/1/1c/Ba_Ria_-_Vung_Tau_museum_030324.jpg",
     "mediaGallery": [
       {
         "id": "wk-baotangbaria-1",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Ba_Ria_-_Vung_Tau_museum_030324.jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/1/1c/Ba_Ria_-_Vung_Tau_museum_030324.jpg",
         "caption": {
           "vi": "Ảnh thực tế toàn cảnh Bảo tàng Bà Rịa – Vũng Tàu (Bãi Trước) (Wikimedia Commons)",
           "en": "Real view of Ba Ria – Vung Tau Museum (Front Beach) (Wikimedia Commons)",
@@ -7955,7 +7955,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-baotangbaria-2",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Vung_Tau_Bach_Dinh.JPG?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/9/91/Vung_Tau_Bach_Dinh.JPG",
         "caption": {
           "vi": "Góc nhìn kiến trúc & cảnh quan tại Bảo tàng Bà Rịa – Vũng Tàu (Bãi Trước) (Ảnh 2)",
           "en": "Architecture & scenery at Ba Ria – Vung Tau Museum (Front Beach) (Photo 2)",
@@ -7968,7 +7968,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-baotangbaria-3",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Bai_Truoc,_Vung_Tau.jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/3/3e/Bai_Truoc,_Vung_Tau.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & cảnh quan tại Bảo tàng Bà Rịa – Vũng Tàu (Bãi Trước) (Ảnh 3)",
           "en": "Architecture & scenery at Ba Ria – Vung Tau Museum (Front Beach) (Photo 3)",
@@ -7991,12 +7991,12 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
     ]
   },
   "nha-lon-long-son-den-ong-tran": {
-    "coverImage": "https://commons.wikimedia.org/wiki/Special:FilePath/Nh%C3%A0_L%E1%BB%9Bn_Long_S%C6%A1n.jpg?width=1200",
+    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/0/05/Nh%C3%A0_L%E1%BB%9Bn_Long_S%C6%A1n.jpg",
     "mediaGallery": [
       {
         "id": "wk-nhalonlongso-1",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Nh%C3%A0_L%E1%BB%9Bn_Long_S%C6%A1n.jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/0/05/Nh%C3%A0_L%E1%BB%9Bn_Long_S%C6%A1n.jpg",
         "caption": {
           "vi": "Ảnh thực tế toàn cảnh Di tích Quốc gia Nhà Lớn Long Sơn (Đền Ông Trần 1910) (Wikimedia Commons)",
           "en": "Real view of Long Son Big House (Ong Tran Temple Complex – 1910) (Wikimedia Commons)",
@@ -8009,7 +8009,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-nhalonlongso-2",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/AH_17-_duon_di_dao_Long_son,_huyen_dao_Long_son,_ba_ria_Vung_tau_Vietnam_-_panoramio.jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/0/08/AH_17-_duon_di_dao_Long_son,_huyen_dao_Long_son,_ba_ria_Vung_tau_Vietnam_-_panoramio.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & cảnh quan tại Di tích Quốc gia Nhà Lớn Long Sơn (Đền Ông Trần 1910) (Ảnh 2)",
           "en": "Architecture & scenery at Long Son Big House (Ong Tran Temple Complex – 1910) (Photo 2)",
@@ -8022,7 +8022,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-nhalonlongso-3",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/B%E1%BB%9D_bi%E1%BB%83n_V%C5%A9ng_T%C3%A0u.JPG?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/8/83/B%E1%BB%9D_bi%E1%BB%83n_V%C5%A9ng_T%C3%A0u.JPG",
         "caption": {
           "vi": "Góc nhìn kiến trúc & cảnh quan tại Di tích Quốc gia Nhà Lớn Long Sơn (Đền Ông Trần 1910) (Ảnh 3)",
           "en": "Architecture & scenery at Long Son Big House (Ong Tran Temple Complex – 1910) (Photo 3)",
@@ -8045,12 +8045,12 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
     ]
   },
   "thap-tam-thang-quang-truong-bai-sau": {
-    "coverImage": "https://commons.wikimedia.org/wiki/Special:FilePath/Sau_Beach_in_Vungtau.jpg?width=1200",
+    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/c/c7/Sau_Beach_in_Vungtau.jpg",
     "mediaGallery": [
       {
         "id": "wk-thaptamthang-1",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Sau_Beach_in_Vungtau.jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/c/c7/Sau_Beach_in_Vungtau.jpg",
         "caption": {
           "vi": "Ảnh thực tế toàn cảnh Tháp Tam Thắng & Quảng trường Bãi Sau (Thùy Vân) (Wikimedia Commons)",
           "en": "Real view of Tam Thang Tower & Back Beach Square (Thuy Van) (Wikimedia Commons)",
@@ -8063,7 +8063,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-thaptamthang-2",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/B%C3%A3i_Sau_V%C5%A9ng_t%C3%A0u-117_Th%C3%B9y_V%C3%A2n,_Th%E1%BA%AFng_Tam,_tp._V%C5%A9ng_T%C3%A0u,_B%C3%A0_R%E1%BB%8Ba_-_V%C5%A9ng_T%C3%A0u,_Vi%E1%BB%87t_Nam_-_panoramio.jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/3/35/B%C3%A3i_Sau_V%C5%A9ng_t%C3%A0u-117_Th%C3%B9y_V%C3%A2n,_Th%E1%BA%AFng_Tam,_tp._V%C5%A9ng_T%C3%A0u,_B%C3%A0_R%E1%BB%8Ba_-_V%C5%A9ng_T%C3%A0u,_Vi%E1%BB%87t_Nam_-_panoramio.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & cảnh quan tại Tháp Tam Thắng & Quảng trường Bãi Sau (Thùy Vân) (Ảnh 2)",
           "en": "Architecture & scenery at Tam Thang Tower & Back Beach Square (Thuy Van) (Photo 2)",
@@ -8076,7 +8076,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-thaptamthang-3",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/B%C3%A3i_bi%E1%BB%83n_V%C5%A9ng_T%C3%A0u_2016.jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/e/ed/B%C3%A3i_bi%E1%BB%83n_V%C5%A9ng_T%C3%A0u_2016.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & cảnh quan tại Tháp Tam Thắng & Quảng trường Bãi Sau (Thùy Vân) (Ảnh 3)",
           "en": "Architecture & scenery at Tam Thang Tower & Back Beach Square (Thuy Van) (Photo 3)",
@@ -8099,12 +8099,12 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
     ]
   },
   "doi-con-heo-vung-tau": {
-    "coverImage": "https://commons.wikimedia.org/wiki/Special:FilePath/B%E1%BB%9D_bi%E1%BB%83n_V%C5%A9ng_T%C3%A0u.JPG?width=1200",
+    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/8/83/B%E1%BB%9D_bi%E1%BB%83n_V%C5%A9ng_T%C3%A0u.JPG",
     "mediaGallery": [
       {
         "id": "wk-doiconheovun-1",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/B%E1%BB%9D_bi%E1%BB%83n_V%C5%A9ng_T%C3%A0u.JPG?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/8/83/B%E1%BB%9D_bi%E1%BB%83n_V%C5%A9ng_T%C3%A0u.JPG",
         "caption": {
           "vi": "Ảnh thực tế toàn cảnh Đồi Con Heo (Tọa độ Ngắm Toàn cảnh Bãi Sau) (Wikimedia Commons)",
           "en": "Real view of Con Heo Hill (Back Beach Panoramic Overlook) (Wikimedia Commons)",
@@ -8117,7 +8117,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-doiconheovun-2",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Vung_Tau_Hon_Ba.JPG?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/0/04/Vung_Tau_Hon_Ba.JPG",
         "caption": {
           "vi": "Góc nhìn kiến trúc & cảnh quan tại Đồi Con Heo (Tọa độ Ngắm Toàn cảnh Bãi Sau) (Ảnh 2)",
           "en": "Architecture & scenery at Con Heo Hill (Back Beach Panoramic Overlook) (Photo 2)",
@@ -8130,7 +8130,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-doiconheovun-3",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Sau_Beach_in_Vungtau.jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/c/c7/Sau_Beach_in_Vungtau.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & cảnh quan tại Đồi Con Heo (Tọa độ Ngắm Toàn cảnh Bãi Sau) (Ảnh 3)",
           "en": "Architecture & scenery at Con Heo Hill (Back Beach Panoramic Overlook) (Photo 3)",
@@ -8153,12 +8153,12 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
     ]
   },
   "bai-sau-thuy-van-vung-tau": {
-    "coverImage": "https://commons.wikimedia.org/wiki/Special:FilePath/B%C3%A3i_bi%E1%BB%83n_V%C5%A9ng_T%C3%A0u_2016.jpg?width=1200",
+    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/e/ed/B%C3%A3i_bi%E1%BB%83n_V%C5%A9ng_T%C3%A0u_2016.jpg",
     "mediaGallery": [
       {
         "id": "wk-baisauthuyva-1",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/B%C3%A3i_bi%E1%BB%83n_V%C5%A9ng_T%C3%A0u_2016.jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/e/ed/B%C3%A3i_bi%E1%BB%83n_V%C5%A9ng_T%C3%A0u_2016.jpg",
         "caption": {
           "vi": "Ảnh thực tế toàn cảnh Bãi Sau (Bãi Thùy Vân) & Công viên Ven biển (Wikimedia Commons)",
           "en": "Real view of Back Beach (Thuy Van Beach & Seafront Park) (Wikimedia Commons)",
@@ -8171,7 +8171,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-baisauthuyva-2",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Vung_Tau_Beach_On_Holiday.jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/8/80/Vung_Tau_Beach_On_Holiday.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & cảnh quan tại Bãi Sau (Bãi Thùy Vân) & Công viên Ven biển (Ảnh 2)",
           "en": "Architecture & scenery at Back Beach (Thuy Van Beach & Seafront Park) (Photo 2)",
@@ -8184,7 +8184,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-baisauthuyva-3",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Sau_Beach_in_Vungtau.jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/c/c7/Sau_Beach_in_Vungtau.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & cảnh quan tại Bãi Sau (Bãi Thùy Vân) & Công viên Ven biển (Ảnh 3)",
           "en": "Architecture & scenery at Back Beach (Thuy Van Beach & Seafront Park) (Photo 3)",
@@ -8207,12 +8207,12 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
     ]
   },
   "cong-vien-bai-truoc-vung-tau": {
-    "coverImage": "https://commons.wikimedia.org/wiki/Special:FilePath/Bai_Truoc_Vung_Tau.jpg?width=1200",
+    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/7/77/Bai_Truoc_Vung_Tau.jpg",
     "mediaGallery": [
       {
         "id": "wk-congvienbait-1",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Bai_Truoc_Vung_Tau.jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/7/77/Bai_Truoc_Vung_Tau.jpg",
         "caption": {
           "vi": "Ảnh thực tế toàn cảnh Công viên Bãi Trước (Vịnh Tầm Dương) & Bến tàu Cánh Ngầm (Wikimedia Commons)",
           "en": "Real view of Front Beach Park (Tam Duong Bay) & Hydrofoil Pier (Wikimedia Commons)",
@@ -8225,7 +8225,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-congvienbait-2",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/C%C3%B4ng_Vi%C3%AAn_B%C3%A3i_Tr%C6%B0%E1%BB%9Bc,_Quang_Trung,_Ph%C6%B0%E1%BB%9Dng_1,_tp._V%C5%A9ng_T%C3%A0u,_B%C3%A0_R%E1%BB%8Ba_-_V%C5%A9ng_T%C3%A0u,_Vi%E1%BB%87t_Nam_-_panoramio_(1).jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/a/ab/C%C3%B4ng_Vi%C3%AAn_B%C3%A3i_Tr%C6%B0%E1%BB%9Bc,_Quang_Trung,_Ph%C6%B0%E1%BB%9Dng_1,_tp._V%C5%A9ng_T%C3%A0u,_B%C3%A0_R%E1%BB%8Ba_-_V%C5%A9ng_T%C3%A0u,_Vi%E1%BB%87t_Nam_-_panoramio_(1).jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & cảnh quan tại Công viên Bãi Trước (Vịnh Tầm Dương) & Bến tàu Cánh Ngầm (Ảnh 2)",
           "en": "Architecture & scenery at Front Beach Park (Tam Duong Bay) & Hydrofoil Pier (Photo 2)",
@@ -8238,7 +8238,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-congvienbait-3",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Bai_Truoc,_Vung_Tau.jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/3/3e/Bai_Truoc,_Vung_Tau.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & cảnh quan tại Công viên Bãi Trước (Vịnh Tầm Dương) & Bến tàu Cánh Ngầm (Ảnh 3)",
           "en": "Architecture & scenery at Front Beach Park (Tam Duong Bay) & Hydrofoil Pier (Photo 3)",
@@ -8261,12 +8261,12 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
     ]
   },
   "bai-dua-lang-du-vung-tau": {
-    "coverImage": "https://commons.wikimedia.org/wiki/Special:FilePath/Ha_Long_Road_in_Vungtau.jpg?width=1200",
+    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/6/61/Ha_Long_Road_in_Vungtau.jpg",
     "mediaGallery": [
       {
         "id": "wk-baidualangdu-1",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Ha_Long_Road_in_Vungtau.jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/6/61/Ha_Long_Road_in_Vungtau.jpg",
         "caption": {
           "vi": "Ảnh thực tế toàn cảnh Bãi Dứa (Bãi Lãng Du – Cung đường Hạ Long) (Wikimedia Commons)",
           "en": "Real view of Dua Beach (Lang Du Cove – Ha Long Coastal Road) (Wikimedia Commons)",
@@ -8279,7 +8279,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-baidualangdu-2",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Vung_Tau_Niet_Ban_Tinh_Xa_1.JPG?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/7/7d/Vung_Tau_Niet_Ban_Tinh_Xa_1.JPG",
         "caption": {
           "vi": "Góc nhìn kiến trúc & cảnh quan tại Bãi Dứa (Bãi Lãng Du – Cung đường Hạ Long) (Ảnh 2)",
           "en": "Architecture & scenery at Dua Beach (Lang Du Cove – Ha Long Coastal Road) (Photo 2)",
@@ -8292,7 +8292,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-baidualangdu-3",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/B%E1%BB%9D_bi%E1%BB%83n_V%C5%A9ng_T%C3%A0u.JPG?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/8/83/B%E1%BB%9D_bi%E1%BB%83n_V%C5%A9ng_T%C3%A0u.JPG",
         "caption": {
           "vi": "Góc nhìn kiến trúc & cảnh quan tại Bãi Dứa (Bãi Lãng Du – Cung đường Hạ Long) (Ảnh 3)",
           "en": "Architecture & scenery at Dua Beach (Lang Du Cove – Ha Long Coastal Road) (Photo 3)",
@@ -8315,12 +8315,12 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
     ]
   },
   "hem-107-tran-phu-vung-tau": {
-    "coverImage": "https://commons.wikimedia.org/wiki/Special:FilePath/12-2A_Tr%E1%BA%A7n_Ph%C3%BA,_Ph%C6%B0%E1%BB%9Dng_1,_tp._V%C5%A9ng_T%C3%A0u,_B%C3%A0_R%E1%BB%8Ba_-_V%C5%A9ng_T%C3%A0u,_Vietnam_-_panoramio.jpg?width=1200",
+    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/d/d9/12-2A_Tr%E1%BA%A7n_Ph%C3%BA,_Ph%C6%B0%E1%BB%9Dng_1,_tp._V%C5%A9ng_T%C3%A0u,_B%C3%A0_R%E1%BB%8Ba_-_V%C5%A9ng_T%C3%A0u,_Vietnam_-_panoramio.jpg",
     "mediaGallery": [
       {
         "id": "wk-hem107tranph-1",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/12-2A_Tr%E1%BA%A7n_Ph%C3%BA,_Ph%C6%B0%E1%BB%9Dng_1,_tp._V%C5%A9ng_T%C3%A0u,_B%C3%A0_R%E1%BB%8Ba_-_V%C5%A9ng_T%C3%A0u,_Vietnam_-_panoramio.jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/d/d9/12-2A_Tr%E1%BA%A7n_Ph%C3%BA,_Ph%C6%B0%E1%BB%9Dng_1,_tp._V%C5%A9ng_T%C3%A0u,_B%C3%A0_R%E1%BB%8Ba_-_V%C5%A9ng_T%C3%A0u,_Vietnam_-_panoramio.jpg",
         "caption": {
           "vi": "Ảnh thực tế toàn cảnh Hẻm 107–109 Trần Phú (Hẻm Thông Biển Sống Ảo) (Wikimedia Commons)",
           "en": "Real view of Alley 107–109 Tran Phu (Ocean-View Photo Alley) (Wikimedia Commons)",
@@ -8333,7 +8333,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-hem107tranph-2",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Bai_Truoc,_Vung_Tau.jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/3/3e/Bai_Truoc,_Vung_Tau.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & cảnh quan tại Hẻm 107–109 Trần Phú (Hẻm Thông Biển Sống Ảo) (Ảnh 2)",
           "en": "Architecture & scenery at Alley 107–109 Tran Phu (Ocean-View Photo Alley) (Photo 2)",
@@ -8346,7 +8346,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-hem107tranph-3",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/B%E1%BB%9D_bi%E1%BB%83n_V%C5%A9ng_T%C3%A0u.JPG?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/8/83/B%E1%BB%9D_bi%E1%BB%83n_V%C5%A9ng_T%C3%A0u.JPG",
         "caption": {
           "vi": "Góc nhìn kiến trúc & cảnh quan tại Hẻm 107–109 Trần Phú (Hẻm Thông Biển Sống Ảo) (Ảnh 3)",
           "en": "Architecture & scenery at Alley 107–109 Tran Phu (Ocean-View Photo Alley) (Photo 3)",
@@ -8369,12 +8369,12 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
     ]
   },
   "den-thanh-duc-me-bai-dau": {
-    "coverImage": "https://commons.wikimedia.org/wiki/Special:FilePath/%C4%90%E1%BB%A9c_M%E1%BA%B9_B%C3%A3i_D%C3%A2u_1.JPG?width=1200",
+    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/f/fe/%C4%90%E1%BB%A9c_M%E1%BA%B9_B%C3%A3i_D%C3%A2u_1.JPG",
     "mediaGallery": [
       {
         "id": "wk-denthanhducm-1",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/%C4%90%E1%BB%A9c_M%E1%BA%B9_B%C3%A3i_D%C3%A2u_1.JPG?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/f/fe/%C4%90%E1%BB%A9c_M%E1%BA%B9_B%C3%A3i_D%C3%A2u_1.JPG",
         "caption": {
           "vi": "Ảnh thực tế toàn cảnh Đền Thánh Đức Mẹ Bãi Dâu (Tượng Đức Mẹ 25m) (Wikimedia Commons)",
           "en": "Real view of Our Lady of Bai Dau Sanctuary (25m Virgin Mary Statue) (Wikimedia Commons)",
@@ -8387,7 +8387,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-denthanhducm-2",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/%C4%90%E1%BB%A9c_M%E1%BA%B9_B%C3%A3i_D%C3%A2u_3.JPG?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/f/fe/%C4%90%E1%BB%A9c_M%E1%BA%B9_B%C3%A3i_D%C3%A2u_3.JPG",
         "caption": {
           "vi": "Góc nhìn kiến trúc & cảnh quan tại Đền Thánh Đức Mẹ Bãi Dâu (Tượng Đức Mẹ 25m) (Ảnh 2)",
           "en": "Architecture & scenery at Our Lady of Bai Dau Sanctuary (25m Virgin Mary Statue) (Photo 2)",
@@ -8400,7 +8400,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-denthanhducm-3",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/T%C6%B0%E1%BB%A3ng_th%C3%A1nh_Giuse_t%E1%BA%A1i_%C4%90%E1%BB%81n_th%C3%A1nh_%C4%90%E1%BB%A9c_M%E1%BA%B9_B%C3%A3i_D%C3%A2u.JPG?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/a/ab/T%C6%B0%E1%BB%A3ng_th%C3%A1nh_Giuse_t%E1%BA%A1i_%C4%90%E1%BB%81n_th%C3%A1nh_%C4%90%E1%BB%A9c_M%E1%BA%B9_B%C3%A3i_D%C3%A2u.JPG",
         "caption": {
           "vi": "Góc nhìn kiến trúc & cảnh quan tại Đền Thánh Đức Mẹ Bãi Dâu (Tượng Đức Mẹ 25m) (Ảnh 3)",
           "en": "Architecture & scenery at Our Lady of Bai Dau Sanctuary (25m Virgin Mary Statue) (Photo 3)",
@@ -8423,12 +8423,12 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
     ]
   },
   "cho-hai-san-xom-luoi-vung-tau": {
-    "coverImage": "https://commons.wikimedia.org/wiki/Special:FilePath/Bai_Truoc_Vung_Tau.jpg?width=1200",
+    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/7/77/Bai_Truoc_Vung_Tau.jpg",
     "mediaGallery": [
       {
         "id": "wk-chohaisanxom-1",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Bai_Truoc_Vung_Tau.jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/7/77/Bai_Truoc_Vung_Tau.jpg",
         "caption": {
           "vi": "Ảnh thực tế toàn cảnh Chợ Hải sản Xóm Lưới (Chợ Hải sản Tươi sống Vũng Tàu) (Wikimedia Commons)",
           "en": "Real view of Xom Luoi Fresh Seafood Market (Wikimedia Commons)",
@@ -8441,7 +8441,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-chohaisanxom-2",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Vung_Tau_Beach_On_Holiday.jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/8/80/Vung_Tau_Beach_On_Holiday.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & cảnh quan tại Chợ Hải sản Xóm Lưới (Chợ Hải sản Tươi sống Vũng Tàu) (Ảnh 2)",
           "en": "Architecture & scenery at Xom Luoi Fresh Seafood Market (Photo 2)",
@@ -8454,7 +8454,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-chohaisanxom-3",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/B%C3%A3i_bi%E1%BB%83n_V%C5%A9ng_T%C3%A0u_2016.jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/e/ed/B%C3%A3i_bi%E1%BB%83n_V%C5%A9ng_T%C3%A0u_2016.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & cảnh quan tại Chợ Hải sản Xóm Lưới (Chợ Hải sản Tươi sống Vũng Tàu) (Ảnh 3)",
           "en": "Architecture & scenery at Xom Luoi Fresh Seafood Market (Photo 3)",
@@ -8477,12 +8477,12 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
     ]
   },
   "ben-du-thuyen-vung-tau-marina": {
-    "coverImage": "https://commons.wikimedia.org/wiki/Special:FilePath/HMAS_Derwent_in_Vung_Tau_harbour.jpg?width=1200",
+    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/b/b3/HMAS_Derwent_in_Vung_Tau_harbour.jpg",
     "mediaGallery": [
       {
         "id": "wk-benduthuyenv-1",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/HMAS_Derwent_in_Vung_Tau_harbour.jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/b/b3/HMAS_Derwent_in_Vung_Tau_harbour.jpg",
         "caption": {
           "vi": "Ảnh thực tế toàn cảnh Bến Du thuyền Vũng Tàu Marina (Vịnh Sông Dinh) (Wikimedia Commons)",
           "en": "Real view of Vung Tau Marina (Song Dinh Yacht Club) (Wikimedia Commons)",
@@ -8495,7 +8495,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-benduthuyenv-2",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/AH_17-_duon_di_dao_Long_son,_huyen_dao_Long_son,_ba_ria_Vung_tau_Vietnam_-_panoramio.jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/0/08/AH_17-_duon_di_dao_Long_son,_huyen_dao_Long_son,_ba_ria_Vung_tau_Vietnam_-_panoramio.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & cảnh quan tại Bến Du thuyền Vũng Tàu Marina (Vịnh Sông Dinh) (Ảnh 2)",
           "en": "Architecture & scenery at Vung Tau Marina (Song Dinh Yacht Club) (Photo 2)",
@@ -8508,7 +8508,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-benduthuyenv-3",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Bai_Truoc,_Vung_Tau.jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/3/3e/Bai_Truoc,_Vung_Tau.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & cảnh quan tại Bến Du thuyền Vũng Tàu Marina (Vịnh Sông Dinh) (Ảnh 3)",
           "en": "Architecture & scenery at Vung Tau Marina (Song Dinh Yacht Club) (Photo 3)",
@@ -8531,12 +8531,12 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
     ]
   },
   "nha-tron-ba-ria": {
-    "coverImage": "https://commons.wikimedia.org/wiki/Special:FilePath/Nh%C3%A0_tr%C3%B2n,_%C4%91%C6%B0%E1%BB%9Dng_c%C3%A1ch_m%E1%BA%A1ng_Th%C3%A1ng_t%C3%A1m,_th%E1%BB%8B_x%C3%A3_b%C3%A0_r%E1%BB%8Ba-V%C5%A9ng_t%C3%A0u,_vi%E1%BB%87t_nam_-_panoramio.jpg?width=1200",
+    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/d/d6/Nh%C3%A0_tr%C3%B2n,_%C4%91%C6%B0%E1%BB%9Dng_c%C3%A1ch_m%E1%BA%A1ng_Th%C3%A1ng_t%C3%A1m,_th%E1%BB%8B_x%C3%A3_b%C3%A0_r%E1%BB%8Ba-V%C5%A9ng_t%C3%A0u,_vi%E1%BB%87t_nam_-_panoramio.jpg",
     "mediaGallery": [
       {
         "id": "wk-nhatronbaria-1",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Nh%C3%A0_tr%C3%B2n,_%C4%91%C6%B0%E1%BB%9Dng_c%C3%A1ch_m%E1%BA%A1ng_Th%C3%A1ng_t%C3%A1m,_th%E1%BB%8B_x%C3%A3_b%C3%A0_r%E1%BB%8Ba-V%C5%A9ng_t%C3%A0u,_vi%E1%BB%87t_nam_-_panoramio.jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/d/d6/Nh%C3%A0_tr%C3%B2n,_%C4%91%C6%B0%E1%BB%9Dng_c%C3%A1ch_m%E1%BA%A1ng_Th%C3%A1ng_t%C3%A1m,_th%E1%BB%8B_x%C3%A3_b%C3%A0_r%E1%BB%8Ba-V%C5%A9ng_t%C3%A0u,_vi%E1%BB%87t_nam_-_panoramio.jpg",
         "caption": {
           "vi": "Ảnh thực tế toàn cảnh Di tích Lịch sử Nhà Tròn Bà Rịa (Tháp Nước Cổ) (Wikimedia Commons)",
           "en": "Real view of Ba Ria Round House (Historic Water Tower) (Wikimedia Commons)",
@@ -8549,7 +8549,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-nhatronbaria-2",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/N%C3%BAi_Dinh_B%C3%A0_R%E1%BB%8Ba_(nh%C3%ACn_t%E1%BB%AB_b%E1%BB%9D_s%C3%B4ng_Long_H%C6%B0%C6%A1ng)_-_panoramio.jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/d/d8/N%C3%BAi_Dinh_B%C3%A0_R%E1%BB%8Ba_(nh%C3%ACn_t%E1%BB%AB_b%E1%BB%9D_s%C3%B4ng_Long_H%C6%B0%C6%A1ng)_-_panoramio.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & cảnh quan tại Di tích Lịch sử Nhà Tròn Bà Rịa (Tháp Nước Cổ) (Ảnh 2)",
           "en": "Architecture & scenery at Ba Ria Round House (Historic Water Tower) (Photo 2)",
@@ -8562,7 +8562,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-nhatronbaria-3",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Th%E1%BB%8B_tr%E1%BA%A5n_Ph%C6%B0%E1%BB%9Bc_B%E1%BB%ADu,_Xuy%C3%AAn_M%E1%BB%99c,_BR-VT.jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/a/a8/Th%E1%BB%8B_tr%E1%BA%A5n_Ph%C6%B0%E1%BB%9Bc_B%E1%BB%ADu,_Xuy%C3%AAn_M%E1%BB%99c,_BR-VT.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & cảnh quan tại Di tích Lịch sử Nhà Tròn Bà Rịa (Tháp Nước Cổ) (Ảnh 3)",
           "en": "Architecture & scenery at Ba Ria Round House (Historic Water Tower) (Photo 3)",
@@ -8585,12 +8585,12 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
     ]
   },
   "dia-dao-long-phuoc-ba-ria": {
-    "coverImage": "https://commons.wikimedia.org/wiki/Special:FilePath/Capture_communist_flags_in_Long_Hai_hills,_1968.jpg?width=1200",
+    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/b/be/Capture_communist_flags_in_Long_Hai_hills,_1968.jpg",
     "mediaGallery": [
       {
         "id": "wk-diadaolongph-1",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Capture_communist_flags_in_Long_Hai_hills,_1968.jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/b/be/Capture_communist_flags_in_Long_Hai_hills,_1968.jpg",
         "caption": {
           "vi": "Ảnh thực tế toàn cảnh Di tích Quốc gia Địa đạo Long Phước (1948) (Wikimedia Commons)",
           "en": "Real view of Long Phuoc Tunnels National Monument (1948) (Wikimedia Commons)",
@@ -8603,7 +8603,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-diadaolongph-2",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/N%C3%BAi_Dinh_B%C3%A0_R%E1%BB%8Ba_(nh%C3%ACn_t%E1%BB%AB_b%E1%BB%9D_s%C3%B4ng_Long_H%C6%B0%C6%A1ng)_-_panoramio.jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/d/d8/N%C3%BAi_Dinh_B%C3%A0_R%E1%BB%8Ba_(nh%C3%ACn_t%E1%BB%AB_b%E1%BB%9D_s%C3%B4ng_Long_H%C6%B0%C6%A1ng)_-_panoramio.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & cảnh quan tại Di tích Quốc gia Địa đạo Long Phước (1948) (Ảnh 2)",
           "en": "Architecture & scenery at Long Phuoc Tunnels National Monument (1948) (Photo 2)",
@@ -8616,7 +8616,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-diadaolongph-3",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Nh%C3%A0_tr%C3%B2n,_%C4%91%C6%B0%E1%BB%9Dng_c%C3%A1ch_m%E1%BA%A1ng_Th%C3%A1ng_t%C3%A1m,_th%E1%BB%8B_x%C3%A3_b%C3%A0_r%E1%BB%8Ba-V%C5%A9ng_t%C3%A0u,_vi%E1%BB%87t_nam_-_panoramio.jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/d/d6/Nh%C3%A0_tr%C3%B2n,_%C4%91%C6%B0%E1%BB%9Dng_c%C3%A1ch_m%E1%BA%A1ng_Th%C3%A1ng_t%C3%A1m,_th%E1%BB%8B_x%C3%A3_b%C3%A0_r%E1%BB%8Ba-V%C5%A9ng_t%C3%A0u,_vi%E1%BB%87t_nam_-_panoramio.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & cảnh quan tại Di tích Quốc gia Địa đạo Long Phước (1948) (Ảnh 3)",
           "en": "Architecture & scenery at Long Phuoc Tunnels National Monument (1948) (Photo 3)",
@@ -8639,12 +8639,12 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
     ]
   },
   "can-cu-minh-dam-long-hai": {
-    "coverImage": "https://commons.wikimedia.org/wiki/Special:FilePath/Capture_communist_flags_in_Long_Hai_hills,_1968.jpg?width=1200",
+    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/b/be/Capture_communist_flags_in_Long_Hai_hills,_1968.jpg",
     "mediaGallery": [
       {
         "id": "wk-cancuminhdam-1",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Capture_communist_flags_in_Long_Hai_hills,_1968.jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/b/be/Capture_communist_flags_in_Long_Hai_hills,_1968.jpg",
         "caption": {
           "vi": "Ảnh thực tế toàn cảnh Khu Di tích Lịch sử Quốc gia Căn cứ Minh Đạm (Wikimedia Commons)",
           "en": "Real view of Minh Dam Mountain Revolutionary Base (Wikimedia Commons)",
@@ -8657,7 +8657,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-cancuminhdam-2",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/B%C3%A3i_bi%E1%BB%83n_Long_H%E1%BA%A3i.JPG?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/e/eb/B%C3%A3i_bi%E1%BB%83n_Long_H%E1%BA%A3i.JPG",
         "caption": {
           "vi": "Góc nhìn kiến trúc & cảnh quan tại Khu Di tích Lịch sử Quốc gia Căn cứ Minh Đạm (Ảnh 2)",
           "en": "Architecture & scenery at Minh Dam Mountain Revolutionary Base (Photo 2)",
@@ -8670,7 +8670,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-cancuminhdam-3",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Long_H%E1%BA%A3i,_Long_%C4%90i%E1%BB%81n,_Ba_Ria_-_Vung_Tau,_Vietnam_-_panoramio.jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/4/4a/Long_H%E1%BA%A3i,_Long_%C4%90i%E1%BB%81n,_Ba_Ria_-_Vung_Tau,_Vietnam_-_panoramio.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & cảnh quan tại Khu Di tích Lịch sử Quốc gia Căn cứ Minh Đạm (Ảnh 3)",
           "en": "Architecture & scenery at Minh Dam Mountain Revolutionary Base (Photo 3)",
@@ -8693,12 +8693,12 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
     ]
   },
   "nha-luu-niem-vo-thi-sau-dat-do": {
-    "coverImage": "https://commons.wikimedia.org/wiki/Special:FilePath/Vo_Thi_Sau_memorial.jpg?width=1200",
+    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/6/68/Vo_Thi_Sau_memorial.jpg",
     "mediaGallery": [
       {
         "id": "wk-nhaluuniemvo-1",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Vo_Thi_Sau_memorial.jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/6/68/Vo_Thi_Sau_memorial.jpg",
         "caption": {
           "vi": "Ảnh thực tế toàn cảnh Nhà lưu niệm & Đền thờ Anh hùng Liệt sĩ Võ Thị Sáu (Wikimedia Commons)",
           "en": "Real view of Heroine Vo Thi Sau Memorial House & Shrine (Dat Do) (Wikimedia Commons)",
@@ -8711,7 +8711,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-nhaluuniemvo-2",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/M%E1%BB%99_V%C3%B5_Th%E1%BB%8B_S%C3%A1u.jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/b/b9/M%E1%BB%99_V%C3%B5_Th%E1%BB%8B_S%C3%A1u.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & cảnh quan tại Nhà lưu niệm & Đền thờ Anh hùng Liệt sĩ Võ Thị Sáu (Ảnh 2)",
           "en": "Architecture & scenery at Heroine Vo Thi Sau Memorial House & Shrine (Dat Do) (Photo 2)",
@@ -8724,7 +8724,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-nhaluuniemvo-3",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Long_H%E1%BA%A3i,_Long_%C4%90i%E1%BB%81n,_Ba_Ria_-_Vung_Tau,_Vietnam_-_panoramio.jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/4/4a/Long_H%E1%BA%A3i,_Long_%C4%90i%E1%BB%81n,_Ba_Ria_-_Vung_Tau,_Vietnam_-_panoramio.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & cảnh quan tại Nhà lưu niệm & Đền thờ Anh hùng Liệt sĩ Võ Thị Sáu (Ảnh 3)",
           "en": "Architecture & scenery at Heroine Vo Thi Sau Memorial House & Shrine (Dat Do) (Photo 3)",
@@ -8747,12 +8747,12 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
     ]
   },
   "nui-dinh-chua-hang-phu-my": {
-    "coverImage": "https://commons.wikimedia.org/wiki/Special:FilePath/Su%E1%BB%91i_%C4%90%C3%A1_n%C3%BAi_Dinh_B%C3%A0_R%E1%BB%8Ba_-_panoramio_(31).jpg?width=1200",
+    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/c/cf/Su%E1%BB%91i_%C4%90%C3%A1_n%C3%BAi_Dinh_B%C3%A0_R%E1%BB%8Ba_-_panoramio_(31).jpg",
     "mediaGallery": [
       {
         "id": "wk-nuidinhchuah-1",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Su%E1%BB%91i_%C4%90%C3%A1_n%C3%BAi_Dinh_B%C3%A0_R%E1%BB%8Ba_-_panoramio_(31).jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/c/cf/Su%E1%BB%91i_%C4%90%C3%A1_n%C3%BAi_Dinh_B%C3%A0_R%E1%BB%8Ba_-_panoramio_(31).jpg",
         "caption": {
           "vi": "Ảnh thực tế toàn cảnh Căn cứ Núi Dinh, Chùa Hang & Suối Tiên (Phú Mỹ) (Wikimedia Commons)",
           "en": "Real view of Nui Dinh Mountain Base, Hang Pagoda & Suoi Tien Stream (Wikimedia Commons)",
@@ -8765,7 +8765,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-nuidinhchuah-2",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/%C4%90inh_nui_Dinh_B%C3%A0_Ria_(_Mountian)_-_panoramio.jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/5/50/%C4%90inh_nui_Dinh_B%C3%A0_Ria_(_Mountian)_-_panoramio.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & cảnh quan tại Căn cứ Núi Dinh, Chùa Hang & Suối Tiên (Phú Mỹ) (Ảnh 2)",
           "en": "Architecture & scenery at Nui Dinh Mountain Base, Hang Pagoda & Suoi Tien Stream (Photo 2)",
@@ -8778,7 +8778,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-nuidinhchuah-3",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/N%C3%BAi_Dinh_B%C3%A0_R%E1%BB%8Ba_(nh%C3%ACn_t%E1%BB%AB_b%E1%BB%9D_s%C3%B4ng_Long_H%C6%B0%C6%A1ng)_-_panoramio.jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/d/d8/N%C3%BAi_Dinh_B%C3%A0_R%E1%BB%8Ba_(nh%C3%ACn_t%E1%BB%AB_b%E1%BB%9D_s%C3%B4ng_Long_H%C6%B0%C6%A1ng)_-_panoramio.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & cảnh quan tại Căn cứ Núi Dinh, Chùa Hang & Suối Tiên (Phú Mỹ) (Ảnh 3)",
           "en": "Architecture & scenery at Nui Dinh Mountain Base, Hang Pagoda & Suoi Tien Stream (Photo 3)",
@@ -8801,12 +8801,12 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
     ]
   },
   "ho-da-xanh-phu-my": {
-    "coverImage": "https://commons.wikimedia.org/wiki/Special:FilePath/%C4%90%C6%B0%E1%BB%9Dng_%C4%91i_Su%E1%BB%91i_%C4%90%C3%A1_5_h%E1%BB%93_n%C3%BAi_Dinh_(_B%C3%A0_R%E1%BB%8Ba)_-_panoramio_(7).jpg?width=1200",
+    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/c/c0/%C4%90%C6%B0%E1%BB%9Dng_%C4%91i_Su%E1%BB%91i_%C4%90%C3%A1_5_h%E1%BB%93_n%C3%BAi_Dinh_(_B%C3%A0_R%E1%BB%8Ba)_-_panoramio_(7).jpg",
     "mediaGallery": [
       {
         "id": "wk-hodaxanhphum-1",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/%C4%90%C6%B0%E1%BB%9Dng_%C4%91i_Su%E1%BB%91i_%C4%90%C3%A1_5_h%E1%BB%93_n%C3%BAi_Dinh_(_B%C3%A0_R%E1%BB%8Ba)_-_panoramio_(7).jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/c/c0/%C4%90%C6%B0%E1%BB%9Dng_%C4%91i_Su%E1%BB%91i_%C4%90%C3%A1_5_h%E1%BB%93_n%C3%BAi_Dinh_(_B%C3%A0_R%E1%BB%8Ba)_-_panoramio_(7).jpg",
         "caption": {
           "vi": "Ảnh thực tế toàn cảnh Hồ Đá Xanh (Hồ Ngọc Bích Chân Núi Dinh) (Wikimedia Commons)",
           "en": "Real view of Ho Da Xanh (Emerald Quarry Lake at Nui Dinh) (Wikimedia Commons)",
@@ -8819,7 +8819,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-hodaxanhphum-2",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Su%E1%BB%91i_%C4%90%C3%A1_n%C3%BAi_Dinh_B%C3%A0_R%E1%BB%8Ba_-_panoramio_(24).jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/4/4a/Su%E1%BB%91i_%C4%90%C3%A1_n%C3%BAi_Dinh_B%C3%A0_R%E1%BB%8Ba_-_panoramio_(24).jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & cảnh quan tại Hồ Đá Xanh (Hồ Ngọc Bích Chân Núi Dinh) (Ảnh 2)",
           "en": "Architecture & scenery at Ho Da Xanh (Emerald Quarry Lake at Nui Dinh) (Photo 2)",
@@ -8832,7 +8832,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-hodaxanhphum-3",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/N%C3%BAi_Dinh_B%C3%A0_R%E1%BB%8Ba_(nh%C3%ACn_t%E1%BB%AB_b%E1%BB%9D_s%C3%B4ng_Long_H%C6%B0%C6%A1ng)_-_panoramio.jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/d/d8/N%C3%BAi_Dinh_B%C3%A0_R%E1%BB%8Ba_(nh%C3%ACn_t%E1%BB%AB_b%E1%BB%9D_s%C3%B4ng_Long_H%C6%B0%C6%A1ng)_-_panoramio.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & cảnh quan tại Hồ Đá Xanh (Hồ Ngọc Bích Chân Núi Dinh) (Ảnh 3)",
           "en": "Architecture & scenery at Ho Da Xanh (Emerald Quarry Lake at Nui Dinh) (Photo 3)",
@@ -8855,12 +8855,12 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
     ]
   },
   "doi-cuu-suoi-nghe-chau-duc": {
-    "coverImage": "https://commons.wikimedia.org/wiki/Special:FilePath/Th%E1%BB%8B_tr%E1%BA%A5n_Ph%C6%B0%E1%BB%9Bc_B%E1%BB%ADu,_Xuy%C3%AAn_M%E1%BB%99c,_BR-VT.jpg?width=1200",
+    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/a/a8/Th%E1%BB%8B_tr%E1%BA%A5n_Ph%C6%B0%E1%BB%9Bc_B%E1%BB%ADu,_Xuy%C3%AAn_M%E1%BB%99c,_BR-VT.jpg",
     "mediaGallery": [
       {
         "id": "wk-doicuusuoing-1",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Th%E1%BB%8B_tr%E1%BA%A5n_Ph%C6%B0%E1%BB%9Bc_B%E1%BB%ADu,_Xuy%C3%AAn_M%E1%BB%99c,_BR-VT.jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/a/a8/Th%E1%BB%8B_tr%E1%BA%A5n_Ph%C6%B0%E1%BB%9Bc_B%E1%BB%ADu,_Xuy%C3%AAn_M%E1%BB%99c,_BR-VT.jpg",
         "caption": {
           "vi": "Ảnh thực tế toàn cảnh Đồi Cừu Suối Nghệ (Thảo nguyên Cừu Châu Đức) (Wikimedia Commons)",
           "en": "Real view of Suoi Nghe Sheep Hill (Chau Duc Pastoral Meadow) (Wikimedia Commons)",
@@ -8873,7 +8873,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-doicuusuoing-2",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/N%C3%BAi_Dinh_B%C3%A0_R%E1%BB%8Ba_(nh%C3%ACn_t%E1%BB%AB_b%E1%BB%9D_s%C3%B4ng_Long_H%C6%B0%C6%A1ng)_-_panoramio.jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/d/d8/N%C3%BAi_Dinh_B%C3%A0_R%E1%BB%8Ba_(nh%C3%ACn_t%E1%BB%AB_b%E1%BB%9D_s%C3%B4ng_Long_H%C6%B0%C6%A1ng)_-_panoramio.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & cảnh quan tại Đồi Cừu Suối Nghệ (Thảo nguyên Cừu Châu Đức) (Ảnh 2)",
           "en": "Architecture & scenery at Suoi Nghe Sheep Hill (Chau Duc Pastoral Meadow) (Photo 2)",
@@ -8886,7 +8886,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-doicuusuoing-3",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Su%E1%BB%91i_%C4%90%C3%A1_n%C3%BAi_Dinh_B%C3%A0_R%E1%BB%8Ba_-_panoramio_(31).jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/c/cf/Su%E1%BB%91i_%C4%90%C3%A1_n%C3%BAi_Dinh_B%C3%A0_R%E1%BB%8Ba_-_panoramio_(31).jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & cảnh quan tại Đồi Cừu Suối Nghệ (Thảo nguyên Cừu Châu Đức) (Ảnh 3)",
           "en": "Architecture & scenery at Suoi Nghe Sheep Hill (Chau Duc Pastoral Meadow) (Photo 3)",
@@ -8909,12 +8909,12 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
     ]
   },
   "dinh-co-long-hai": {
-    "coverImage": "https://commons.wikimedia.org/wiki/Special:FilePath/Dinh_C%C3%B4.jpg?width=1200",
+    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/2/23/Dinh_C%C3%B4.jpg",
     "mediaGallery": [
       {
         "id": "wk-dinhcolongha-1",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Dinh_C%C3%B4.jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/2/23/Dinh_C%C3%B4.jpg",
         "caption": {
           "vi": "Ảnh thực tế toàn cảnh Khu Di tích Dinh Cô – Biển Long Hải (Wikimedia Commons)",
           "en": "Real view of Dinh Co Temple & Long Hai Beach (Wikimedia Commons)",
@@ -8927,7 +8927,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-dinhcolongha-2",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/B%C3%A3i_bi%E1%BB%83n_Long_H%E1%BA%A3i.JPG?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/e/eb/B%C3%A3i_bi%E1%BB%83n_Long_H%E1%BA%A3i.JPG",
         "caption": {
           "vi": "Góc nhìn kiến trúc & cảnh quan tại Khu Di tích Dinh Cô – Biển Long Hải (Ảnh 2)",
           "en": "Architecture & scenery at Dinh Co Temple & Long Hai Beach (Photo 2)",
@@ -8940,7 +8940,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-dinhcolongha-3",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Bi%E1%BB%83n_Long_H%E1%BA%A3i.jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/0/01/Bi%E1%BB%83n_Long_H%E1%BA%A3i.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & cảnh quan tại Khu Di tích Dinh Cô – Biển Long Hải (Ảnh 3)",
           "en": "Architecture & scenery at Dinh Co Temple & Long Hai Beach (Photo 3)",
@@ -8963,12 +8963,12 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
     ]
   },
   "deo-nuoc-ngot-phuoc-hai": {
-    "coverImage": "https://commons.wikimedia.org/wiki/Special:FilePath/Bi%E1%BB%83n_Long_H%E1%BA%A3i.jpg?width=1200",
+    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/0/01/Bi%E1%BB%83n_Long_H%E1%BA%A3i.jpg",
     "mediaGallery": [
       {
         "id": "wk-deonuocngotp-1",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Bi%E1%BB%83n_Long_H%E1%BA%A3i.jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/0/01/Bi%E1%BB%83n_Long_H%E1%BA%A3i.jpg",
         "caption": {
           "vi": "Ảnh thực tế toàn cảnh Đèo Nước Ngọt & Làng Chài Phước Hải (Wikimedia Commons)",
           "en": "Real view of Nuoc Ngot Coastal Pass & Phuoc Hai Fishing Village (Wikimedia Commons)",
@@ -8981,7 +8981,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-deonuocngotp-2",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Long_H%E1%BA%A3i,_Long_%C4%90i%E1%BB%81n,_Ba_Ria_-_Vung_Tau,_Vietnam_-_panoramio.jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/4/4a/Long_H%E1%BA%A3i,_Long_%C4%90i%E1%BB%81n,_Ba_Ria_-_Vung_Tau,_Vietnam_-_panoramio.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & cảnh quan tại Đèo Nước Ngọt & Làng Chài Phước Hải (Ảnh 2)",
           "en": "Architecture & scenery at Nuoc Ngot Coastal Pass & Phuoc Hai Fishing Village (Photo 2)",
@@ -8994,7 +8994,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-deonuocngotp-3",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/B%C3%A3i_bi%E1%BB%83n_Long_H%E1%BA%A3i.JPG?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/e/eb/B%C3%A3i_bi%E1%BB%83n_Long_H%E1%BA%A3i.JPG",
         "caption": {
           "vi": "Góc nhìn kiến trúc & cảnh quan tại Đèo Nước Ngọt & Làng Chài Phước Hải (Ảnh 3)",
           "en": "Architecture & scenery at Nuoc Ngot Coastal Pass & Phuoc Hai Fishing Village (Photo 3)",
@@ -9017,12 +9017,12 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
     ]
   },
   "ben-tau-khong-so-loc-an": {
-    "coverImage": "https://commons.wikimedia.org/wiki/Special:FilePath/Ho_Tram_Beach.jpg?width=1200",
+    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/4/43/Ho_Tram_Beach.jpg",
     "mediaGallery": [
       {
         "id": "wk-bentaukhongs-1",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Ho_Tram_Beach.jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/4/43/Ho_Tram_Beach.jpg",
         "caption": {
           "vi": "Ảnh thực tế toàn cảnh Di tích Bến Lộc An (Đường Hồ Chí Minh trên biển) (Wikimedia Commons)",
           "en": "Real view of Loc An Historic Pier (Ho Chi Minh Sea Trail Monument) (Wikimedia Commons)",
@@ -9035,7 +9035,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-bentaukhongs-2",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Long_H%E1%BA%A3i,_Long_%C4%90i%E1%BB%81n,_Ba_Ria_-_Vung_Tau,_Vietnam_-_panoramio.jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/4/4a/Long_H%E1%BA%A3i,_Long_%C4%90i%E1%BB%81n,_Ba_Ria_-_Vung_Tau,_Vietnam_-_panoramio.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & cảnh quan tại Di tích Bến Lộc An (Đường Hồ Chí Minh trên biển) (Ảnh 2)",
           "en": "Architecture & scenery at Loc An Historic Pier (Ho Chi Minh Sea Trail Monument) (Photo 2)",
@@ -9048,7 +9048,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-bentaukhongs-3",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Bi%E1%BB%83n_%E1%BB%9F_H%E1%BB%93_C%C3%B3c.jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/e/e2/Bi%E1%BB%83n_%E1%BB%9F_H%E1%BB%93_C%C3%B3c.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & cảnh quan tại Di tích Bến Lộc An (Đường Hồ Chí Minh trên biển) (Ảnh 3)",
           "en": "Architecture & scenery at Loc An Historic Pier (Ho Chi Minh Sea Trail Monument) (Photo 3)",
@@ -9071,12 +9071,12 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
     ]
   },
   "bien-ho-tram-hamptons-pier": {
-    "coverImage": "https://commons.wikimedia.org/wiki/Special:FilePath/Ho_Tram_Beach.jpg?width=1200",
+    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/4/43/Ho_Tram_Beach.jpg",
     "mediaGallery": [
       {
         "id": "wk-bienhotramha-1",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Ho_Tram_Beach.jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/4/43/Ho_Tram_Beach.jpg",
         "caption": {
           "vi": "Ảnh thực tế toàn cảnh Biển Hồ Tràm & Cầu Ngắm Biển Hamptons Pier (Wikimedia Commons)",
           "en": "Real view of Ho Tram Beach & Hamptons Pier (Ocean Walk Bridge) (Wikimedia Commons)",
@@ -9089,7 +9089,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-bienhotramha-2",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/The_Grand_Ho_Tram_Strip_in_Vietnam.jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/8/8a/The_Grand_Ho_Tram_Strip_in_Vietnam.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & cảnh quan tại Biển Hồ Tràm & Cầu Ngắm Biển Hamptons Pier (Ảnh 2)",
           "en": "Architecture & scenery at Ho Tram Beach & Hamptons Pier (Ocean Walk Bridge) (Photo 2)",
@@ -9102,7 +9102,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-bienhotramha-3",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/KND_H%E1%BB%93_Tr%C3%A0m_%E1%BB%9F_V%C5%A9ng_T%C3%A0u,_th01n2021_(c%E1%BA%A3nh_ki%E1%BA%BFn_tr%C3%BAc)_(3).jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/1/1e/KND_H%E1%BB%93_Tr%C3%A0m_%E1%BB%9F_V%C5%A9ng_T%C3%A0u,_th01n2021_(c%E1%BA%A3nh_ki%E1%BA%BFn_tr%C3%BAc)_(3).jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & cảnh quan tại Biển Hồ Tràm & Cầu Ngắm Biển Hamptons Pier (Ảnh 3)",
           "en": "Architecture & scenery at Ho Tram Beach & Hamptons Pier (Ocean Walk Bridge) (Photo 3)",
@@ -9125,12 +9125,12 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
     ]
   },
   "bien-ho-coc-xuyen-moc": {
-    "coverImage": "https://commons.wikimedia.org/wiki/Special:FilePath/Bi%E1%BB%83n_%E1%BB%9F_H%E1%BB%93_C%C3%B3c.jpg?width=1200",
+    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/e/e2/Bi%E1%BB%83n_%E1%BB%9F_H%E1%BB%93_C%C3%B3c.jpg",
     "mediaGallery": [
       {
         "id": "wk-bienhococxuy-1",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Bi%E1%BB%83n_%E1%BB%9F_H%E1%BB%93_C%C3%B3c.jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/e/e2/Bi%E1%BB%83n_%E1%BB%9F_H%E1%BB%93_C%C3%B3c.jpg",
         "caption": {
           "vi": "Ảnh thực tế toàn cảnh Biển Hồ Cốc (Cung đường Rừng – Biển Xuyên Mộc) (Wikimedia Commons)",
           "en": "Real view of Ho Coc Beach (Pristine Forest-Meets-Sea Coast) (Wikimedia Commons)",
@@ -9143,7 +9143,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-bienhococxuy-2",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/C%E1%BA%A3nh_%E1%BB%9F_H%E1%BB%93_C%C3%B3c.jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/c/cd/C%E1%BA%A3nh_%E1%BB%9F_H%E1%BB%93_C%C3%B3c.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & cảnh quan tại Biển Hồ Cốc (Cung đường Rừng – Biển Xuyên Mộc) (Ảnh 2)",
           "en": "Architecture & scenery at Ho Coc Beach (Pristine Forest-Meets-Sea Coast) (Photo 2)",
@@ -9156,7 +9156,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-bienhococxuy-3",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Ho_coc_beach_.jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/2/2c/Ho_coc_beach_.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & cảnh quan tại Biển Hồ Cốc (Cung đường Rừng – Biển Xuyên Mộc) (Ảnh 3)",
           "en": "Architecture & scenery at Ho Coc Beach (Pristine Forest-Meets-Sea Coast) (Photo 3)",
@@ -9179,12 +9179,12 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
     ]
   },
   "suoi-khoang-nong-binh-chau": {
-    "coverImage": "https://commons.wikimedia.org/wiki/Special:FilePath/C%C3%B4ng_vi%C3%AAn_B%E1%BB%9D_H%E1%BB%93,_ph%C6%B0%E1%BB%9Bc_b%E1%BB%ADu,_xuy%C3%AAn_m%E1%BB%99c,_b%C3%A0_r%E1%BB%8Ba-v%C5%A9ng_t%C3%A0u_(3).jpg?width=1200",
+    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/0/0d/C%C3%B4ng_vi%C3%AAn_B%E1%BB%9D_H%E1%BB%93,_ph%C6%B0%E1%BB%9Bc_b%E1%BB%ADu,_xuy%C3%AAn_m%E1%BB%99c,_b%C3%A0_r%E1%BB%8Ba-v%C5%A9ng_t%C3%A0u_(3).jpg",
     "mediaGallery": [
       {
         "id": "wk-suoikhoangno-1",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/C%C3%B4ng_vi%C3%AAn_B%E1%BB%9D_H%E1%BB%93,_ph%C6%B0%E1%BB%9Bc_b%E1%BB%ADu,_xuy%C3%AAn_m%E1%BB%99c,_b%C3%A0_r%E1%BB%8Ba-v%C5%A9ng_t%C3%A0u_(3).jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/0/0d/C%C3%B4ng_vi%C3%AAn_B%E1%BB%9D_H%E1%BB%93,_ph%C6%B0%E1%BB%9Bc_b%E1%BB%ADu,_xuy%C3%AAn_m%E1%BB%99c,_b%C3%A0_r%E1%BB%8Ba-v%C5%A9ng_t%C3%A0u_(3).jpg",
         "caption": {
           "vi": "Ảnh thực tế toàn cảnh Suối Khoáng Nóng Bình Châu & Rừng Nguyên Sinh Phước Bửu (Wikimedia Commons)",
           "en": "Real view of Binh Chau Natural Hot Springs & Phuoc Buu Nature Reserve (Wikimedia Commons)",
@@ -9197,7 +9197,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-suoikhoangno-2",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/C%C3%B4ng_vi%C3%AAn_B%E1%BB%9D_H%E1%BB%93,_ph%C6%B0%E1%BB%9Bc_b%E1%BB%ADu,_xuy%C3%AAn_m%E1%BB%99c,_b%C3%A0_r%E1%BB%8Ba-v%C5%A9ng_t%C3%A0u_(6).jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/1/1c/C%C3%B4ng_vi%C3%AAn_B%E1%BB%9D_H%E1%BB%93,_ph%C6%B0%E1%BB%9Bc_b%E1%BB%ADu,_xuy%C3%AAn_m%E1%BB%99c,_b%C3%A0_r%E1%BB%8Ba-v%C5%A9ng_t%C3%A0u_(6).jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & cảnh quan tại Suối Khoáng Nóng Bình Châu & Rừng Nguyên Sinh Phước Bửu (Ảnh 2)",
           "en": "Architecture & scenery at Binh Chau Natural Hot Springs & Phuoc Buu Nature Reserve (Photo 2)",
@@ -9210,7 +9210,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-suoikhoangno-3",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Th%E1%BB%8B_tr%E1%BA%A5n_Ph%C6%B0%E1%BB%9Bc_B%E1%BB%ADu,_Xuy%C3%AAn_M%E1%BB%99c,_BR-VT.jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/a/a8/Th%E1%BB%8B_tr%E1%BA%A5n_Ph%C6%B0%E1%BB%9Bc_B%E1%BB%ADu,_Xuy%C3%AAn_M%E1%BB%99c,_BR-VT.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & cảnh quan tại Suối Khoáng Nóng Bình Châu & Rừng Nguyên Sinh Phước Bửu (Ảnh 3)",
           "en": "Architecture & scenery at Binh Chau Natural Hot Springs & Phuoc Buu Nature Reserve (Photo 3)",
@@ -9233,12 +9233,12 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
     ]
   },
   "nha-tu-con-dao": {
-    "coverImage": "https://commons.wikimedia.org/wiki/Special:FilePath/Nh%C3%A0_t%C3%B9_C%C3%B4n_%C4%90%E1%BA%A3o.JPG?width=1200",
+    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/d/d5/Nh%C3%A0_t%C3%B9_C%C3%B4n_%C4%90%E1%BA%A3o.JPG",
     "mediaGallery": [
       {
         "id": "wk-nhatucondao-1",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Nh%C3%A0_t%C3%B9_C%C3%B4n_%C4%90%E1%BA%A3o.JPG?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/d/d5/Nh%C3%A0_t%C3%B9_C%C3%B4n_%C4%90%E1%BA%A3o.JPG",
         "caption": {
           "vi": "Ảnh thực tế toàn cảnh Di tích Quốc gia Đặc biệt Nhà tù Côn Đảo (Wikimedia Commons)",
           "en": "Real view of Con Dao Prison Special National Monument (Wikimedia Commons)",
@@ -9251,7 +9251,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-nhatucondao-2",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Con_Dao_prison,_Vietnam.JPG?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/9/92/Con_Dao_prison,_Vietnam.JPG",
         "caption": {
           "vi": "Góc nhìn kiến trúc & cảnh quan tại Di tích Quốc gia Đặc biệt Nhà tù Côn Đảo (Ảnh 2)",
           "en": "Architecture & scenery at Con Dao Prison Special National Monument (Photo 2)",
@@ -9264,7 +9264,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-nhatucondao-3",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/C%C3%B4n_%C4%90%E1%BA%A3o_Prison.jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/6/61/C%C3%B4n_%C4%90%E1%BA%A3o_Prison.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & cảnh quan tại Di tích Quốc gia Đặc biệt Nhà tù Côn Đảo (Ảnh 3)",
           "en": "Architecture & scenery at Con Dao Prison Special National Monument (Photo 3)",
@@ -9287,12 +9287,12 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
     ]
   },
   "nghia-trang-hang-duong-con-dao": {
-    "coverImage": "https://commons.wikimedia.org/wiki/Special:FilePath/M%E1%BB%99_V%C3%B5_Th%E1%BB%8B_S%C3%A1u.jpg?width=1200",
+    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/b/b9/M%E1%BB%99_V%C3%B5_Th%E1%BB%8B_S%C3%A1u.jpg",
     "mediaGallery": [
       {
         "id": "wk-nghiatrangha-1",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/M%E1%BB%99_V%C3%B5_Th%E1%BB%8B_S%C3%A1u.jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/b/b9/M%E1%BB%99_V%C3%B5_Th%E1%BB%8B_S%C3%A1u.jpg",
         "caption": {
           "vi": "Ảnh thực tế toàn cảnh Nghĩa trang Hàng Dương & Mộ Chị Võ Thị Sáu (Wikimedia Commons)",
           "en": "Real view of Hang Duong Cemetery & Vo Thi Sau Memorial (Wikimedia Commons)",
@@ -9305,7 +9305,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-nghiatrangha-2",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Nh%C3%A0_t%C3%B9_C%C3%B4n_%C4%90%E1%BA%A3o.JPG?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/d/d5/Nh%C3%A0_t%C3%B9_C%C3%B4n_%C4%90%E1%BA%A3o.JPG",
         "caption": {
           "vi": "Góc nhìn kiến trúc & cảnh quan tại Nghĩa trang Hàng Dương & Mộ Chị Võ Thị Sáu (Ảnh 2)",
           "en": "Architecture & scenery at Hang Duong Cemetery & Vo Thi Sau Memorial (Photo 2)",
@@ -9318,7 +9318,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-nghiatrangha-3",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/ConDao_park_dam.jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/5/5d/ConDao_park_dam.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & cảnh quan tại Nghĩa trang Hàng Dương & Mộ Chị Võ Thị Sáu (Ảnh 3)",
           "en": "Architecture & scenery at Hang Duong Cemetery & Vo Thi Sau Memorial (Photo 3)",
@@ -9341,12 +9341,12 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
     ]
   },
   "chua-nui-mot-van-son-tu-con-dao": {
-    "coverImage": "https://commons.wikimedia.org/wiki/Special:FilePath/Ch%C3%B9a_V%C3%A2n_S%C6%A1n_%E1%BB%9F_C%C3%B4n_%C4%90%E1%BA%A3o_(1).jpg?width=1200",
+    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/3/37/Ch%C3%B9a_V%C3%A2n_S%C6%A1n_%E1%BB%9F_C%C3%B4n_%C4%90%E1%BA%A3o_(1).jpg",
     "mediaGallery": [
       {
         "id": "wk-chuanuimotva-1",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Ch%C3%B9a_V%C3%A2n_S%C6%A1n_%E1%BB%9F_C%C3%B4n_%C4%90%E1%BA%A3o_(1).jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/3/37/Ch%C3%B9a_V%C3%A2n_S%C6%A1n_%E1%BB%9F_C%C3%B4n_%C4%90%E1%BA%A3o_(1).jpg",
         "caption": {
           "vi": "Ảnh thực tế toàn cảnh Chùa Núi Một (Vân Sơn Tự) – Côn Đảo (Wikimedia Commons)",
           "en": "Real view of Van Son Tu (Nui Mot Pagoda, Con Dao) (Wikimedia Commons)",
@@ -9359,7 +9359,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-chuanuimotva-2",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/An_S%C6%A1n_Mi%E1%BA%BFu_%E1%BB%9F_C%C3%B4n_%C4%90%E1%BA%A3o_n%C6%A1i_th%E1%BB%9D_b%C3%A0_Phi_Y%E1%BA%BFn.jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/d/d5/An_S%C6%A1n_Mi%E1%BA%BFu_%E1%BB%9F_C%C3%B4n_%C4%90%E1%BA%A3o_n%C6%A1i_th%E1%BB%9D_b%C3%A0_Phi_Y%E1%BA%BFn.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & cảnh quan tại Chùa Núi Một (Vân Sơn Tự) – Côn Đảo (Ảnh 2)",
           "en": "Architecture & scenery at Van Son Tu (Nui Mot Pagoda, Con Dao) (Photo 2)",
@@ -9372,7 +9372,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-chuanuimotva-3",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/ConDao_park_dam.jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/5/5d/ConDao_park_dam.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & cảnh quan tại Chùa Núi Một (Vân Sơn Tự) – Côn Đảo (Ảnh 3)",
           "en": "Architecture & scenery at Van Son Tu (Nui Mot Pagoda, Con Dao) (Photo 3)",
@@ -9395,12 +9395,12 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
     ]
   },
   "bai-dam-trau-vuon-quoc-gia-con-dao": {
-    "coverImage": "https://commons.wikimedia.org/wiki/Special:FilePath/ConDao_park_dam.jpg?width=1200",
+    "coverImage": "https://upload.wikimedia.org/wikipedia/commons/5/5d/ConDao_park_dam.jpg",
     "mediaGallery": [
       {
         "id": "wk-baidamtrauvu-1",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/ConDao_park_dam.jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/5/5d/ConDao_park_dam.jpg",
         "caption": {
           "vi": "Ảnh thực tế toàn cảnh Bãi Đầm Trầu & Vườn Quốc gia Côn Đảo (Khu Ramsar Thế giới) (Wikimedia Commons)",
           "en": "Real view of Dam Trau Beach & Con Dao National Park (Ramsar Site) (Wikimedia Commons)",
@@ -9413,7 +9413,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-baidamtrauvu-2",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Beach_view_from_Six_Senses_Resort_in_C%C3%B4n_%C4%90%E1%BA%A3o_(April_2022).jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/6/6e/Beach_view_from_Six_Senses_Resort_in_C%C3%B4n_%C4%90%E1%BA%A3o_(April_2022).jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & cảnh quan tại Bãi Đầm Trầu & Vườn Quốc gia Côn Đảo (Khu Ramsar Thế giới) (Ảnh 2)",
           "en": "Architecture & scenery at Dam Trau Beach & Con Dao National Park (Ramsar Site) (Photo 2)",
@@ -9426,7 +9426,7 @@ export const WIKIPEDIA_ENRICHMENT_BY_SITE: Record<string, WikipediaSiteEnrichmen
       {
         "id": "wk-baidamtrauvu-3",
         "type": "image",
-        "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Con_Dao.jpg?width=1200",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/4/45/Con_Dao.jpg",
         "caption": {
           "vi": "Góc nhìn kiến trúc & cảnh quan tại Bãi Đầm Trầu & Vườn Quốc gia Côn Đảo (Khu Ramsar Thế giới) (Ảnh 3)",
           "en": "Architecture & scenery at Dam Trau Beach & Con Dao National Park (Ramsar Site) (Photo 3)",

@@ -1013,6 +1013,12 @@ function buildExplorerMapHtml(
           } catch (e) {}
         }
 
+        var pinImageCache = {};
+        var photoLoadQueue = [];
+        var activePhotoLoads = 0;
+        var MAX_CONCURRENT_PHOTO_LOADS = 5;
+        var directWikimediaErrors = 0;
+
         function scheduleSpriteSourceRefresh() {
           if (spriteRefreshTimer) return;
           spriteRefreshTimer = setTimeout(function() {
@@ -1020,7 +1026,139 @@ function buildExplorerMapHtml(
             if (styleReady && lastKnownSites.length) {
               syncGpuMarkers(lastKnownSites, lastShowRestaurants);
             }
-          }, 110);
+          }, 90);
+        }
+
+        function buildPinPhotoCandidates(rawUrl) {
+          if (!rawUrl) return [];
+          var clean = String(rawUrl).split('?')[0];
+          clean = clean.replace(/^https:\/\/thumb\.wikimedia\.org\//, 'https://upload.wikimedia.org/');
+
+          var thumbUrl = '';
+          if (clean.indexOf('https://upload.wikimedia.org/wikipedia/commons/thumb/') === 0) {
+            thumbUrl = clean.replace(/\/\d+px-([^/]+)$/, '/250px-$1');
+          } else {
+            var m = clean.match(/^https:\/\/upload\.wikimedia\.org\/wikipedia\/commons\/([0-9a-f]\/[0-9a-f]{2})\/([^/]+)$/i);
+            if (m) {
+              var fname = m[2];
+              var ext = fname.toLowerCase();
+              var thumbName = (ext.endsWith('.png') || ext.endsWith('.jpg') || ext.endsWith('.jpeg')) ? ('250px-' + fname) : ('250px-' + fname + '.jpg');
+              thumbUrl = 'https://upload.wikimedia.org/wikipedia/commons/thumb/' + m[1] + '/' + fname + '/' + thumbName;
+            }
+          }
+
+          var wsrvUrl = 'https://wsrv.nl/?url=' + encodeURIComponent(clean) + '&w=128&h=128&fit=cover&output=webp';
+          var list = [];
+          if (directWikimediaErrors >= 2) {
+            list.push({ url: wsrvUrl, isDirectWm: false });
+            if (thumbUrl && thumbUrl !== clean) list.push({ url: thumbUrl, isDirectWm: true });
+            list.push({ url: clean, isDirectWm: true });
+          } else {
+            if (thumbUrl && thumbUrl !== clean) list.push({ url: thumbUrl, isDirectWm: true });
+            list.push({ url: wsrvUrl, isDirectWm: false });
+            list.push({ url: clean, isDirectWm: true });
+          }
+          return list;
+        }
+
+        function registerSiteSpriteFromImg(site, spriteId, imgObj) {
+          var accent = site.isVisited ? '#047857' : '#B93815';
+          var badge = site.isVisited ? '✓' : String(site.index);
+          try {
+            if (styleReady && !map.hasImage(spriteId)) {
+              map.addImage(spriteId, drawPinCanvas(imgObj, accent, badge), { pixelRatio: 2 });
+            }
+            loadedPhotoSprites[spriteId] = true;
+            scheduleSpriteSourceRefresh();
+            return true;
+          } catch (err) {
+            return false;
+          }
+        }
+
+        function prioritizePhotoQueueByViewport() {
+          if (photoLoadQueue.length < 2 || !map || typeof map.getBounds !== 'function') return;
+          try {
+            var b = map.getBounds();
+            var c = map.getCenter();
+            photoLoadQueue.sort(function(a, bb) {
+              var sa = a.site;
+              var sb = bb.site;
+              var aIn = b.contains([sa.lng, sa.lat]) ? 0 : 1;
+              var bIn = b.contains([sb.lng, sb.lat]) ? 0 : 1;
+              if (aIn !== bIn) return aIn - bIn;
+              var da = Math.pow(sa.lat - c.lat, 2) + Math.pow(sa.lng - c.lng, 2);
+              var db = Math.pow(sb.lat - c.lat, 2) + Math.pow(sb.lng - c.lng, 2);
+              return da - db;
+            });
+          } catch (e) {}
+        }
+
+        function pumpPhotoLoadQueue() {
+          if (!styleReady) return;
+          prioritizePhotoQueueByViewport();
+          while (activePhotoLoads < MAX_CONCURRENT_PHOTO_LOADS && photoLoadQueue.length > 0) {
+            var job = photoLoadQueue.shift();
+            if (!job) break;
+            if (map.hasImage(job.spriteId)) {
+              loadedPhotoSprites[job.spriteId] = true;
+              delete loadingPhotoSprites[job.spriteId];
+              continue;
+            }
+            activePhotoLoads++;
+            (function(task) {
+              var candidates = buildPinPhotoCandidates(task.site.coverImage);
+              var candIdx = 0;
+
+              function finishJob(imgObj) {
+                activePhotoLoads = Math.max(0, activePhotoLoads - 1);
+                delete loadingPhotoSprites[task.spriteId];
+                if (imgObj) {
+                  pinImageCache[task.site.coverImage] = imgObj;
+                  if (!registerSiteSpriteFromImg(task.site, task.spriteId, imgObj)) {
+                    registerSiteSpriteFromImg(task.site, task.spriteId, null);
+                  }
+                } else {
+                  registerSiteSpriteFromImg(task.site, task.spriteId, null);
+                }
+                setTimeout(pumpPhotoLoadQueue, 35);
+              }
+
+              function tryNextCandidate() {
+                if (candIdx >= candidates.length) {
+                  finishJob(null);
+                  return;
+                }
+                var cand = candidates[candIdx++];
+                var img = new Image();
+                img.crossOrigin = 'anonymous';
+                var settled = false;
+                var timeoutId = setTimeout(function() {
+                  if (settled) return;
+                  settled = true;
+                  if (cand.isDirectWm) directWikimediaErrors++;
+                  tryNextCandidate();
+                }, 7500);
+                img.onload = function() {
+                  if (settled) return;
+                  settled = true;
+                  clearTimeout(timeoutId);
+                  if (cand.isDirectWm) directWikimediaErrors = 0;
+                  finishJob(img);
+                };
+                img.onerror = function() {
+                  if (settled) return;
+                  settled = true;
+                  clearTimeout(timeoutId);
+                  if (cand.isDirectWm) directWikimediaErrors++;
+                  tryNextCandidate();
+                };
+                img.src = cand.url;
+              }
+
+              tryNextCandidate();
+            })(job);
+          }
         }
 
         function ensureSitePhotoSprite(site) {
@@ -1029,38 +1167,21 @@ function buildExplorerMapHtml(
             loadedPhotoSprites[spriteId] = true;
             return spriteId;
           }
-          if (loadingPhotoSprites[spriteId] || !site.coverImage) {
-            return site.isVisited ? 'shg-pin-visited' : 'shg-pin-default';
+          if (!site.coverImage) {
+            registerSiteSpriteFromImg(site, spriteId, null);
+            return map.hasImage(spriteId) ? spriteId : (site.isVisited ? 'shg-pin-visited' : 'shg-pin-default');
           }
-          loadingPhotoSprites[spriteId] = true;
-          var img = new Image();
-          img.crossOrigin = 'anonymous';
-          img.onload = function() {
-            try {
-              if (!map.hasImage(spriteId)) {
-                var accent = site.isVisited ? '#047857' : '#B93815';
-                var badge = site.isVisited ? '✓' : String(site.index);
-                map.addImage(spriteId, drawPinCanvas(img, accent, badge), { pixelRatio: 2 });
-              }
-              loadedPhotoSprites[spriteId] = true;
-              scheduleSpriteSourceRefresh();
-            } catch (err) {
-              // CORS-restricted fallback: crisp numbered badge sprite without photo
-              try {
-                if (!map.hasImage(spriteId)) {
-                  var accent2 = site.isVisited ? '#047857' : '#B93815';
-                  var badge2 = site.isVisited ? '✓' : String(site.index);
-                  map.addImage(spriteId, drawPinCanvas(null, accent2, badge2), { pixelRatio: 2 });
-                }
-                loadedPhotoSprites[spriteId] = true;
-                scheduleSpriteSourceRefresh();
-              } catch (e2) {}
+          // Instant RAM redraw after style switches (0 network requests!)
+          if (pinImageCache[site.coverImage]) {
+            if (registerSiteSpriteFromImg(site, spriteId, pinImageCache[site.coverImage])) {
+              return spriteId;
             }
-          };
-          img.onerror = function() {
-            delete loadingPhotoSprites[spriteId];
-          };
-          img.src = site.coverImage;
+          }
+          if (!loadingPhotoSprites[spriteId]) {
+            loadingPhotoSprites[spriteId] = true;
+            photoLoadQueue.push({ site: site, spriteId: spriteId });
+            pumpPhotoLoadQueue();
+          }
           return site.isVisited ? 'shg-pin-visited' : 'shg-pin-default';
         }
 
@@ -1644,6 +1765,7 @@ function buildExplorerMapHtml(
           styleReady = false;
           loadedPhotoSprites = {};
           loadingPhotoSprites = {};
+          photoLoadQueue = [];
 
           var is3DCapable = cfg.renderMode === 'mapbox' || cfg.renderMode === 'vector';
           if (!is3DCapable) {
@@ -1659,6 +1781,7 @@ function buildExplorerMapHtml(
           styleReady = true;
           loadedPhotoSprites = {};
           loadingPhotoSprites = {};
+          photoLoadQueue = [];
           applyMapboxOrOsmEnhancements(map, currentTile, is3DEnabled, currentLightPreset);
           ensureCustomOverlayLayers();
           syncHcmcFocusLayer(isFocusHcmcOnly, false);
@@ -1666,6 +1789,12 @@ function buildExplorerMapHtml(
           syncRouteLayer(lastRouteData, false);
           if (lastKnownSites.length) {
             syncGpuMarkers(lastKnownSites, lastShowRestaurants);
+          }
+        });
+
+        map.on('moveend', function() {
+          if (styleReady && photoLoadQueue.length > 0) {
+            pumpPhotoLoadQueue();
           }
         });
 
