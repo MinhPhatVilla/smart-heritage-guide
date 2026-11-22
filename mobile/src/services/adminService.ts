@@ -38,6 +38,8 @@ export interface AdminSiteFormInput {
   nameVi: string;
   nameEn: string;
   shortSummaryVi: string;
+  architecturalHighlightsText?: string;
+  audioScriptText?: string;
   historicalEra: string;
   openingHours: string;
   city: string;
@@ -89,21 +91,35 @@ export function buildHeritageSiteFromForm(
   const nameEn = form.nameEn.trim() || form.nameVi.trim();
   const baseVi = existing?.translations.vi;
 
+  const parsedHighlights = (form.architecturalHighlightsText || '')
+    .split('\n')
+    .map((line) => line.replace(/^[-•*]\s*/, '').trim())
+    .filter(Boolean);
+
+  const parsedAudioScript = (form.audioScriptText || '')
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean);
+
   const viContent = {
     name: form.nameVi.trim(),
     shortSummary: summaryVi,
     historicalEra: form.historicalEra.trim() || baseVi?.historicalEra || 'TP. Hồ Chí Minh',
     openingHours: form.openingHours.trim() || baseVi?.openingHours || '07:30 – 17:30 Hàng ngày',
     architecturalHighlights:
-      baseVi?.architecturalHighlights && baseVi.architecturalHighlights.length > 0
-        ? baseVi.architecturalHighlights
-        : ['Công trình di sản văn hóa – lịch sử tiêu biểu tại TP. Hồ Chí Minh'],
+      parsedHighlights.length > 0
+        ? parsedHighlights
+        : baseVi?.architecturalHighlights && baseVi.architecturalHighlights.length > 0
+          ? baseVi.architecturalHighlights
+          : ['Công trình di sản văn hóa – lịch sử tiêu biểu tại TP. Hồ Chí Minh'],
     audioScript:
-      baseVi?.audioScript && baseVi.audioScript.length > 0
-        ? baseVi.audioScript
-        : [
-            `Chào mừng quý khách đến với ${form.nameVi.trim()}, tọa lạc tại ${form.address.trim() || form.city.trim()}. ${summaryVi}`,
-          ],
+      parsedAudioScript.length > 0
+        ? parsedAudioScript
+        : baseVi?.audioScript && baseVi.audioScript.length > 0
+          ? baseVi.audioScript
+          : [
+              `Chào mừng quý khách đến với ${form.nameVi.trim()}, tọa lạc tại ${form.address.trim() || form.city.trim()}. ${summaryVi}`,
+            ],
   };
 
   const enContent = existing?.translations.en

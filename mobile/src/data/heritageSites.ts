@@ -478,6 +478,19 @@ export const HERITAGE_SITES: HeritageSite[] = BASE_HERITAGE_SITES.map((site) => 
   const overture = OVERTURE_RESTAURANTS_BY_SITE[site.id] ?? [];
   const wiki = WIKIPEDIA_ENRICHMENT_BY_SITE[site.id];
 
+  if (wiki?.translations) {
+    return {
+      ...site,
+      coverImage: wiki.coverImage || site.coverImage,
+      mediaGallery:
+        wiki.mediaGallery && wiki.mediaGallery.length > 0
+          ? wiki.mediaGallery
+          : site.mediaGallery,
+      translations: wiki.translations,
+      nearbyRestaurants: [...curated, ...overture],
+    };
+  }
+
   const viBase = site.translations.vi;
   const enBase = site.translations.en;
 

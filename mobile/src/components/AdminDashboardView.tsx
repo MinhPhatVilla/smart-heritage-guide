@@ -21,6 +21,7 @@ import {
   Edit3,
   Landmark,
   LocateFixed,
+  Map as MapIcon,
   MapPin,
   Plus,
   RefreshCw,
@@ -57,6 +58,11 @@ import {
   slugifyVietnamese,
 } from '../services/adminService';
 import { OVERTURE_PLACES_RELEASE } from '../data/overtureRestaurants';
+import {
+  AdminMapPickerModal,
+  ExistingMapPoint,
+  MapPickedLocation,
+} from './AdminMapPickerModal';
 import { COLORS, RADII, SERIF_FONT, SHADOWS, SPACING } from '../theme';
 
 export interface AdminDashboardViewProps {
@@ -121,11 +127,14 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
   // Site Form Modal state
   const [siteModalVisible, setSiteModalVisible] = useState<boolean>(false);
   const [editingSite, setEditingSite] = useState<HeritageSite | null>(null);
+  const [mapPickerTarget, setMapPickerTarget] = useState<'site' | 'restaurant' | null>(null);
   const [siteForm, setSiteForm] = useState<AdminSiteFormInput>({
     id: '',
     nameVi: '',
     nameEn: '',
     shortSummaryVi: '',
+    architecturalHighlightsText: '',
+    audioScriptText: '',
     historicalEra: '',
     openingHours: '07:30 – 17:30 Hàng ngày',
     city: 'Quận 1 · TP.HCM',
@@ -240,6 +249,8 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
       nameVi: '',
       nameEn: '',
       shortSummaryVi: '',
+      architecturalHighlightsText: '',
+      audioScriptText: '',
       historicalEra: 'Thế kỷ XIX – XX',
       openingHours: '07:30 – 17:30 Hàng ngày',
       city: 'Quận 1 · TP.HCM',
@@ -265,6 +276,10 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
       nameVi: site.translations.vi.name,
       nameEn: site.translations.en.name,
       shortSummaryVi: site.translations.vi.shortSummary,
+      architecturalHighlightsText: (
+        site.translations.vi.architecturalHighlights || []
+      ).join('\n'),
+      audioScriptText: (site.translations.vi.audioScript || []).join('\n'),
       historicalEra: site.translations.vi.historicalEra,
       openingHours: site.translations.vi.openingHours,
       city: site.city,
@@ -280,6 +295,44 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
       unescoRecognized: Boolean(site.unescoRecognized),
     });
     setSiteModalVisible(true);
+  };
+
+  const existingMapPoints = useMemo<ExistingMapPoint[]>(
+    () =>
+      sites.map((s) => ({
+        id: s.id,
+        name: s.translations.vi.name,
+        lat: s.lat,
+        lng: s.lng,
+      })),
+    [sites]
+  );
+
+  const handleConfirmMapPick = (picked: MapPickedLocation) => {
+    const lat = Number(picked.lat.toFixed(6));
+    const lng = Number(picked.lng.toFixed(6));
+    if (mapPickerTarget === 'site') {
+      setSiteForm((prev) => ({
+        ...prev,
+        lat,
+        lng,
+        address:
+          !prev.address.trim() && picked.suggestedPlaceName
+            ? `${picked.suggestedPlaceName}, TP. Hồ Chí Minh`
+            : prev.address,
+      }));
+    } else if (mapPickerTarget === 'restaurant') {
+      setRestForm((prev) => ({
+        ...prev,
+        lat,
+        lng,
+        address:
+          !prev.address.trim() && picked.suggestedPlaceName
+            ? `${picked.suggestedPlaceName}, TP. Hồ Chí Minh`
+            : prev.address,
+      }));
+    }
+    setMapPickerTarget(null);
   };
 
   const handleSaveSite = async () => {
@@ -967,7 +1020,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
 
       {/* SITE CREATE / EDIT MODAL */}
       <Modal
-        visible={siteModalVisible}
+        visible={siteModalVisible && mapPickerTarget !== 'site'}
         animationType="slide"
         presentationStyle="pageSheet"
         onRequestClose={() => setSiteModalVisible(false)}
@@ -1093,9 +1146,36 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                 </View>
               </View>
 
+              <View style={styles.twoColRow}>
+                <View style={[styles.fieldGroup, styles.flex]}>
+                  <Text style={styles.fieldLabel}>Niên đại / Giai đoạn</Text>
+                  <TextInput
+                    value={siteForm.historicalEra}
+                    onChangeText={(txt) =>
+                      setSiteForm((prev) => ({ ...prev, historicalEra: txt }))
+                    }
+                    placeholder="VD: 1880 – 1891"
+                    placeholderTextColor={COLORS.inkMuted}
+                    style={styles.input}
+                  />
+                </View>
+                <View style={[styles.fieldGroup, styles.flex]}>
+                  <Text style={styles.fieldLabel}>Giờ mở cửa</Text>
+                  <TextInput
+                    value={siteForm.openingHours}
+                    onChangeText={(txt) =>
+                      setSiteForm((prev) => ({ ...prev, openingHours: txt }))
+                    }
+                    placeholder="07:30 – 17:30 Hàng ngày"
+                    placeholderTextColor={COLORS.inkMuted}
+                    style={styles.input}
+                  />
+                </View>
+              </View>
+
               <View style={styles.fieldGroup}>
                 <View style={styles.fieldLabelRow}>
-                  <Text style={styles.fieldLabel}>Tọa độ GPS (Lat / Lng)</Text>
+                  <Text style={styles.fieldLabel}>Vị trí trên Bản đồ & Tọa độ GPS</Text>
                   <TouchableOpacity
                     onPress={() =>
                       setSiteForm((prev) => ({
@@ -1107,9 +1187,29 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                     style={styles.gpsFillBtn}
                   >
                     <LocateFixed size={12} color={COLORS.gpsBlue} />
-                    <Text style={styles.gpsFillBtnText}>Lấy GPS hiện tại</Text>
+                    <Text style={styles.gpsFillBtnText}>GPS hiện tại</Text>
                   </TouchableOpacity>
                 </View>
+
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  onPress={() => setMapPickerTarget('site')}
+                  style={styles.mapPickerCardBtn}
+                >
+                  <View style={styles.mapPickerIconCircle}>
+                    <MapIcon size={16} color={COLORS.white} />
+                  </View>
+                  <View style={styles.flex}>
+                    <Text style={styles.mapPickerTitle}>
+                      Chọn vị trí trực tiếp trên Bản đồ
+                    </Text>
+                    <Text style={styles.mapPickerSub}>
+                      Đang ghim: {Number(siteForm.lat).toFixed(5)}, {Number(siteForm.lng).toFixed(5)} · Chạm để thả ghim
+                    </Text>
+                  </View>
+                  <MapPin size={16} color={COLORS.accent} />
+                </TouchableOpacity>
+
                 <View style={styles.twoColRow}>
                   <TextInput
                     value={String(siteForm.lat)}
@@ -1152,7 +1252,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
               </View>
 
               <View style={styles.fieldGroup}>
-                <Text style={styles.fieldLabel}>Tóm tắt lịch sử (dùng cho RAG AI)</Text>
+                <Text style={styles.fieldLabel}>Tóm tắt lịch sử (hiển thị & RAG AI)</Text>
                 <TextInput
                   value={siteForm.shortSummaryVi}
                   onChangeText={(txt) =>
@@ -1167,17 +1267,64 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
               </View>
 
               <View style={styles.fieldGroup}>
+                <Text style={styles.fieldLabel}>
+                  Điểm nhấn kiến trúc (mỗi dòng 1 ý)
+                </Text>
+                <TextInput
+                  value={siteForm.architecturalHighlightsText || ''}
+                  onChangeText={(txt) =>
+                    setSiteForm((prev) => ({
+                      ...prev,
+                      architecturalHighlightsText: txt,
+                    }))
+                  }
+                  placeholder={'VD: Mái vòm gạch đỏ kiểu Roman\nHai tháp chuông cao 57,6 mét'}
+                  placeholderTextColor={COLORS.inkMuted}
+                  multiline
+                  numberOfLines={3}
+                  style={[styles.input, styles.textArea]}
+                />
+              </View>
+
+              <View style={styles.fieldGroup}>
+                <Text style={styles.fieldLabel}>
+                  Kịch bản thuyết minh âm thanh (mỗi dòng 1 đoạn đọc)
+                </Text>
+                <TextInput
+                  value={siteForm.audioScriptText || ''}
+                  onChangeText={(txt) =>
+                    setSiteForm((prev) => ({
+                      ...prev,
+                      audioScriptText: txt,
+                    }))
+                  }
+                  placeholder="Nhập các đoạn thuyết minh để giọng AI Hoài My / Nam Minh tự động đọc..."
+                  placeholderTextColor={COLORS.inkMuted}
+                  multiline
+                  numberOfLines={4}
+                  style={[styles.input, styles.textAreaTall]}
+                />
+              </View>
+
+              <View style={styles.fieldGroup}>
                 <Text style={styles.fieldLabel}>URL Ảnh bìa</Text>
                 <TextInput
                   value={siteForm.coverImage}
                   onChangeText={(txt) =>
                     setSiteForm((prev) => ({ ...prev, coverImage: txt }))
                   }
-                  placeholder="https://images.unsplash.com/..."
+                  placeholder="https://upload.wikimedia.org/... hoặc URL ảnh"
                   placeholderTextColor={COLORS.inkMuted}
                   autoCapitalize="none"
                   style={styles.input}
                 />
+                {Boolean(siteForm.coverImage.trim()) && (
+                  <Image
+                    source={{ uri: siteForm.coverImage.trim() }}
+                    style={styles.coverPreview}
+                    resizeMode="cover"
+                  />
+                )}
               </View>
 
               <View style={styles.switchRow}>
@@ -1193,6 +1340,23 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                     }))
                   }
                   trackColor={{ false: COLORS.border, true: COLORS.ink }}
+                  thumbColor={COLORS.white}
+                />
+              </View>
+
+              <View style={styles.switchRow}>
+                <Text style={styles.switchLabel}>
+                  Di sản / Khu Dự trữ Sinh quyển UNESCO
+                </Text>
+                <Switch
+                  value={siteForm.unescoRecognized}
+                  onValueChange={(v) =>
+                    setSiteForm((prev) => ({
+                      ...prev,
+                      unescoRecognized: v,
+                    }))
+                  }
+                  trackColor={{ false: COLORS.border, true: COLORS.accent }}
                   thumbColor={COLORS.white}
                 />
               </View>
@@ -1226,7 +1390,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
 
       {/* RESTAURANT CREATE / EDIT MODAL */}
       <Modal
-        visible={restModalVisible}
+        visible={restModalVisible && mapPickerTarget !== 'restaurant'}
         animationType="slide"
         presentationStyle="pageSheet"
         onRequestClose={() => setRestModalVisible(false)}
@@ -1356,6 +1520,27 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                 />
               </View>
 
+              <View style={styles.fieldGroup}>
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  onPress={() => setMapPickerTarget('restaurant')}
+                  style={styles.mapPickerCardBtn}
+                >
+                  <View style={styles.mapPickerIconCircle}>
+                    <MapIcon size={16} color={COLORS.white} />
+                  </View>
+                  <View style={styles.flex}>
+                    <Text style={styles.mapPickerTitle}>
+                      Chọn vị trí quán ăn trên Bản đồ
+                    </Text>
+                    <Text style={styles.mapPickerSub}>
+                      Đang ghim: {Number(restForm.lat).toFixed(5)}, {Number(restForm.lng).toFixed(5)}
+                    </Text>
+                  </View>
+                  <MapPin size={16} color={COLORS.accent} />
+                </TouchableOpacity>
+              </View>
+
               <View style={styles.twoColRow}>
                 <View style={[styles.fieldGroup, styles.flex]}>
                   <Text style={styles.fieldLabel}>Vĩ độ (Lat)</Text>
@@ -1441,6 +1626,30 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
           </View>
         </View>
       </Modal>
+
+      {/* INTERACTIVE MAP PICKER MODAL FOR ADMIN SITE / RESTAURANT CREATION */}
+      <AdminMapPickerModal
+        visible={mapPickerTarget !== null}
+        title={
+          mapPickerTarget === 'restaurant'
+            ? 'Chọn vị trí Quán ăn trên bản đồ'
+            : 'Chọn vị trí Địa điểm mới trên bản đồ'
+        }
+        initialLat={
+          mapPickerTarget === 'restaurant'
+            ? Number(restForm.lat)
+            : Number(siteForm.lat)
+        }
+        initialLng={
+          mapPickerTarget === 'restaurant'
+            ? Number(restForm.lng)
+            : Number(siteForm.lng)
+        }
+        userLocation={userLocation}
+        existingPoints={existingMapPoints}
+        onConfirm={handleConfirmMapPick}
+        onClose={() => setMapPickerTarget(null)}
+      />
     </View>
   );
 };
@@ -1932,6 +2141,49 @@ const styles = StyleSheet.create({
   textArea: {
     minHeight: 78,
     textAlignVertical: 'top',
+  },
+  textAreaTall: {
+    minHeight: 104,
+    textAlignVertical: 'top',
+  },
+  mapPickerCardBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: COLORS.accentSoft,
+    borderWidth: 1,
+    borderColor: COLORS.accentBorder,
+    borderRadius: RADII.md,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  mapPickerIconCircle: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: COLORS.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  mapPickerTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: COLORS.ink,
+  },
+  mapPickerSub: {
+    fontSize: 11,
+    color: COLORS.inkSecondary,
+    marginTop: 1,
+    fontVariant: ['tabular-nums'],
+  },
+  coverPreview: {
+    width: '100%',
+    height: 126,
+    borderRadius: RADII.md,
+    backgroundColor: COLORS.surfaceMuted,
+    marginTop: 4,
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
   twoColRow: {
     flexDirection: 'row',
