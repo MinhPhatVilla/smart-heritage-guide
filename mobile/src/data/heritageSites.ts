@@ -3,6 +3,7 @@ import { HCM_CENTRAL_SITES } from './hcmCentralSites';
 import { HCM_EXTENDED_SITES } from './hcmExtendedSites';
 import { HCM_ICONIC_PHOTO_SITES } from './hcmIconicPhotoSites';
 import { HCM_CULTURE_AND_SUBURBAN_SITES } from './hcmCultureAndSuburbanSites';
+import { HCM_MERGED_BD_VT_SITES } from './hcmMergedBinhDuongVungTauSites';
 import { OVERTURE_RESTAURANTS_BY_SITE } from './overtureRestaurants';
 import { WIKIPEDIA_ENRICHMENT_BY_SITE } from './wikipediaEnrichment';
 
@@ -18,8 +19,8 @@ export interface CityPreset {
 export const CITY_PRESETS: CityPreset[] = [
   {
     id: 'ALL_HCM',
-    label: 'Toàn TP. Hồ Chí Minh',
-    subtitle: 'Tất cả 50 di sản, di tích & điểm tham quan TP.HCM',
+    label: 'Toàn TP. Hồ Chí Minh (Mở rộng)',
+    subtitle: 'Tất cả 66 di sản, di tích & điểm tham quan TP.HCM (gồm Bình Dương, Vũng Tàu & Côn Đảo)',
     lat: 10.7775,
     lng: 106.699,
     defaultRadius: 0,
@@ -111,6 +112,38 @@ export const CITY_PRESETS: CityPreset[] = [
     lat: 10.5065,
     lng: 106.8835,
     defaultRadius: 20000,
+  },
+  {
+    id: 'BINH_DUONG_THU_DAU_MOT',
+    label: 'Bình Dương · Thủ Dầu Một & Đại Nam',
+    subtitle: 'Chùa Hội Khánh, Miếu Bà Thiên Hậu, Đại Nam Văn Hiến, Nhà cổ Trần Văn Hổ, Nhà tù Phú Lợi',
+    lat: 10.9803,
+    lng: 106.652,
+    defaultRadius: 25000,
+  },
+  {
+    id: 'BINH_DUONG_THUAN_AN_DI_AN',
+    label: 'Thuận An, Dĩ An & Bến Cát',
+    subtitle: 'Chùa Núi Châu Thới, Làng gốm Lái Thiêu, Địa đạo Tam Giác Sắt',
+    lat: 10.9163,
+    lng: 106.755,
+    defaultRadius: 25000,
+  },
+  {
+    id: 'VUNG_TAU_LONG_HAI',
+    label: 'Vũng Tàu & Biển Long Hải',
+    subtitle: 'Tượng Chúa Kitô, Bạch Dinh, Hải Đăng 1862, Thích Ca Phật Đài, Miếu Hòn Bà, Dinh Cô',
+    lat: 10.3458,
+    lng: 107.075,
+    defaultRadius: 28000,
+  },
+  {
+    id: 'CON_DAO',
+    label: 'Đặc khu Côn Đảo',
+    subtitle: 'Di tích Quốc gia Đặc biệt Nhà tù Côn Đảo & Nghĩa trang Hàng Dương',
+    lat: 8.6895,
+    lng: 106.6105,
+    defaultRadius: 15000,
   },
 ];
 
@@ -468,6 +501,7 @@ export const BASE_HERITAGE_SITES: HeritageSite[] = [
   ...ADDITIONAL_HCM_SITES,
   ...HCM_ICONIC_PHOTO_SITES,
   ...HCM_CULTURE_AND_SUBURBAN_SITES,
+  ...HCM_MERGED_BD_VT_SITES,
 ];
 
 export const HERITAGE_SITES: HeritageSite[] = BASE_HERITAGE_SITES.map((site) => {
