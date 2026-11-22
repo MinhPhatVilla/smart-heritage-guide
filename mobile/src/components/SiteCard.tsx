@@ -11,7 +11,6 @@ import {
   Check,
   Clock,
   Footprints,
-  MapPin,
   Navigation,
   Star,
   Ticket,
@@ -57,49 +56,49 @@ export const SiteCard: React.FC<SiteCardProps> = memo(
     onNavigateToRestaurant,
     onOpenPhotoCapture,
   }) => {
-    const local = site.translations?.[selectedLanguage] || site.translations?.vi || {
-      name: site.id,
-      shortSummary: '',
-      historicalEra: '',
-      openingHours: '07:00 – 18:00',
-      architecturalHighlights: [],
-      audioScript: [],
-    };
+    const local = site.translations?.[selectedLanguage] ||
+      site.translations?.vi || {
+        name: site.id,
+        shortSummary: '',
+        historicalEra: '',
+        openingHours: '07:00 – 18:00',
+        architecturalHighlights: [],
+        audioScript: [],
+      };
+
     const nearbyList = Array.isArray(site.nearbyRestaurants)
-      ? [...site.nearbyRestaurants].sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0))
+      ? [...site.nearbyRestaurants].sort(
+          (a, b) => (b.rating ?? 0) - (a.rating ?? 0)
+        )
       : [];
-    const topFoodItems = nearbyList.slice(0, 2);
+    const topFood = nearbyList[0] || null;
 
     const statusTag = visitedRecord
-      ? `Đã đi · ${formatWalkingDuration(visitedRecord.walkingDurationSeconds)}`
+      ? 'Đã check-in'
       : site.nationalSpecialMonument
-        ? 'Di tích Quốc gia Đặc biệt'
+        ? 'Di tích QG Đặc biệt'
         : site.unescoRecognized
           ? 'Di sản UNESCO'
           : null;
 
     const safeRating = Number.isFinite(site.rating) ? site.rating : 4.7;
-    const safeReviews = Number.isFinite(site.reviewCount) ? site.reviewCount : 0;
 
     return (
       <View style={[styles.card, isActiveRouteTarget && styles.cardActive]}>
-        {/* Clickable Cover Photo + Info Header */}
         <TouchableOpacity
           activeOpacity={0.92}
           onPress={() => onOpenDetail(site)}
           accessibilityRole="button"
           accessibilityLabel={`Xem chi tiết ${local.name}`}
         >
+          {/* Clean Editorial Photo (max 1 left status pill + 1 right rating pill) */}
           <View style={styles.heroWrap}>
             <Image
               source={{ uri: site.coverImage }}
               style={styles.heroImage}
               resizeMode="cover"
             />
-            <View style={styles.heroBottomScrim} pointerEvents="none" />
-
-            {/* Top Overlay: Status pill (left) + Rating pill (right) */}
-            <View style={styles.heroTopOverlay}>
+            <View style={styles.heroTopRow}>
               {statusTag ? (
                 <View
                   style={[
@@ -108,7 +107,7 @@ export const SiteCard: React.FC<SiteCardProps> = memo(
                   ]}
                 >
                   {visitedRecord && (
-                    <Check size={11} color={COLORS.white} strokeWidth={3} />
+                    <Check size={10.5} color={COLORS.white} strokeWidth={3} />
                   )}
                   <Text style={styles.statusPillText} numberOfLines={1}>
                     {statusTag}
@@ -127,123 +126,75 @@ export const SiteCard: React.FC<SiteCardProps> = memo(
                 <Text style={styles.ratingPillText}>
                   {safeRating.toFixed(1)}
                 </Text>
-                {safeReviews > 0 && (
-                  <Text style={styles.ratingCountText}>
-                    ({safeReviews >= 1000 ? `${(safeReviews / 1000).toFixed(1)}k` : safeReviews})
-                  </Text>
-                )}
               </View>
-            </View>
-
-            {/* Bottom-Left Location Pill */}
-            <View style={styles.heroLocationChip}>
-              <MapPin size={11} color={COLORS.white} />
-              <Text style={styles.heroLocationText} numberOfLines={1}>
-                {site.city}
-                {local.historicalEra ? ` · ${local.historicalEra}` : ''}
-              </Text>
             </View>
           </View>
 
-          <View style={styles.bodyTop}>
+          {/* Clean, Airy Content Block (4 effortless lines, zero clutter) */}
+          <View style={styles.body}>
+            {/* Line 1: Location & Distance */}
+            <View style={styles.metaRow}>
+              <Text style={styles.cityText} numberOfLines={1}>
+                {site.city}
+              </Text>
+              <Text style={styles.dot}>·</Text>
+              <Footprints size={11.5} color={COLORS.accent} />
+              <Text style={styles.walkText}>
+                {formatWalkingDuration(estimatedWalkingSeconds)} ({formatDistance(distanceMeters)})
+              </Text>
+            </View>
+
+            {/* Line 2: Clear Title */}
             <Text style={styles.title} numberOfLines={2}>
               {local.name}
             </Text>
 
-            {/* 3 Scannable Quick-Info Pills: Walking · Opening Hours · Ticket */}
-            <View style={styles.infoChipsRow}>
-              <View style={styles.infoChipAccent}>
-                <Footprints size={11.5} color={COLORS.accent} />
-                <Text style={styles.infoChipAccentText}>
-                  {formatWalkingDuration(estimatedWalkingSeconds)} ·{' '}
-                  {formatDistance(distanceMeters)}
-                </Text>
-              </View>
+            {/* Line 3: Concise 2-line Summary */}
+            <Text style={styles.summary} numberOfLines={2}>
+              {local.shortSummary}
+            </Text>
 
-              <View style={styles.infoChip}>
-                <Clock size={11.5} color={COLORS.inkSecondary} />
-                <Text style={styles.infoChipText} numberOfLines={1}>
+            {/* Line 4: Subtle Practical Details (Hours · Ticket) */}
+            <View style={styles.practicalRow}>
+              <View style={styles.practicalItem}>
+                <Clock size={11.5} color={COLORS.inkMuted} />
+                <Text style={styles.practicalText} numberOfLines={1}>
                   {local.openingHours || '07:00 – 18:00'}
                 </Text>
               </View>
-
-              <View style={styles.infoChip}>
-                <Ticket size={11.5} color={COLORS.inkSecondary} />
-                <Text style={styles.infoChipText} numberOfLines={1}>
+              <Text style={styles.dot}>·</Text>
+              <View style={styles.practicalItem}>
+                <Ticket size={11.5} color={COLORS.inkMuted} />
+                <Text style={styles.practicalText} numberOfLines={1}>
                   {site.ticketPrice || 'Miễn phí'}
                 </Text>
               </View>
             </View>
-
-            <Text style={styles.summary} numberOfLines={2}>
-              {local.shortSummary}
-            </Text>
           </View>
         </TouchableOpacity>
 
-        {/* Visible Nearby Food & Drink Box (Interactive — up to 2 top eateries!) */}
-        {topFoodItems.length > 0 && (
-          <View style={styles.foodBox}>
-            <View style={styles.foodBoxHeader}>
-              <View style={styles.foodBoxHeaderLeft}>
-                <Utensils size={12} color={COLORS.accent} />
-                <Text style={styles.foodBoxTitle}>
-                  Quán ăn & đồ uống gần đây ({nearbyList.length})
-                </Text>
-              </View>
-              {nearbyList.length > 2 && (
-                <TouchableOpacity
-                  onPress={() => onOpenDetail(site)}
-                  hitSlop={{ top: 6, right: 6, bottom: 6, left: 6 }}
-                >
-                  <Text style={styles.foodBoxMore}>Xem hết</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-
-            <View style={styles.foodItemList}>
-              {topFoodItems.map((res) => (
-                <View key={res.id} style={styles.foodRow}>
-                  <View style={styles.foodRowInfo}>
-                    <View style={styles.foodNameLine}>
-                      <Text style={styles.foodName} numberOfLines={1}>
-                        {res.name}
-                      </Text>
-                      <View style={styles.foodStarChip}>
-                        <Star
-                          size={9.5}
-                          color={COLORS.amberStar}
-                          fill={COLORS.amberStar}
-                        />
-                        <Text style={styles.foodStarText}>
-                          {(res.rating ?? 4.5).toFixed(1)}
-                        </Text>
-                      </View>
-                    </View>
-                    <Text style={styles.foodSub} numberOfLines={1}>
-                      {res.cuisine}
-                      {res.priceRange ? ` · ${res.priceRange}` : ''}
-                    </Text>
-                  </View>
-
-                  {onNavigateToRestaurant && (
-                    <TouchableOpacity
-                      activeOpacity={0.8}
-                      onPress={() => onNavigateToRestaurant(res, site)}
-                      style={styles.foodGoBtn}
-                      accessibilityLabel={`Dẫn đường tới ${res.name}`}
-                    >
-                      <Navigation size={11} color={COLORS.accent} />
-                      <Text style={styles.foodGoText}>Đi tới</Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
-              ))}
-            </View>
-          </View>
+        {/* Subtle 1-Line Nearby Eatery Strip (tappable to navigate, zero bulky nested cards) */}
+        {topFood && (
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={() =>
+              onNavigateToRestaurant
+                ? onNavigateToRestaurant(topFood, site)
+                : onOpenDetail(site)
+            }
+            style={styles.foodStrip}
+          >
+            <Utensils size={12} color={COLORS.accent} />
+            <Text style={styles.foodStripText} numberOfLines={1}>
+              Gần đây: <Text style={styles.foodStripName}>{topFood.name}</Text>{' '}
+              ({(topFood.rating ?? 4.5).toFixed(1)}★
+              {nearbyList.length > 1 ? ` · +${nearbyList.length - 1} quán` : ''})
+            </Text>
+            <Text style={styles.foodStripCta}>Đi tới</Text>
+          </TouchableOpacity>
         )}
 
-        {/* Clean Action Bar */}
+        {/* Clean Action Row */}
         <View style={styles.actionRow}>
           <TouchableOpacity
             activeOpacity={0.85}
@@ -252,15 +203,15 @@ export const SiteCard: React.FC<SiteCardProps> = memo(
             accessibilityRole="button"
           >
             <Volume2 size={14} color={COLORS.white} />
-            <Text style={styles.primaryBtnText}>Chi tiết & Thuyết minh</Text>
+            <Text style={styles.primaryBtnText}>Chi tiết & Nghe</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             activeOpacity={0.8}
             onPress={() => onStartNavigation(site)}
             style={[
-              styles.iconActionBtn,
-              isActiveRouteTarget && styles.iconActionBtnActive,
+              styles.secondaryBtn,
+              isActiveRouteTarget && styles.secondaryBtnActive,
             ]}
             accessibilityRole="button"
             accessibilityLabel={`Dẫn đường tới ${local.name}`}
@@ -271,8 +222,8 @@ export const SiteCard: React.FC<SiteCardProps> = memo(
             />
             <Text
               style={[
-                styles.iconActionLabel,
-                isActiveRouteTarget && styles.iconActionLabelActive,
+                styles.secondaryBtnText,
+                isActiveRouteTarget && styles.secondaryBtnTextActive,
               ]}
             >
               Dẫn đường
@@ -303,7 +254,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border,
     marginHorizontal: SPACING.lg,
-    marginBottom: SPACING.lg,
+    marginBottom: 14,
     overflow: 'hidden',
     ...SHADOWS.card,
   },
@@ -313,7 +264,7 @@ const styles = StyleSheet.create({
   },
   heroWrap: {
     width: '100%',
-    height: 176,
+    height: 164,
     backgroundColor: COLORS.surfaceMuted,
     position: 'relative',
   },
@@ -321,19 +272,11 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
-  heroBottomScrim: {
+  heroTopRow: {
     position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    height: 62,
-    backgroundColor: 'rgba(20, 20, 19, 0.34)',
-  },
-  heroTopOverlay: {
-    position: 'absolute',
-    top: 12,
-    left: 12,
-    right: 12,
+    top: 11,
+    left: 11,
+    right: 11,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -344,17 +287,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 4,
     backgroundColor: 'rgba(20, 20, 19, 0.78)',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
     borderRadius: RADII.pill,
-    maxWidth: '68%',
+    maxWidth: '70%',
   },
   statusPillVisited: {
     backgroundColor: 'rgba(4, 120, 87, 0.92)',
   },
   statusPillText: {
     color: COLORS.white,
-    fontSize: 11,
+    fontSize: 10.5,
     fontWeight: '700',
   },
   ratingPill: {
@@ -372,176 +315,86 @@ const styles = StyleSheet.create({
     color: COLORS.ink,
     fontVariant: ['tabular-nums'],
   },
-  ratingCountText: {
-    fontSize: 10.5,
-    fontWeight: '600',
-    color: COLORS.inkMuted,
+  body: {
+    paddingHorizontal: 14,
+    paddingTop: 12,
+    paddingBottom: 10,
+    gap: 5,
   },
-  heroLocationChip: {
-    position: 'absolute',
-    left: 12,
-    right: 12,
-    bottom: 10,
+  metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
   },
-  heroLocationText: {
-    color: COLORS.white,
+  cityText: {
     fontSize: 11.5,
     fontWeight: '600',
-    flex: 1,
+    color: COLORS.inkMuted,
+    flexShrink: 1,
   },
-  bodyTop: {
-    paddingHorizontal: 15,
-    paddingTop: 14,
-    paddingBottom: 10,
+  dot: {
+    fontSize: 11,
+    color: COLORS.borderStrong,
+  },
+  walkText: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: COLORS.ink,
+    fontVariant: ['tabular-nums'],
   },
   title: {
     fontFamily: SERIF_FONT,
-    fontSize: 18,
+    fontSize: 17.5,
     fontWeight: '700',
-    lineHeight: 24,
+    lineHeight: 23,
     color: COLORS.ink,
-  },
-  infoChipsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-    marginTop: 8,
-  },
-  infoChipAccent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: COLORS.accentSoft,
-    borderWidth: 1,
-    borderColor: COLORS.accentBorder,
-    borderRadius: RADII.pill,
-    paddingHorizontal: 9,
-    paddingVertical: 4,
-  },
-  infoChipAccentText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: COLORS.accent,
-    fontVariant: ['tabular-nums'],
-  },
-  infoChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: COLORS.bg,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: RADII.pill,
-    paddingHorizontal: 9,
-    paddingVertical: 4,
-    maxWidth: '100%',
-  },
-  infoChipText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: COLORS.inkSecondary,
-    flexShrink: 1,
   },
   summary: {
     fontSize: 13,
-    lineHeight: 19,
+    lineHeight: 18.5,
     color: COLORS.inkSecondary,
-    marginTop: 9,
   },
-  foodBox: {
-    marginHorizontal: 15,
-    marginBottom: 12,
-    backgroundColor: COLORS.bg,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    padding: 10,
-    gap: 8,
-  },
-  foodBoxHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 6,
-  },
-  foodBoxHeaderLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-  },
-  foodBoxTitle: {
-    fontSize: 11.5,
-    fontWeight: '700',
-    color: COLORS.ink,
-  },
-  foodBoxMore: {
-    fontSize: 11.5,
-    fontWeight: '700',
-    color: COLORS.accent,
-  },
-  foodItemList: {
-    gap: 7,
-  },
-  foodRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 8,
-    backgroundColor: COLORS.surface,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: COLORS.surfaceMuted,
-    paddingHorizontal: 9,
-    paddingVertical: 7,
-  },
-  foodRowInfo: {
-    flex: 1,
-    minWidth: 0,
-    gap: 2,
-  },
-  foodNameLine: {
+  practicalRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+    marginTop: 2,
   },
-  foodName: {
-    fontSize: 12.5,
-    fontWeight: '700',
-    color: COLORS.ink,
+  practicalItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
     flexShrink: 1,
   },
-  foodStarChip: {
+  practicalText: {
+    fontSize: 11.5,
+    fontWeight: '500',
+    color: COLORS.inkMuted,
+    flexShrink: 1,
+  },
+  foodStrip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 2,
-    backgroundColor: COLORS.amberBg,
-    borderRadius: RADII.pill,
-    paddingHorizontal: 5,
-    paddingVertical: 1,
+    gap: 6,
+    marginHorizontal: 14,
+    marginBottom: 11,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 10,
+    backgroundColor: COLORS.bg,
+    borderWidth: 1,
+    borderColor: COLORS.surfaceMuted,
   },
-  foodStarText: {
-    fontSize: 10,
+  foodStripText: {
+    flex: 1,
+    fontSize: 11.5,
+    color: COLORS.inkSecondary,
+  },
+  foodStripName: {
     fontWeight: '700',
     color: COLORS.ink,
-    fontVariant: ['tabular-nums'],
   },
-  foodSub: {
-    fontSize: 11,
-    color: COLORS.inkMuted,
-  },
-  foodGoBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-    backgroundColor: COLORS.accentSoft,
-    borderRadius: RADII.pill,
-    paddingHorizontal: 8,
-    paddingVertical: 5,
-  },
-  foodGoText: {
+  foodStripCta: {
     fontSize: 11,
     fontWeight: '700',
     color: COLORS.accent,
@@ -550,8 +403,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    paddingHorizontal: 15,
-    paddingBottom: 14,
+    paddingHorizontal: 14,
+    paddingBottom: 13,
   },
   primaryBtn: {
     flex: 1,
@@ -560,7 +413,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 6,
     backgroundColor: COLORS.ink,
-    paddingVertical: 11,
+    paddingVertical: 10,
     paddingHorizontal: 12,
     borderRadius: RADII.pill,
   },
@@ -569,7 +422,7 @@ const styles = StyleSheet.create({
     fontSize: 12.5,
     fontWeight: '700',
   },
-  iconActionBtn: {
+  secondaryBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -578,24 +431,24 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.accentBorder,
     paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingVertical: 9.5,
     borderRadius: RADII.pill,
   },
-  iconActionBtnActive: {
+  secondaryBtnActive: {
     backgroundColor: COLORS.accent,
     borderColor: COLORS.accent,
   },
-  iconActionLabel: {
+  secondaryBtnText: {
     fontSize: 12,
     fontWeight: '700',
     color: COLORS.accent,
   },
-  iconActionLabelActive: {
+  secondaryBtnTextActive: {
     color: COLORS.white,
   },
   iconOnlyBtn: {
-    width: 40,
-    height: 40,
+    width: 38,
+    height: 38,
     borderRadius: RADII.pill,
     backgroundColor: COLORS.surfaceMuted,
     borderWidth: 1,

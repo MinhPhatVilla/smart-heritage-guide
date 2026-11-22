@@ -21,7 +21,6 @@ import {
 import {
   Check,
   ChevronDown,
-  CloudSun,
   Compass,
   Footprints,
   Globe,
@@ -162,6 +161,7 @@ function SmartHeritageAppContent() {
   >('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [activeTab, setActiveTab] = useState<MainTab>('explore');
+  const [exploreSection, setExploreSection] = useState<'sites' | 'dining'>('sites');
 
   // Compact bottom sheets (replaces cluttered stacked toolbars)
   const [filterSheetVisible, setFilterSheetVisible] = useState<boolean>(false);
@@ -1031,10 +1031,10 @@ function SmartHeritageAppContent() {
       ? 'GPS thực tế'
       : CITY_PRESETS.find((c) => c.id === activeCityId)?.label || gpsStatus;
 
-  // Scrollable list header: Live Weather + AI Tools + Nearby Dining Showcase + Optional Proximity Banner + Count
+  // Scrollable list header: Ultra-clean Compact Weather Bar + Quick AI Pills + Segmented Switcher
   const exploreListHeader = (
     <View style={styles.listHeaderWrap}>
-      {/* Live Auto-Updating Weather Card (Temp · Humidity · Rain Probability · 4h Forecast · AI Advice) */}
+      {/* Compact Expandable Live Weather Bar (1 line by default, expands on tap) */}
       <WeatherWidgetCard
         weather={weather}
         locationLabel={activeCityLabel}
@@ -1048,45 +1048,107 @@ function SmartHeritageAppContent() {
         }}
       />
 
-      {/* Clean AI Companion Strip (scrolls smoothly out of view when browsing) */}
-      <View style={styles.aiStripRow}>
+      {/* Smart Mode Switcher: Địa điểm vs Ẩm thực + Slim AI Action Chips */}
+      <View style={styles.exploreControlsRow}>
+        <View style={styles.segmentedControl}>
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={() => {
+              setExploreSection('sites');
+              triggerHaptic('selection');
+            }}
+            style={[
+              styles.segBtn,
+              exploreSection === 'sites' && styles.segBtnActive,
+            ]}
+          >
+            <Compass
+              size={13}
+              color={exploreSection === 'sites' ? COLORS.white : COLORS.inkSecondary}
+            />
+            <Text
+              style={[
+                styles.segBtnText,
+                exploreSection === 'sites' && styles.segBtnTextActive,
+              ]}
+            >
+              Địa điểm ({nearbySitesWithMetrics.length})
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={() => {
+              setExploreSection('dining');
+              triggerHaptic('selection');
+            }}
+            style={[
+              styles.segBtn,
+              exploreSection === 'dining' && styles.segBtnActive,
+            ]}
+          >
+            <Utensils
+              size={13}
+              color={exploreSection === 'dining' ? COLORS.white : COLORS.inkSecondary}
+            />
+            <Text
+              style={[
+                styles.segBtnText,
+                exploreSection === 'dining' && styles.segBtnTextActive,
+              ]}
+            >
+              Ẩm thực ({nearbyFeaturedRestaurants.length})
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Slim 1-Row Quick AI & Reset Strip */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.quickActionPillsRow}
+      >
         <TouchableOpacity
-          activeOpacity={0.85}
+          activeOpacity={0.82}
           onPress={() => {
             setSmartTourVisible(true);
             triggerHaptic('light');
           }}
-          style={styles.aiCardPrimary}
+          style={styles.quickAiPillDark}
         >
-          <View style={styles.aiIconCircleDark}>
-            <Route size={15} color={COLORS.white} />
-          </View>
-          <View style={styles.aiTextCol}>
-            <Text style={styles.aiCardTitle}>Lập Tour Đi bộ AI</Text>
-            <Text style={styles.aiCardSub} numberOfLines={1}>
-              Tối ưu 2-Opt & quán ăn
-            </Text>
-          </View>
+          <Route size={13} color={COLORS.white} />
+          <Text style={styles.quickAiPillDarkText}>Lập Tour AI</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          activeOpacity={0.85}
+          activeOpacity={0.82}
           onPress={handleOpenGlobalAiChat}
-          style={styles.aiCardSecondary}
+          style={styles.quickAiPillLight}
         >
-          <View style={styles.aiIconCircleAccent}>
-            <MessageSquareText size={15} color={COLORS.accent} />
-          </View>
-          <View style={styles.aiTextCol}>
-            <Text style={styles.aiCardTitle}>Hỏi AI Di sản</Text>
-            <Text style={styles.aiCardSub} numberOfLines={1}>
-              RAG 5 ngôn ngữ
-            </Text>
-          </View>
+          <MessageSquareText size={13} color={COLORS.accent} />
+          <Text style={styles.quickAiPillLightText}>Hỏi AI Di sản</Text>
         </TouchableOpacity>
-      </View>
 
-      {/* Compact Proximity Banner (only shown when actually near a monument) */}
+        {activeFilterCount > 0 && (
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={() => {
+              setActiveCityId('ALL_HCM');
+              setSearchRadiusMeters(0);
+              setSelectedCategory('all');
+              setSearchQuery('');
+              setGpsStatus('Trung tâm Quận 1');
+            }}
+            style={styles.quickResetPill}
+          >
+            <X size={12} color={COLORS.accent} />
+            <Text style={styles.quickResetPillText}>Đặt lại lọc</Text>
+          </TouchableOpacity>
+        )}
+      </ScrollView>
+
+      {/* Compact Proximity Banner (only shown when actually near a monument < 300m) */}
       {isNearbyBannerVisible && closestSiteItem && (
         <View
           style={[
@@ -1121,130 +1183,6 @@ function SmartHeritageAppContent() {
           </TouchableOpacity>
         </View>
       )}
-
-      {/* Dedicated Nearby Food & Drink Showcase right inside Explore */}
-      {nearbyFeaturedRestaurants.length > 0 && (
-        <View style={styles.foodShowcaseWrap}>
-          <View style={styles.foodShowcaseHeader}>
-            <View style={styles.foodShowcaseTitleRow}>
-              <View style={styles.foodShowcaseIcon}>
-                <Utensils size={13} color={COLORS.accent} />
-              </View>
-              <View>
-                <Text style={styles.foodShowcaseTitle}>
-                  Ẩm thực & Quán ngon gần bạn
-                </Text>
-                <Text style={styles.foodShowcaseSub}>
-                  Gợi ý theo vị trí {activeCityLabel}
-                </Text>
-              </View>
-            </View>
-            <TouchableOpacity
-              activeOpacity={0.8}
-              onPress={() => setActiveTab('map')}
-              style={styles.foodShowcaseMapLink}
-            >
-              <Text style={styles.foodShowcaseMapLinkText}>Xem bản đồ</Text>
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.foodCarouselContent}
-          >
-            {nearbyFeaturedRestaurants.map((entry) => (
-              <View key={entry.restaurant.id} style={styles.foodCarouselCard}>
-                <TouchableOpacity
-                  activeOpacity={0.88}
-                  onPress={() => setSelectedSite(entry.parentSite)}
-                  style={styles.foodCarouselTop}
-                >
-                  <Image
-                    source={{
-                      uri:
-                        entry.restaurant.imageUrl ||
-                        'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=600&q=80',
-                    }}
-                    style={styles.foodCarouselThumb}
-                    resizeMode="cover"
-                  />
-                  <View style={styles.foodCarouselInfo}>
-                    <View style={styles.foodCarouselNameRow}>
-                      <Text style={styles.foodCarouselName} numberOfLines={1}>
-                        {entry.restaurant.name}
-                      </Text>
-                    </View>
-                    <View style={styles.foodCarouselRatingLine}>
-                      <Star
-                        size={11}
-                        color={COLORS.amberStar}
-                        fill={COLORS.amberStar}
-                      />
-                      <Text style={styles.foodCarouselRating}>
-                        {(entry.restaurant.rating ?? 4.5).toFixed(1)}
-                      </Text>
-                      <Text style={styles.foodCarouselDot}>·</Text>
-                      <Text style={styles.foodCarouselPrice} numberOfLines={1}>
-                        {entry.restaurant.priceRange || entry.restaurant.cuisine}
-                      </Text>
-                    </View>
-                    <Text style={styles.foodCarouselDish} numberOfLines={1}>
-                      {entry.restaurant.specialtyDishes?.length
-                        ? entry.restaurant.specialtyDishes.slice(0, 2).join(' · ')
-                        : entry.restaurant.cuisine}
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-
-                <View style={styles.foodCarouselFooter}>
-                  <View style={styles.foodCarouselDistWrap}>
-                    <Footprints size={11} color={COLORS.accent} />
-                    <Text style={styles.foodCarouselDistText} numberOfLines={1}>
-                      {formatDistance(entry.distanceMeters)} ·{' '}
-                      {formatWalkingDuration(entry.walkingSeconds)}
-                    </Text>
-                  </View>
-
-                  <TouchableOpacity
-                    activeOpacity={0.82}
-                    onPress={() =>
-                      handleNavigateToRestaurant(
-                        entry.restaurant,
-                        entry.parentSite
-                      )
-                    }
-                    style={styles.foodCarouselGoBtn}
-                  >
-                    <Navigation size={11} color={COLORS.white} />
-                    <Text style={styles.foodCarouselGoText}>Chỉ đường</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            ))}
-          </ScrollView>
-        </View>
-      )}
-
-      {/* Subtle Section Meta Line */}
-      <View style={styles.sectionMetaRow}>
-        <Text style={styles.sectionMetaText}>
-          {nearbySitesWithMetrics.length} điểm di sản & tham quan · {activeCityLabel}
-        </Text>
-        {activeFilterCount > 0 && (
-          <TouchableOpacity
-            onPress={() => {
-              setActiveCityId('ALL_HCM');
-              setSearchRadiusMeters(0);
-              setSelectedCategory('all');
-              setSearchQuery('');
-              setGpsStatus('Trung tâm Quận 1');
-            }}
-          >
-            <Text style={styles.clearFilterText}>Đặt lại lọc</Text>
-          </TouchableOpacity>
-        )}
-      </View>
     </View>
   );
 
@@ -1280,23 +1218,6 @@ function SmartHeritageAppContent() {
           </TouchableOpacity>
 
           <View style={styles.headerActions}>
-            {weather && (
-              <TouchableOpacity
-                activeOpacity={0.8}
-                onPress={() => {
-                  setSmartTourVisible(true);
-                  triggerHaptic('selection');
-                }}
-                style={styles.weatherHeaderPill}
-                accessibilityLabel="Thời tiết hiện tại và lập tour AI"
-              >
-                <CloudSun size={13} color={COLORS.accent} />
-                <Text style={styles.weatherHeaderTemp}>
-                  {Math.round(weather.temperatureC)}°C
-                </Text>
-              </TouchableOpacity>
-            )}
-
             {/* Compact Language Pill (opens clean 5-language sheet instead of cramming 5 buttons) */}
             <TouchableOpacity
               activeOpacity={0.8}
@@ -1391,39 +1312,41 @@ function SmartHeritageAppContent() {
                 </TouchableOpacity>
               </View>
 
-              {/* Single Clean Underline Category Tab Bar */}
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.categoryBar}
-              >
-                {CATEGORY_FILTERS.map((cat) => {
-                  const active = selectedCategory === cat.id;
-                  return (
-                    <TouchableOpacity
-                      key={cat.id}
-                      activeOpacity={0.75}
-                      onPress={() => {
-                        setSelectedCategory(cat.id);
-                        triggerHaptic('selection');
-                      }}
-                      style={[
-                        styles.catTab,
-                        active && styles.catTabActive,
-                      ]}
-                    >
-                      <Text
+              {/* Single Clean Category Bar (only shown on Địa điểm view) */}
+              {exploreSection === 'sites' && (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.categoryBar}
+                >
+                  {CATEGORY_FILTERS.map((cat) => {
+                    const active = selectedCategory === cat.id;
+                    return (
+                      <TouchableOpacity
+                        key={cat.id}
+                        activeOpacity={0.75}
+                        onPress={() => {
+                          setSelectedCategory(cat.id);
+                          triggerHaptic('selection');
+                        }}
                         style={[
-                          styles.catTabText,
-                          active && styles.catTabTextActive,
+                          styles.catTab,
+                          active && styles.catTabActive,
                         ]}
                       >
-                        {cat.label}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </ScrollView>
+                        <Text
+                          style={[
+                            styles.catTabText,
+                            active && styles.catTabTextActive,
+                          ]}
+                        >
+                          {cat.label}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+              )}
             </View>
 
             {/* Quick Audio Player (when active) */}
@@ -1453,42 +1376,137 @@ function SmartHeritageAppContent() {
               </View>
             )}
 
-            {/* Heritage Sites List */}
-            <FlatList
-              data={nearbySitesWithMetrics}
-              keyExtractor={(item) => item.site.id}
-              renderItem={renderSiteItem}
-              ListHeaderComponent={exploreListHeader}
-              contentContainerStyle={styles.listContent}
-              showsVerticalScrollIndicator={false}
-              keyboardShouldPersistTaps="handled"
-              ListEmptyComponent={
-                <View style={styles.emptyBox}>
-                  <Text style={styles.emptyTitle}>
-                    Không tìm thấy địa điểm phù hợp
-                  </Text>
-                  <Text style={styles.emptySubtitle}>
-                    Hãy đặt lại bộ lọc để xem toàn bộ {catalogSites.length} di
-                    tích lịch sử TP.HCM.
-                  </Text>
-                  <TouchableOpacity
-                    activeOpacity={0.85}
-                    onPress={() => {
-                      setSearchRadiusMeters(0);
-                      setSelectedCategory('all');
-                      setSearchQuery('');
-                      setActiveCityId('ALL_HCM');
-                      setGpsStatus('Trung tâm Quận 1');
-                    }}
-                    style={styles.emptyResetBtn}
-                  >
-                    <Text style={styles.emptyResetBtnText}>
-                      Xem tất cả {catalogSites.length} di tích
+            {/* Main Explore Feed: Cleanly switches between Heritage Sites and Nearby Dining */}
+            {exploreSection === 'sites' ? (
+              <FlatList
+                data={nearbySitesWithMetrics}
+                keyExtractor={(item) => item.site.id}
+                renderItem={renderSiteItem}
+                ListHeaderComponent={exploreListHeader}
+                contentContainerStyle={styles.listContent}
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+                ListEmptyComponent={
+                  <View style={styles.emptyBox}>
+                    <Text style={styles.emptyTitle}>
+                      Không tìm thấy địa điểm phù hợp
                     </Text>
-                  </TouchableOpacity>
-                </View>
-              }
-            />
+                    <Text style={styles.emptySubtitle}>
+                      Hãy đặt lại bộ lọc để xem toàn bộ {catalogSites.length} di
+                      tích lịch sử TP.HCM.
+                    </Text>
+                    <TouchableOpacity
+                      activeOpacity={0.85}
+                      onPress={() => {
+                        setSearchRadiusMeters(0);
+                        setSelectedCategory('all');
+                        setSearchQuery('');
+                        setActiveCityId('ALL_HCM');
+                        setGpsStatus('Trung tâm Quận 1');
+                      }}
+                      style={styles.emptyResetBtn}
+                    >
+                      <Text style={styles.emptyResetBtnText}>
+                        Xem tất cả {catalogSites.length} di tích
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                }
+              />
+            ) : (
+              <FlatList
+                data={nearbyFeaturedRestaurants}
+                keyExtractor={(item) => item.restaurant.id}
+                ListHeaderComponent={exploreListHeader}
+                contentContainerStyle={styles.listContent}
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+                renderItem={({ item: entry }) => (
+                  <View style={styles.diningFeedCard}>
+                    <TouchableOpacity
+                      activeOpacity={0.88}
+                      onPress={() => setSelectedSite(entry.parentSite)}
+                      style={styles.diningFeedTop}
+                    >
+                      <Image
+                        source={{
+                          uri:
+                            entry.restaurant.imageUrl ||
+                            'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=600&q=80',
+                        }}
+                        style={styles.diningFeedThumb}
+                        resizeMode="cover"
+                      />
+                      <View style={styles.diningFeedInfo}>
+                        <View style={styles.diningFeedTitleRow}>
+                          <Text style={styles.diningFeedName} numberOfLines={1}>
+                            {entry.restaurant.name}
+                          </Text>
+                          <View style={styles.diningFeedRatingPill}>
+                            <Star
+                              size={11}
+                              color={COLORS.amberStar}
+                              fill={COLORS.amberStar}
+                            />
+                            <Text style={styles.diningFeedRatingText}>
+                              {(entry.restaurant.rating ?? 4.5).toFixed(1)}
+                            </Text>
+                          </View>
+                        </View>
+                        <Text style={styles.diningFeedCuisine} numberOfLines={1}>
+                          {entry.restaurant.cuisine}
+                          {entry.restaurant.priceRange
+                            ? ` · ${entry.restaurant.priceRange}`
+                            : ''}
+                        </Text>
+                        <Text style={styles.diningFeedDish} numberOfLines={1}>
+                          {entry.restaurant.specialtyDishes?.length
+                            ? entry.restaurant.specialtyDishes.slice(0, 2).join(' · ')
+                            : `Gần ${entry.parentName}`}
+                        </Text>
+                        <Text style={styles.diningFeedNearSite} numberOfLines={1}>
+                          Gần {entry.parentName}
+                        </Text>
+                      </View>
+                    </TouchableOpacity>
+
+                    <View style={styles.diningFeedFooter}>
+                      <View style={styles.diningFeedDistWrap}>
+                        <Footprints size={12} color={COLORS.accent} />
+                        <Text style={styles.diningFeedDistText}>
+                          {formatDistance(entry.distanceMeters)} ·{' '}
+                          {formatWalkingDuration(entry.walkingSeconds)}
+                        </Text>
+                      </View>
+
+                      <TouchableOpacity
+                        activeOpacity={0.85}
+                        onPress={() =>
+                          handleNavigateToRestaurant(
+                            entry.restaurant,
+                            entry.parentSite
+                          )
+                        }
+                        style={styles.diningFeedGoBtn}
+                      >
+                        <Navigation size={12} color={COLORS.white} />
+                        <Text style={styles.diningFeedGoText}>Chỉ đường</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                )}
+                ListEmptyComponent={
+                  <View style={styles.emptyBox}>
+                    <Text style={styles.emptyTitle}>
+                      Chưa có quán ăn trong khu vực lọc
+                    </Text>
+                    <Text style={styles.emptySubtitle}>
+                      Hãy mở rộng bán kính hoặc xóa từ khóa tìm kiếm.
+                    </Text>
+                  </View>
+                }
+              />
+            )}
           </View>
         )}
 
@@ -2293,9 +2311,193 @@ const styles = StyleSheet.create({
   },
   listHeaderWrap: {
     paddingHorizontal: SPACING.lg,
-    paddingTop: SPACING.md,
-    paddingBottom: SPACING.sm,
-    gap: SPACING.md,
+    paddingTop: 10,
+    paddingBottom: 10,
+    gap: 10,
+  },
+  exploreControlsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  segmentedControl: {
+    flex: 1,
+    flexDirection: 'row',
+    backgroundColor: COLORS.surfaceMuted,
+    borderRadius: RADII.pill,
+    padding: 3,
+    gap: 3,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  segBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    borderRadius: RADII.pill,
+  },
+  segBtnActive: {
+    backgroundColor: COLORS.ink,
+  },
+  segBtnText: {
+    fontSize: 12.5,
+    fontWeight: '700',
+    color: COLORS.inkSecondary,
+  },
+  segBtnTextActive: {
+    color: COLORS.white,
+  },
+  quickActionPillsRow: {
+    gap: 8,
+    paddingRight: SPACING.md,
+  },
+  quickAiPillDark: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: COLORS.ink,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: RADII.pill,
+  },
+  quickAiPillDarkText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.white,
+  },
+  quickAiPillLight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.accentBorder,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: RADII.pill,
+  },
+  quickAiPillLightText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.accent,
+  },
+  quickResetPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: COLORS.accentSoft,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: RADII.pill,
+  },
+  quickResetPillText: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: COLORS.accent,
+  },
+  diningFeedCard: {
+    backgroundColor: COLORS.surface,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    marginHorizontal: SPACING.lg,
+    marginBottom: 12,
+    padding: 12,
+    gap: 10,
+    ...SHADOWS.card,
+  },
+  diningFeedTop: {
+    flexDirection: 'row',
+    gap: 12,
+    alignItems: 'center',
+  },
+  diningFeedThumb: {
+    width: 72,
+    height: 72,
+    borderRadius: 12,
+    backgroundColor: COLORS.surfaceMuted,
+  },
+  diningFeedInfo: {
+    flex: 1,
+    minWidth: 0,
+    gap: 3,
+  },
+  diningFeedTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 6,
+  },
+  diningFeedName: {
+    flex: 1,
+    fontSize: 14.5,
+    fontWeight: '700',
+    color: COLORS.ink,
+  },
+  diningFeedRatingPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: COLORS.amberBg,
+    borderRadius: RADII.pill,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+  },
+  diningFeedRatingText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: COLORS.ink,
+    fontVariant: ['tabular-nums'],
+  },
+  diningFeedCuisine: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: COLORS.accent,
+  },
+  diningFeedDish: {
+    fontSize: 12,
+    color: COLORS.inkSecondary,
+  },
+  diningFeedNearSite: {
+    fontSize: 11,
+    color: COLORS.inkMuted,
+  },
+  diningFeedFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+    paddingTop: 9,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.surfaceMuted,
+  },
+  diningFeedDistWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    flex: 1,
+  },
+  diningFeedDistText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: COLORS.inkSecondary,
+    fontVariant: ['tabular-nums'],
+  },
+  diningFeedGoBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: COLORS.ink,
+    borderRadius: RADII.pill,
+    paddingHorizontal: 13,
+    paddingVertical: 7,
+  },
+  diningFeedGoText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.white,
   },
   aiStripRow: {
     flexDirection: 'row',
