@@ -211,10 +211,10 @@ function buildExplorerMapHtml(
   const safeHcmcRings = JSON.stringify(HCMC_BOUNDARY_RINGS);
 
   const glCssUrl = useMapboxEngine
-    ? 'https://api.mapbox.com/mapbox-gl-js/v3.7.0/mapbox-gl.css'
+    ? 'https://api.mapbox.com/mapbox-gl-js/v3.10.0/mapbox-gl.css'
     : 'https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.css';
   const glJsUrl = useMapboxEngine
-    ? 'https://api.mapbox.com/mapbox-gl-js/v3.7.0/mapbox-gl.js'
+    ? 'https://api.mapbox.com/mapbox-gl-js/v3.10.0/mapbox-gl.js'
     : 'https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.js';
 
   return `<!DOCTYPE html>
@@ -230,35 +230,35 @@ function buildExplorerMapHtml(
       padding: 0;
       width: 100%;
       height: 100%;
-      background: #EDF2F7;
+      background: #F4F2EC;
       overflow: hidden;
       font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
     }
     .mapboxgl-map, .maplibregl-map, .leaflet-container {
-      background: #EDF2F7;
+      background: #F4F2EC;
       font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
     }
     .mapboxgl-ctrl-attrib, .maplibregl-ctrl-attrib {
       font-size: 9px !important;
-      background: rgba(255, 255, 255, 0.72) !important;
+      background: rgba(250, 249, 246, 0.78) !important;
       backdrop-filter: blur(8px);
       -webkit-backdrop-filter: blur(8px);
-      color: #64748B !important;
+      color: #8A877F !important;
       border-radius: 10px 0 0 0;
       padding: 1px 6px !important;
     }
     .mapboxgl-ctrl-scale, .maplibregl-ctrl-scale {
-      background: rgba(255, 255, 255, 0.82) !important;
+      background: rgba(250, 249, 246, 0.86) !important;
       backdrop-filter: blur(8px);
       -webkit-backdrop-filter: blur(8px);
-      border: 1.5px solid rgba(15, 23, 42, 0.45) !important;
+      border: 1.5px solid rgba(20, 20, 19, 0.38) !important;
       border-top: none !important;
-      color: #334155 !important;
+      color: #57554F !important;
       font-size: 9.5px !important;
       font-weight: 600 !important;
       padding: 0 6px !important;
       border-radius: 0 0 4px 4px;
-      box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);
+      box-shadow: 0 2px 6px rgba(20, 20, 19, 0.06);
     }
     .mapboxgl-ctrl-bottom-left, .maplibregl-ctrl-bottom-left {
       left: 12px !important;
@@ -474,58 +474,87 @@ function buildExplorerMapHtml(
         return buildRasterStyleJson(tileCfg);
       }
 
-      function createSiteMarkerElement(site) {
+      function createSiteMarkerElement(site, compactMode) {
         var el = document.createElement('div');
         el.style.cursor = 'pointer';
         el.style.zIndex = site.isSelected ? '45' : '15';
-        var accent = site.isVisited ? '#059669' : '#D9381E';
+        var accent = site.isVisited ? '#047857' : '#B93815';
         var badgeText = site.isVisited ? '✓' : String(site.index);
 
         if (site.isSelected) {
           var shortLabel = site.label.length > 20 ? site.label.slice(0, 18) + '…' : site.label;
           el.innerHTML = '<div class="shg-pin-badge" style="display:inline-flex;flex-direction:column;align-items:center;user-select:none;">'
-            + '<div style="display:inline-flex;align-items:center;gap:7px;padding:4px 11px 4px 4px;border-radius:999px;background:rgba(255,255,255,0.95);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1.5px solid #D9381E;box-shadow:0 10px 28px rgba(15,23,42,0.22),0 2px 6px rgba(217,56,30,0.16);">'
-            + '<div style="width:26px;height:26px;border-radius:999px;overflow:hidden;flex-shrink:0;background:#F1F5F9;border:1px solid rgba(15,23,42,0.08);">'
+            + '<div style="display:inline-flex;align-items:center;gap:7px;padding:4px 11px 4px 4px;border-radius:999px;background:rgba(250,249,246,0.96);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1.5px solid ' + accent + ';box-shadow:0 10px 26px rgba(20,20,19,0.20),0 2px 6px rgba(185,56,21,0.14);">'
+            + '<div style="width:26px;height:26px;border-radius:999px;overflow:hidden;flex-shrink:0;background:#F3F1EC;border:1px solid rgba(20,20,19,0.08);">'
             + '<img src="' + escapeHtml(site.coverImage) + '" alt="" style="width:26px;height:26px;object-fit:cover;display:block;" />'
             + '</div>'
-            + '<span style="font-size:12px;font-weight:700;color:#0F172A;letter-spacing:-0.01em;white-space:nowrap;">'
+            + '<span style="font-size:12px;font-weight:700;color:#141413;letter-spacing:-0.01em;white-space:nowrap;">'
             + escapeHtml(shortLabel)
             + '</span>'
-            + '<span style="display:inline-flex;align-items:center;justify-content:center;min-width:19px;height:19px;padding:0 5px;border-radius:999px;background:#D9381E;color:#FFFFFF;font-size:10px;font-weight:700;">'
+            + '<span style="display:inline-flex;align-items:center;justify-content:center;min-width:19px;height:19px;padding:0 5px;border-radius:999px;background:' + accent + ';color:#FAF9F6;font-size:10px;font-weight:700;">'
             + badgeText
             + '</span>'
             + '</div>'
-            + '<div style="width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:7px solid #D9381E;margin-top:-1px;"></div>'
+            + '<div style="width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:7px solid ' + accent + ';margin-top:-1px;"></div>'
             + '<div class="shg-teardrop-shadow" style="width:18px;"></div>'
             + '</div>';
           return el;
         }
 
-        // Apple Maps / Airbnb Teardrop Photo Pin with soft 3D ground shadow
+        if (compactMode) {
+          // Clean minimalist medallion for city/province overview — zero overlap clutter
+          el.innerHTML = '<div class="shg-pin-badge" style="display:inline-flex;flex-direction:column;align-items:center;user-select:none;">'
+            + '<div style="position:relative;width:30px;height:30px;border-radius:999px;background:#FAF9F6;padding:2px;box-shadow:0 4px 12px rgba(20,20,19,0.20),0 1px 2px rgba(20,20,19,0.10);border:1.5px solid ' + accent + ';">'
+            + '<div style="width:100%;height:100%;border-radius:999px;overflow:hidden;background:#F3F1EC;">'
+            + '<img src="' + escapeHtml(site.coverImage) + '" alt="" style="width:100%;height:100%;object-fit:cover;display:block;" />'
+            + '</div>'
+            + '<span style="position:absolute;bottom:-2px;right:-2px;width:9px;height:9px;border-radius:999px;background:' + accent + ';border:1.5px solid #FAF9F6;"></span>'
+            + '</div>'
+            + '</div>';
+          return el;
+        }
+
+        // Refined Editorial Teardrop Photo Pin — harmonized with #FAF9F6 & #B93815
         el.innerHTML = '<div class="shg-pin-badge" style="display:inline-flex;flex-direction:column;align-items:center;user-select:none;">'
-          + '<div style="position:relative;width:36px;height:36px;border-radius:999px;background:#FFFFFF;padding:2.5px;box-shadow:0 6px 16px rgba(15,23,42,0.24),0 1px 3px rgba(15,23,42,0.12);border:1px solid rgba(255,255,255,0.95);">'
-          + '<div style="width:100%;height:100%;border-radius:999px;overflow:hidden;background:#F1F5F9;">'
+          + '<div style="position:relative;width:34px;height:34px;border-radius:999px;background:#FAF9F6;padding:2.5px;box-shadow:0 6px 14px rgba(20,20,19,0.20),0 1px 3px rgba(20,20,19,0.10);border:1px solid rgba(20,20,19,0.08);">'
+          + '<div style="width:100%;height:100%;border-radius:999px;overflow:hidden;background:#F3F1EC;">'
           + '<img src="' + escapeHtml(site.coverImage) + '" alt="" style="width:100%;height:100%;object-fit:cover;display:block;" />'
           + '</div>'
-          + '<span style="position:absolute;bottom:-3px;right:-3px;display:inline-flex;align-items:center;justify-content:center;min-width:16px;height:16px;padding:0 3.5px;border-radius:999px;background:' + accent + ';color:#FFFFFF;border:1.5px solid #FFFFFF;font-size:8.5px;font-weight:700;line-height:1;box-shadow:0 2px 5px rgba(15,23,42,0.22);">'
+          + '<span style="position:absolute;bottom:-3px;right:-3px;display:inline-flex;align-items:center;justify-content:center;min-width:16px;height:16px;padding:0 3.5px;border-radius:999px;background:' + accent + ';color:#FAF9F6;border:1.5px solid #FAF9F6;font-size:8.5px;font-weight:700;line-height:1;box-shadow:0 2px 5px rgba(20,20,19,0.20);">'
           + badgeText
           + '</span>'
           + '</div>'
-          + '<div style="width:0;height:0;border-left:5.5px solid transparent;border-right:5.5px solid transparent;border-top:7.5px solid #FFFFFF;margin-top:-2px;filter:drop-shadow(0 2px 2px rgba(15,23,42,0.18));"></div>'
+          + '<div style="width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:7px solid #FAF9F6;margin-top:-2px;filter:drop-shadow(0 2px 2px rgba(20,20,19,0.16));"></div>'
           + '<div class="shg-teardrop-shadow"></div>'
           + '</div>';
         return el;
       }
 
-      function createRestaurantMarkerElement(res) {
+      function createClusterMarkerElement(count, allVisited) {
+        var el = document.createElement('div');
+        el.style.cursor = 'pointer';
+        el.style.zIndex = '24';
+        var bg = allVisited ? '#047857' : '#B93815';
+        var size = count >= 15 ? 40 : (count >= 6 ? 36 : 32);
+        el.innerHTML = '<div class="shg-pin-badge" style="display:inline-flex;align-items:center;justify-content:center;width:' + size + 'px;height:' + size + 'px;border-radius:999px;background:' + bg + ';color:#FAF9F6;border:2.5px solid #FAF9F6;box-shadow:0 6px 16px rgba(20,20,19,0.22),0 0 0 4px rgba(185,56,21,0.14);font-size:12px;font-weight:800;letter-spacing:-0.02em;user-select:none;">'
+          + String(count)
+          + '</div>';
+        return el;
+      }
+
+      function createRestaurantMarkerElement(res, asDot) {
         var el = document.createElement('div');
         el.style.cursor = 'pointer';
         el.style.zIndex = '9';
         var isOverture = res.source === 'overture';
-        var starColor = isOverture ? '#F59E0B' : '#D9381E';
-        // Airbnb Floating White Glass Pill for eateries (clean, bright, never dark/cluttered)
-        el.innerHTML = '<div class="shg-pin-badge" style="display:inline-flex;align-items:center;gap:3px;padding:3px 7.5px;border-radius:999px;background:rgba(255,255,255,0.94);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);color:#0F172A;border:1px solid rgba(15,23,42,0.09);box-shadow:0 3px 10px rgba(15,23,42,0.15),0 1px 2px rgba(15,23,42,0.08);font-size:10px;font-weight:700;letter-spacing:-0.01em;white-space:nowrap;">'
-          + '<span style="color:' + starColor + ';font-size:9.5px;line-height:1;">★</span>'
+        var starColor = isOverture ? '#B45309' : '#B93815';
+        if (asDot) {
+          el.innerHTML = '<div class="shg-pin-badge" style="width:11px;height:11px;border-radius:999px;background:' + starColor + ';border:2px solid #FAF9F6;box-shadow:0 2px 6px rgba(20,20,19,0.22);"></div>';
+          return el;
+        }
+        // Unified Warm-Ivory Glass Pill for eateries (matches #FAF9F6 & #141413)
+        el.innerHTML = '<div class="shg-pin-badge" style="display:inline-flex;align-items:center;gap:3px;padding:2.5px 7px;border-radius:999px;background:rgba(250,249,246,0.94);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);color:#141413;border:1px solid rgba(20,20,19,0.10);box-shadow:0 3px 9px rgba(20,20,19,0.13),0 1px 2px rgba(20,20,19,0.06);font-size:9.5px;font-weight:700;letter-spacing:-0.01em;white-space:nowrap;">'
+          + '<span style="color:' + starColor + ';font-size:9px;line-height:1;">★</span>'
           + '<span>' + Number(res.rating).toFixed(1) + '</span>'
           + '</div>';
         return el;
@@ -562,9 +591,10 @@ function buildExplorerMapHtml(
       }
 
       function applyMapboxOrOsmEnhancements(map, tileCfg, is3D, lightPreset) {
-        // 1. Mapbox Standard 3D (v3): phong cách Apple Maps 3D sáng trong + sương trời xanh nhẹ + đầy đủ POI
+        // 1. Mapbox Standard 3D (v3): bảng màu Faded hiện đại đồng bộ tông ấm app + giữ đủ POI dịu mắt
         if (USE_MAPBOX && tileCfg.id === 'mapbox_standard') {
           try {
+            map.setConfigProperty('basemap', 'theme', 'faded');
             map.setConfigProperty('basemap', 'lightPreset', lightPreset || 'day');
             map.setConfigProperty('basemap', 'showPointOfInterestLabels', true);
             map.setConfigProperty('basemap', 'showRoadLabels', true);
@@ -574,18 +604,18 @@ function buildExplorerMapHtml(
               var isNight = lightPreset === 'night';
               var isDusk = lightPreset === 'dusk';
               map.setFog(is3D ? {
-                color: isNight ? '#0F172A' : (isDusk ? '#F3DFCE' : '#EDF4FB'),
-                'high-color': isNight ? '#020617' : (isDusk ? '#D8A48F' : '#D4E6F8'),
-                'space-color': isNight ? '#020617' : '#CBE0F5',
-                'horizon-blend': 0.12,
-                range: [1.6, 11]
+                color: isNight ? '#0E121B' : (isDusk ? '#ECE1D4' : '#F4F2EC'),
+                'high-color': isNight ? '#05070D' : (isDusk ? '#D8C3AD' : '#E3E9EE'),
+                'space-color': isNight ? '#05070D' : '#DAE3EB',
+                'horizon-blend': 0.10,
+                range: [1.8, 12]
               } : null);
             }
           } catch (e) {}
           return;
         }
 
-        // 2. Mapbox Streets / Outdoors / Satellite v12: khối kiến trúc 3D trắng ngọc Apple Maps
+        // 2. Mapbox Streets / Outdoors / Satellite v12: khối kiến trúc 3D tông đá kem hiện đại
         if (USE_MAPBOX && tileCfg.renderMode === 'mapbox') {
           try {
             if (is3D && map.getSource('composite') && !map.getLayer('shg-mapbox-3d-buildings')) {
@@ -608,10 +638,10 @@ function buildExplorerMapHtml(
                   'fill-extrusion-color': [
                     'interpolate', ['linear'],
                     ['coalesce', ['get', 'height'], 10],
-                    0, '#F8F7F4',
-                    25, '#ECEAE4',
-                    75, '#DFDDD5',
-                    160, '#D1CEC5'
+                    0, '#F5F2EC',
+                    25, '#EAE5DC',
+                    75, '#DDD7CC',
+                    160, '#CFC8BC'
                   ],
                   'fill-extrusion-height': ['get', 'height'],
                   'fill-extrusion-base': ['get', 'min_height'],
@@ -626,7 +656,7 @@ function buildExplorerMapHtml(
           return;
         }
 
-        // 3. OpenStreetMap Vector 3D (OpenFreeMap) — Bảng màu Apple Maps 3D sáng trong trẻo
+        // 3. OpenStreetMap Vector 3D (OpenFreeMap) — Bảng màu Kiến trúc Kem Ấm đồng bộ với toàn App
         if (tileCfg.renderMode !== 'vector') return;
         var style = map.getStyle();
         if (!style || !Array.isArray(style.layers)) return;
@@ -639,31 +669,31 @@ function buildExplorerMapHtml(
         };
 
         if (tileCfg.googleLikePalette) {
-          setPaint('background', 'background-color', '#F5F5F0');
-          setPaint('water', 'fill-color', '#9FD2FF');
-          setPaint('waterway_river', 'line-color', '#8CC7FB');
-          setPaint('waterway_other', 'line-color', '#9FD2FF');
-          setPaint('park', 'fill-color', '#C6E8B8');
-          setPaint('park_outline', 'line-color', '#B2DEA1');
-          setPaint('landcover_wood', 'fill-color', '#BFE4B0');
-          setPaint('landcover_grass', 'fill-color', '#D1EDC4');
-          setPaint('landuse_residential', 'fill-color', '#F1F2EE');
-          setPaint('landuse_commercial_area', 'fill-color', '#F5F0E7');
-          setPaint('landuse_hospital', 'fill-color', '#FCEAEA');
-          setPaint('landuse_school', 'fill-color', '#FAF3DF');
-          setPaint('road_motorway_casing', 'line-color', '#E8BD6B');
-          setPaint('road_motorway', 'line-color', '#FCE19D');
-          setPaint('road_trunk_primary_casing', 'line-color', '#E8D296');
-          setPaint('road_trunk_primary', 'line-color', '#FDF1C7');
-          setPaint('road_secondary_tertiary_casing', 'line-color', '#E2E4E8');
+          setPaint('background', 'background-color', '#F6F4EF');
+          setPaint('water', 'fill-color', '#D2E2EE');
+          setPaint('waterway_river', 'line-color', '#C3D9E8');
+          setPaint('waterway_other', 'line-color', '#D2E2EE');
+          setPaint('park', 'fill-color', '#DCE7D4');
+          setPaint('park_outline', 'line-color', '#CEDCC4');
+          setPaint('landcover_wood', 'fill-color', '#D4E2CB');
+          setPaint('landcover_grass', 'fill-color', '#E2ECD9');
+          setPaint('landuse_residential', 'fill-color', '#F2EFE9');
+          setPaint('landuse_commercial_area', 'fill-color', '#F4EEE4');
+          setPaint('landuse_hospital', 'fill-color', '#F5EAE8');
+          setPaint('landuse_school', 'fill-color', '#F4EFE3');
+          setPaint('road_motorway_casing', 'line-color', '#DDD0B6');
+          setPaint('road_motorway', 'line-color', '#EDE2CB');
+          setPaint('road_trunk_primary_casing', 'line-color', '#E2DBD0');
+          setPaint('road_trunk_primary', 'line-color', '#F8F4EA');
+          setPaint('road_secondary_tertiary_casing', 'line-color', '#E5E1D8');
           setPaint('road_secondary_tertiary', 'line-color', '#FFFFFF');
-          setPaint('road_minor_casing', 'line-color', '#E9EBEF');
+          setPaint('road_minor_casing', 'line-color', '#EAE6DE');
           setPaint('road_minor', 'line-color', '#FFFFFF');
-          setPaint('road_service_track_casing', 'line-color', '#EEEFF2');
-          setPaint('road_service_track', 'line-color', '#FAFAFC');
+          setPaint('road_service_track_casing', 'line-color', '#EFECE5');
+          setPaint('road_service_track', 'line-color', '#FAF9F6');
           setPaint('road_path_pedestrian', 'line-color', '#EAE4D8');
-          setPaint('building', 'fill-color', '#ECEBE6');
-          setPaint('building', 'fill-outline-color', '#DFDDD6');
+          setPaint('building', 'fill-color', '#EBE7DF');
+          setPaint('building', 'fill-outline-color', '#DED9CF');
         }
 
         if (map.getLayer('building-3d')) {
@@ -671,10 +701,10 @@ function buildExplorerMapHtml(
           setPaint('building-3d', 'fill-extrusion-color', [
             'interpolate', ['linear'],
             ['coalesce', ['get', 'render_height'], 10],
-            0, '#F8F7F4',
-            18, '#ECEAE4',
-            50, '#DFDDD5',
-            130, '#D1CEC5'
+            0, '#F5F2EC',
+            18, '#EAE5DC',
+            50, '#DDD7CC',
+            130, '#CFC8BC'
           ]);
           setPaint('building-3d', 'fill-extrusion-opacity', 0.88);
           setPaint('building-3d', 'fill-extrusion-vertical-gradient', true);
@@ -732,35 +762,35 @@ function buildExplorerMapHtml(
           var isDusk = !isDark && currentLightPreset === 'dusk';
           if (isDark) {
             return {
-              maskColor: '#0A0F1A',
+              maskColor: '#0B0F17',
               maskOpacity: 0.64,
               featherColor: '#000000',
-              featherOpacity: 0.36,
-              casingColor: 'rgba(255, 255, 255, 0.35)',
-              lineColor: '#F59E0B',
-              lineOpacity: 0.9
+              featherOpacity: 0.24,
+              casingColor: 'rgba(250, 249, 246, 0.30)',
+              lineColor: '#E07A5F',
+              lineOpacity: 0.88
             };
           }
           if (isDusk) {
             return {
-              maskColor: '#EAE2D6',
-              maskOpacity: 0.72,
-              featherColor: '#B59E84',
-              featherOpacity: 0.28,
-              casingColor: '#FFFFFF',
+              maskColor: '#EBE3D7',
+              maskOpacity: 0.76,
+              featherColor: '#8C7A68',
+              featherOpacity: 0.16,
+              casingColor: '#FAF9F6',
               lineColor: '#B93815',
-              lineOpacity: 0.86
+              lineOpacity: 0.84
             };
           }
-          // Apple Maps airy cool-white mist veil (seamless with sky fog)
+          // Warm Alabaster Frosted Veil — harmonized 1:1 with app parchment #FAF9F6 & terracotta #B93815
           return {
-            maskColor: '#EEF3F8',
-            maskOpacity: 0.72,
-            featherColor: '#94A3B8',
-            featherOpacity: 0.22,
-            casingColor: '#FFFFFF',
-            lineColor: '#D9381E',
-            lineOpacity: 0.84
+            maskColor: '#F4F2EC',
+            maskOpacity: 0.78,
+            featherColor: '#8A877F',
+            featherOpacity: 0.14,
+            casingColor: '#FAF9F6',
+            lineColor: '#B93815',
+            lineOpacity: 0.82
           };
         }
 
@@ -769,7 +799,7 @@ function buildExplorerMapHtml(
           var topSlotProps = (USE_MAPBOX && currentTile.id === 'mapbox_standard') ? { slot: 'top' } : {};
           var theme = getSpotlightTheme();
 
-          // Lớp sương mờ tinh tế (Frosted Spotlight Veil) làm dịu các tỉnh/quốc gia ngoài phạm vi chọn
+          // Lớp sương mờ tông kem ấm đồng bộ app (Frosted Alabaster Veil)
           if (!map.getSource('shg-hcmc-mask')) {
             map.addSource('shg-hcmc-mask', {
               type: 'geojson',
@@ -791,7 +821,7 @@ function buildExplorerMapHtml(
               type: 'geojson',
               data: { type: 'FeatureCollection', features: [] }
             });
-            // 1. Soft feathered vignette halo along the administrative boundary
+            // 1. Subtle architectural drop shadow along the border (clean, never muddy)
             map.addLayer(Object.assign({
               id: 'shg-hcmc-border-glow',
               type: 'line',
@@ -799,12 +829,12 @@ function buildExplorerMapHtml(
               layout: { 'line-join': 'round', 'line-cap': 'round' },
               paint: {
                 'line-color': theme.featherColor,
-                'line-width': 20,
-                'line-blur': 13,
+                'line-width': 9,
+                'line-blur': 6,
                 'line-opacity': theme.featherOpacity
               }
             }, topSlotProps));
-            // 2. Clean crisp white inner rim separating roads & rivers from border
+            // 2. Crisp warm-ivory rim separating land/sea from border hairline
             map.addLayer(Object.assign({
               id: 'shg-hcmc-border-casing',
               type: 'line',
@@ -812,11 +842,11 @@ function buildExplorerMapHtml(
               layout: { 'line-join': 'round', 'line-cap': 'round' },
               paint: {
                 'line-color': theme.casingColor,
-                'line-width': 4.2,
-                'line-opacity': 0.9
+                'line-width': 3.4,
+                'line-opacity': 0.92
               }
             }, topSlotProps));
-            // 3. Refined editorial heritage border hairline
+            // 3. Refined Heritage Terracotta border hairline
             map.addLayer(Object.assign({
               id: 'shg-hcmc-border-line',
               type: 'line',
@@ -824,7 +854,7 @@ function buildExplorerMapHtml(
               layout: { 'line-join': 'round', 'line-cap': 'round' },
               paint: {
                 'line-color': theme.lineColor,
-                'line-width': 1.75,
+                'line-width': 1.6,
                 'line-opacity': theme.lineOpacity
               }
             }, topSlotProps));
@@ -840,8 +870,8 @@ function buildExplorerMapHtml(
               type: 'fill',
               source: 'shg-radius',
               paint: {
-                'fill-color': '#1A73E8',
-                'fill-opacity': 0.06
+                'fill-color': '#B93815',
+                'fill-opacity': 0.045
               }
             }, slotProps));
             map.addLayer(Object.assign({
@@ -849,10 +879,10 @@ function buildExplorerMapHtml(
               type: 'line',
               source: 'shg-radius',
               paint: {
-                'line-color': '#1A73E8',
-                'line-width': 1.5,
+                'line-color': '#B93815',
+                'line-width': 1.25,
                 'line-dasharray': [4, 4],
-                'line-opacity': 0.65
+                'line-opacity': 0.48
               }
             }, slotProps));
           }
@@ -868,8 +898,8 @@ function buildExplorerMapHtml(
               source: 'shg-route',
               layout: { 'line-join': 'round', 'line-cap': 'round' },
               paint: {
-                'line-color': '#FFFFFF',
-                'line-width': 10,
+                'line-color': '#FAF9F6',
+                'line-width': 9,
                 'line-opacity': 0.96
               }
             }, slotProps));
@@ -879,8 +909,8 @@ function buildExplorerMapHtml(
               source: 'shg-route',
               layout: { 'line-join': 'round', 'line-cap': 'round' },
               paint: {
-                'line-color': '#1A73E8',
-                'line-width': 5.5,
+                'line-color': '#B93815',
+                'line-width': 5,
                 'line-opacity': 0.96
               }
             }, slotProps));
@@ -890,8 +920,8 @@ function buildExplorerMapHtml(
               source: 'shg-route',
               layout: { 'line-join': 'round', 'line-cap': 'round' },
               paint: {
-                'line-color': '#DCEBFF',
-                'line-width': 2.2,
+                'line-color': '#FDE8DF',
+                'line-width': 2,
                 'line-dasharray': [0.5, 2.8],
                 'line-opacity': 0.95
               }
@@ -1068,23 +1098,41 @@ function buildExplorerMapHtml(
           updateUserHeadingVisual(heading, isNavigating);
         }
 
-        function renderSites(sites, showRestaurants) {
+        var lastShowRestaurants = true;
+        var lastMarkerZoomBucket = '';
+
+        function getMarkerZoomBucket(z) {
+          if (z < 11.2) return 'region_' + Math.round(z * 2);
+          if (z < 13.4) return 'city_' + Math.round(z * 2);
+          if (z < 14.8) return 'district';
+          return 'street';
+        }
+
+        function renderSites(sites, showRestaurants, forceRedraw) {
+          lastShowRestaurants = !!showRestaurants;
+          var z = (typeof map.getZoom === 'function') ? map.getZoom() : 15.6;
+          var zoomBucket = getMarkerZoomBucket(z);
           var sig = JSON.stringify({
-            showRestaurants: !!showRestaurants,
+            zoomBucket: zoomBucket,
+            showRestaurants: lastShowRestaurants,
             sites: sites.map(function(s) {
               return [s.id, s.label, s.index, s.isVisited, s.isSelected];
             })
           });
-          if (sig === lastSitesSignature) return;
+          if (!forceRedraw && sig === lastSitesSignature) return;
           lastSitesSignature = sig;
+          lastMarkerZoomBucket = zoomBucket;
 
           siteMarkers.forEach(function(m) { m.remove(); });
           siteMarkers = [];
           restaurantMarkers.forEach(function(m) { m.remove(); });
           restaurantMarkers = [];
 
-          sites.forEach(function(site) {
-            var el = createSiteMarkerElement(site);
+          var compactMode = z < 13.4;
+          var shouldCluster = z < 13.4 && typeof map.project === 'function';
+
+          function addSingleSiteMarker(site, isCompact) {
+            var el = createSiteMarkerElement(site, isCompact);
             el.addEventListener('click', function(ev) {
               ev.stopPropagation();
               postToHost({ type: 'SITE_CLICK', siteId: site.id });
@@ -1094,18 +1142,109 @@ function buildExplorerMapHtml(
                 duration: 550
               });
             });
-
             var m = new gl.Marker({
               element: el,
-              anchor: 'bottom'
+              anchor: isCompact && !site.isSelected ? 'center' : 'bottom'
             })
               .setLngLat([site.lng, site.lat])
               .addTo(map);
             siteMarkers.push(m);
+          }
 
-            if (showRestaurants && Array.isArray(site.restaurants)) {
-              site.restaurants.forEach(function(res) {
-                var rEl = createRestaurantMarkerElement(res);
+          if (shouldCluster) {
+            // Smart screen-space clustering keeps regional/city view ultra-clean without removing a single site
+            var clusterRadiusPx = z < 11.2 ? 42 : 36;
+            var clusters = [];
+            sites.forEach(function(site) {
+              if (site.isSelected) {
+                addSingleSiteMarker(site, false);
+                return;
+              }
+              var pt = map.project([site.lng, site.lat]);
+              var placed = false;
+              for (var ci = 0; ci < clusters.length; ci++) {
+                var c = clusters[ci];
+                var dx = pt.x - c.px;
+                var dy = pt.y - c.py;
+                if (dx * dx + dy * dy <= clusterRadiusPx * clusterRadiusPx) {
+                  c.items.push(site);
+                  c.sumLng += site.lng;
+                  c.sumLat += site.lat;
+                  c.px = (c.px * (c.items.length - 1) + pt.x) / c.items.length;
+                  c.py = (c.py * (c.items.length - 1) + pt.y) / c.items.length;
+                  placed = true;
+                  break;
+                }
+              }
+              if (!placed) {
+                clusters.push({
+                  items: [site],
+                  sumLng: site.lng,
+                  sumLat: site.lat,
+                  px: pt.x,
+                  py: pt.y
+                });
+              }
+            });
+
+            clusters.forEach(function(cluster) {
+              if (cluster.items.length === 1) {
+                addSingleSiteMarker(cluster.items[0], true);
+                return;
+              }
+              var avgLng = cluster.sumLng / cluster.items.length;
+              var avgLat = cluster.sumLat / cluster.items.length;
+              var allVisited = cluster.items.every(function(item) { return item.isVisited; });
+              var cEl = createClusterMarkerElement(cluster.items.length, allVisited);
+              cEl.addEventListener('click', function(ev) {
+                ev.stopPropagation();
+                map.easeTo({
+                  center: [avgLng, avgLat],
+                  zoom: Math.min(Math.max(map.getZoom() + 2.4, 14.2), 16.2),
+                  duration: 550
+                });
+              });
+              var cm = new gl.Marker({ element: cEl, anchor: 'center' })
+                .setLngLat([avgLng, avgLat])
+                .addTo(map);
+              siteMarkers.push(cm);
+            });
+          } else {
+            sites.forEach(function(site) {
+              addSingleSiteMarker(site, false);
+            });
+          }
+
+          // Zoom-progressive restaurant rendering + screen-space anti-overlap (zero visual clutter!)
+          if (lastShowRestaurants) {
+            var resMode = z >= 14.8 ? 'pill' : (z >= 13.6 ? 'dot' : 'selected-only');
+            var placedResPts = [];
+            var minResGap = resMode === 'pill' ? 30 : 14;
+
+            sites.forEach(function(site) {
+              if (!Array.isArray(site.restaurants) || site.restaurants.length === 0) return;
+              if (resMode === 'selected-only' && !site.isSelected) return;
+              var sortedRes = site.restaurants.slice().sort(function(a, b) {
+                return (Number(b.rating) || 0) - (Number(a.rating) || 0);
+              });
+              sortedRes.forEach(function(res) {
+                var showAsPill = site.isSelected || resMode === 'pill';
+                if (typeof map.project === 'function' && !site.isSelected) {
+                  var rpt = map.project([res.lng, res.lat]);
+                  var tooClose = false;
+                  for (var ri = 0; ri < placedResPts.length; ri++) {
+                    var dx = rpt.x - placedResPts[ri][0];
+                    var dy = rpt.y - placedResPts[ri][1];
+                    if (dx * dx + dy * dy < minResGap * minResGap) {
+                      tooClose = true;
+                      break;
+                    }
+                  }
+                  if (tooClose) return;
+                  placedResPts.push([rpt.x, rpt.y]);
+                }
+
+                var rEl = createRestaurantMarkerElement(res, !showAsPill);
                 rEl.addEventListener('click', function(ev) {
                   ev.stopPropagation();
                   postToHost({
@@ -1125,9 +1264,17 @@ function buildExplorerMapHtml(
                   .addTo(map);
                 restaurantMarkers.push(rm);
               });
-            }
-          });
+            });
+          }
         }
+
+        map.on('zoomend', function() {
+          if (!lastKnownSites.length) return;
+          var nextBucket = getMarkerZoomBucket(map.getZoom());
+          if (nextBucket !== lastMarkerZoomBucket) {
+            renderSites(lastKnownSites, lastShowRestaurants, true);
+          }
+        });
 
         function setTileConfig(cfg) {
           if (!cfg || currentStyleId === cfg.id) return;
@@ -1223,8 +1370,8 @@ function buildExplorerMapHtml(
 
           if (state.lightPreset && state.lightPreset !== currentLightPreset) {
             currentLightPreset = state.lightPreset;
-            if (styleReady && USE_MAPBOX && currentTile.id === 'mapbox_standard') {
-              try { map.setConfigProperty('basemap', 'lightPreset', currentLightPreset); } catch (e) {}
+            if (styleReady) {
+              applyMapboxOrOsmEnhancements(map, currentTile, is3DEnabled, currentLightPreset);
             }
             syncHcmcFocusLayer(isFocusHcmcOnly, false);
           }
@@ -1357,8 +1504,8 @@ function buildExplorerMapHtml(
             });
           } else if (cmd.type === 'SET_LIGHT' && cmd.preset) {
             currentLightPreset = cmd.preset;
-            if (styleReady && USE_MAPBOX && currentTile.id === 'mapbox_standard') {
-              try { map.setConfigProperty('basemap', 'lightPreset', currentLightPreset); } catch (e) {}
+            if (styleReady) {
+              applyMapboxOrOsmEnhancements(map, currentTile, is3DEnabled, currentLightPreset);
             }
             syncHcmcFocusLayer(isFocusHcmcOnly, false);
           } else if (cmd.type === 'FIT_SCOPE') {
@@ -1519,8 +1666,8 @@ function buildExplorerMapHtml(
             }
             routeLayer.clearLayers();
             if (state.route && Array.isArray(state.route.coordinates) && state.route.coordinates.length > 1) {
-              L.polyline(state.route.coordinates, { color: '#FFFFFF', weight: 9 }).addTo(routeLayer);
-              L.polyline(state.route.coordinates, { color: '#1A73E8', weight: 5 }).addTo(routeLayer);
+              L.polyline(state.route.coordinates, { color: '#FAF9F6', weight: 9 }).addTo(routeLayer);
+              L.polyline(state.route.coordinates, { color: '#B93815', weight: 5 }).addTo(routeLayer);
             }
           };
 
@@ -2139,7 +2286,7 @@ export const MapExplorer: React.FC<MapExplorerProps> = ({
             >
               <MapPin
                 size={12}
-                color={focusHcmcOnly ? '#FDE68A' : COLORS.inkMuted}
+                color={focusHcmcOnly ? COLORS.white : COLORS.inkMuted}
                 strokeWidth={2.4}
               />
               <Text
@@ -2165,7 +2312,7 @@ export const MapExplorer: React.FC<MapExplorerProps> = ({
             >
               <Globe
                 size={12}
-                color={!focusHcmcOnly ? '#FDE68A' : COLORS.inkMuted}
+                color={!focusHcmcOnly ? COLORS.white : COLORS.inkMuted}
                 strokeWidth={2.2}
               />
               <Text
@@ -2248,9 +2395,9 @@ export const MapExplorer: React.FC<MapExplorerProps> = ({
                 accessibilityLabel="Đổi ánh sáng Mapbox Standard 3D"
               >
                 {lightPreset === 'day' ? (
-                  <Sun size={16} color="#D97706" />
+                  <Sun size={16} color={COLORS.accent} />
                 ) : lightPreset === 'dusk' ? (
-                  <Sunset size={16} color={COLORS.accent} />
+                  <Sunset size={16} color={COLORS.inkSecondary} />
                 ) : (
                   <Moon size={15} color={COLORS.ink} />
                 )}
@@ -2380,10 +2527,10 @@ export const MapExplorer: React.FC<MapExplorerProps> = ({
           {activeRoute ? (
             <Compass
               size={19}
-              color={isFollowingNav ? COLORS.white : COLORS.gpsBlue}
+              color={isFollowingNav ? COLORS.white : COLORS.accent}
             />
           ) : (
-            <LocateFixed size={19} color={COLORS.gpsBlue} />
+            <LocateFixed size={19} color={COLORS.ink} />
           )}
         </TouchableOpacity>
       </View>
@@ -2807,10 +2954,10 @@ const styles = StyleSheet.create({
   scopeSegmentedPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.88)',
+    backgroundColor: 'rgba(250, 249, 246, 0.92)',
     borderRadius: RADII.pill,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.85)',
+    borderColor: 'rgba(20, 20, 19, 0.08)',
     padding: 3.5,
     gap: 3,
     ...(Platform.OS === 'web'
@@ -2827,13 +2974,13 @@ const styles = StyleSheet.create({
     borderRadius: RADII.pill,
   },
   scopeSegBtnActive: {
-    backgroundColor: '#18181B',
+    backgroundColor: COLORS.ink,
   },
   scopeSegText: {
     fontSize: 11.5,
     fontWeight: '700',
     letterSpacing: 0.1,
-    color: '#475569',
+    color: COLORS.inkSecondary,
   },
   scopeSegTextActive: {
     color: COLORS.white,
@@ -2885,9 +3032,9 @@ const styles = StyleSheet.create({
   controlDock: {
     width: 42,
     borderRadius: 21,
-    backgroundColor: 'rgba(255, 255, 255, 0.88)',
+    backgroundColor: 'rgba(250, 249, 246, 0.92)',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.85)',
+    borderColor: 'rgba(20, 20, 19, 0.08)',
     overflow: 'hidden',
     ...(Platform.OS === 'web'
       ? ({ backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)' } as object)
@@ -2901,23 +3048,23 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   dockBtnActive: {
-    backgroundColor: '#18181B',
+    backgroundColor: COLORS.ink,
   },
   dockBtn3DActive: {
-    backgroundColor: '#007AFF',
+    backgroundColor: COLORS.accent,
   },
   dockDivider: {
     height: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.08)',
+    backgroundColor: 'rgba(20, 20, 19, 0.08)',
     marginHorizontal: 9,
   },
   roundControlBtn: {
     width: 42,
     height: 42,
     borderRadius: 21,
-    backgroundColor: 'rgba(255, 255, 255, 0.90)',
+    backgroundColor: 'rgba(250, 249, 246, 0.92)',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.85)',
+    borderColor: 'rgba(20, 20, 19, 0.08)',
     alignItems: 'center',
     justifyContent: 'center',
     ...(Platform.OS === 'web'
@@ -2930,8 +3077,8 @@ const styles = StyleSheet.create({
     borderColor: COLORS.ink,
   },
   roundControlBtn3DActive: {
-    backgroundColor: COLORS.gpsBlue,
-    borderColor: COLORS.gpsBlue,
+    backgroundColor: COLORS.accent,
+    borderColor: COLORS.accent,
   },
   toggle3DText: {
     fontSize: 12,
@@ -3090,10 +3237,10 @@ const styles = StyleSheet.create({
     zIndex: 20,
   },
   previewCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    backgroundColor: 'rgba(250, 249, 246, 0.96)',
     borderRadius: 24,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.9)',
+    borderColor: 'rgba(20, 20, 19, 0.08)',
     padding: SPACING.md + 2,
     ...(Platform.OS === 'web'
       ? ({ backdropFilter: 'blur(18px)', WebkitBackdropFilter: 'blur(18px)' } as object)
@@ -3192,7 +3339,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 5,
-    backgroundColor: '#18181B',
+    backgroundColor: COLORS.ink,
     borderRadius: RADII.pill,
     paddingVertical: 9,
     paddingHorizontal: 12,
@@ -3208,7 +3355,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 5,
-    backgroundColor: '#D9381E',
+    backgroundColor: COLORS.accent,
     borderRadius: RADII.pill,
     paddingVertical: 9,
     paddingHorizontal: 12,
