@@ -9,10 +9,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
-  // Bỏ comment dòng dưới nếu dùng Supabase Transaction Pooler (6543) + Direct URL (5432) cho migrate:
-  // directUrl = env("DIRECT_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 /// Hồ sơ người dùng (đồng bộ với Supabase Auth hoặc JWT cục bộ)

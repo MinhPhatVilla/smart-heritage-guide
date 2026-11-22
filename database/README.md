@@ -13,9 +13,10 @@ npm install
    ```bash
    cp .env.example .env
    ```
-2. Mở `database/.env` và dán chuỗi `DATABASE_URL` PostgreSQL của bạn (Supabase / Neon / Railway / Local Docker PostgreSQL):
+2. Mở `database/.env` và dán 2 biến kết nối từ **Supabase -> Connect -> ORMs -> Prisma** (nhớ thay `[YOUR-PASSWORD]` bằng mật khẩu database thật của bạn):
    ```env
-   DATABASE_URL="postgresql://postgres:<password>@<host>:5432/postgres"
+   DATABASE_URL="postgresql://postgres.<project-ref>:<password>@aws-1-ap-northeast-1.pooler.supabase.com:6543/postgres?pgbouncer=true"
+   DIRECT_URL="postgresql://postgres.<project-ref>:<password>@aws-1-ap-northeast-1.pooler.supabase.com:5432/postgres"
    ```
 3. Đẩy toàn bộ 9 bảng lên DB và nạp sẵn dữ liệu mẫu bằng **1 lệnh duy nhất**:
    ```bash
