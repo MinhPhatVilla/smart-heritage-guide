@@ -13,7 +13,7 @@ smart-heritage-guide/
 ├── .github/workflows/ci.yml   # Kiểm tra tự động mỗi khi Push / mở Pull Request
 ├── mobile/                    # Ứng dụng di động React Native (Expo SDK 58 + TypeScript)
 ├── backend/                   # Máy chủ API thông minh (Python 3.12 + FastAPI + Supabase)
-├── docs/                      # Tài liệu kiến trúc & báo cáo (.docx)
+├── docs/                      # Tài liệu kiến trúc, CSDL, AI & API (.md — xem docs/README.md)
 ├── CONTRIBUTING.md            # Bộ quy tắc phát triển & làm việc nhóm (file này)
 └── README.md                  # Hướng dẫn cài đặt và chạy nhanh
 ```

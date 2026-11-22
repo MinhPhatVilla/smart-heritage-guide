@@ -9,11 +9,11 @@ smart-heritage-guide/
 ├── .github/workflows/ci.yml   # GitHub Actions CI kiểm tra tự động (Standards, Backend, Mobile)
 ├── mobile/                    # Ứng dụng di động React Native (Expo SDK 58 + TypeScript)
 ├── backend/                   # Máy chủ FastAPI + Supabase (PostgreSQL/PostGIS/pgvector/Auth/Storage) + Gemini AI
-├── docs/                      # Tài liệu thiết kế kiến trúc hệ thống (.docx)
+├── docs/                      # Tài liệu kiến trúc, CSDL, 3 trụ cột AI & đặc tả API (Markdown)
 └── CONTRIBUTING.md            # Bộ quy tắc kiến trúc, font chữ, bảo mật & làm việc nhóm (GitHub Flow)
 ```
 
-> 📌 **Dành cho thành viên trong nhóm:** Vui lòng đọc kỹ [CONTRIBUTING.md](./CONTRIBUTING.md) trước khi tạo nhánh mới hoặc mở Pull Request.
+> 📌 **Dành cho thành viên trong nhóm:** Vui lòng đọc kỹ [CONTRIBUTING.md](./CONTRIBUTING.md) và bộ tài liệu kiến trúc tại [docs/README.md](./docs/README.md) trước khi tạo nhánh mới hoặc mở Pull Request.
 
 ## Tính năng nổi bật
 
