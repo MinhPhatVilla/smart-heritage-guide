@@ -13,6 +13,68 @@ function toRadians(degrees: number): number {
   return (degrees * Math.PI) / 180;
 }
 
+function toDegrees(radians: number): number {
+  return (radians * 180) / Math.PI;
+}
+
+/**
+ * Tính góc phương vị (bearing, 0° = Bắc, 90° = Đông, 180° = Nam, 270° = Tây) từ điểm A tới điểm B.
+ */
+export function calculateBearingDegrees(
+  from: [number, number],
+  to: [number, number]
+): number {
+  const lat1 = toRadians(from[0]);
+  const lat2 = toRadians(to[0]);
+  const dLng = toRadians(to[1] - from[1]);
+
+  const y = Math.sin(dLng) * Math.cos(lat2);
+  const x =
+    Math.cos(lat1) * Math.sin(lat2) -
+    Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLng);
+  const bearing = (toDegrees(Math.atan2(y, x)) + 360) % 360;
+  return Number.isFinite(bearing) ? bearing : 0;
+}
+
+/**
+ * Làm mượt góc xoay theo đường tròn ngắn nhất (tránh quay ngược 350° khi đi qua hướng Bắc 0°/360°).
+ */
+export function smoothAngleDegrees(
+  current: number,
+  target: number,
+  alpha = 0.28
+): number {
+  const diff = ((((target - current) % 360) + 540) % 360) - 180;
+  return (current + diff * alpha + 360) % 360;
+}
+
+/**
+ * Nội suy đều các điểm dọc theo tuyến OSRM (mặc định ~10m/bước)
+ * giúp camera 3D lướt mượt mà qua từng góc cua mà không bị nhảy cóc.
+ */
+export function interpolateRouteForSmoothWalk(
+  coordinates: [number, number][],
+  stepMeters = 10
+): [number, number][] {
+  if (coordinates.length <= 1) return coordinates;
+  const dense: [number, number][] = [coordinates[0]];
+
+  for (let i = 0; i < coordinates.length - 1; i++) {
+    const start = coordinates[i];
+    const end = coordinates[i + 1];
+    const segDist = calculateDistanceMeters(start[0], start[1], end[0], end[1]);
+    const steps = Math.max(1, Math.min(25, Math.ceil(segDist / Math.max(4, stepMeters))));
+    for (let s = 1; s <= steps; s++) {
+      const t = s / steps;
+      dense.push([
+        start[0] + (end[0] - start[0]) * t,
+        start[1] + (end[1] - start[1]) * t,
+      ]);
+    }
+  }
+  return dense;
+}
+
 /**
  * Tính khoảng cách đường chim bay (Haversine) giữa 2 tọa độ GPS (đơn vị: mét)
  */

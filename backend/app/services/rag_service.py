@@ -610,11 +610,11 @@ def build_structured_fallback_answer(
 
     if not retrieved and primary_site is None:
         empty_msg = {
-            "vi": "Hiện chưa có dữ liệu chi tiết phù hợp cho câu hỏi này trong kho tri thức 20 di tích TP.HCM. Bạn có thể hỏi về Dinh Độc Lập, Nhà thờ Đức Bà, Bưu điện Trung tâm, Chợ Bến Thành hoặc quán ăn gần đó.",
-            "en": "No matching entry was found in the 20 HCMC heritage sites knowledge base. Try asking about Independence Palace, Notre-Dame Cathedral, Central Post Office, Ben Thanh Market, or nearby food.",
-            "fr": "Aucune information correspondante n'a été trouvée dans la base des 20 sites patrimoniaux. Essayez une question sur le Palais de la Réunification, la Cathédrale Notre-Dame ou le Marché Ben Thanh.",
-            "zh": "在胡志明市20处历史遗产知识库中暂未找到直接匹配内容。您可以询问统一宫、红教堂、中央邮局或周边美食。",
-            "ja": "ホーチミン市20か所の歴史遺産データベースに一致する情報が見つかりませんでした。統一会堂、サイゴン大教会、中央郵便局などについてご質問ください。",
+            "vi": "Hiện chưa có dữ liệu chi tiết phù hợp cho câu hỏi này trong kho tri thức 50 di tích & điểm tham quan TP.HCM. Bạn có thể hỏi về Dinh Độc Lập, Nhà thờ Đức Bà, Nhà thờ Tân Định, Bưu điện Trung tâm, Chợ Bến Thành hoặc quán ăn gần đó.",
+            "en": "No matching entry was found in the 50 HCMC heritage sites & attractions knowledge base. Try asking about Independence Palace, Notre-Dame Cathedral, Tan Dinh Church, Central Post Office, Ben Thanh Market, or nearby food.",
+            "fr": "Aucune information correspondante n'a été trouvée dans la base des 50 sites patrimoniaux et attractions. Essayez une question sur le Palais de la Réunification, la Cathédrale Notre-Dame, l'Église Tan Dinh ou le Marché Ben Thanh.",
+            "zh": "在胡志明市50处历史遗产与景点知识库中暂未找到直接匹配内容。您可以询问统一宫、红教堂、粉红教堂、中央邮局或周边美食。",
+            "ja": "ホーチミン市50か所の歴史遺産・観光スポットデータベースに一致する情報が見つかりませんでした。統一会堂、サイゴン大教会、タンディン教会、中央郵便局などについてご質問ください。",
         }[language]
         return empty_msg, suggested
 

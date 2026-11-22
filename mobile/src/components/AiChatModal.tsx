@@ -142,15 +142,15 @@ function getGreetingMessage(
   }
   switch (language) {
     case 'en':
-      return 'Hello! Ask me about any of the 20 Ho Chi Minh City heritage sites, walking itineraries, architecture, or nearby local food.';
+      return 'Hello! Ask me about any of the 50 Ho Chi Minh City heritage sites & attractions, walking itineraries, architecture, or nearby local food.';
     case 'fr':
-      return 'Bonjour ! Posez-moi des questions sur les 20 sites historiques de Hô Chi Minh-Ville, les musées et les spécialités locales.';
+      return 'Bonjour ! Posez-moi des questions sur les 50 sites historiques et attractions de Hô Chi Minh-Ville, les musées et les spécialités locales.';
     case 'zh':
-      return '您好！您可以向我咨询胡志明市20处历史文化遗产、博物馆、开放时间及周边特色美食。';
+      return '您好！您可以向我咨询胡志明市50处历史文化遗产与景点、博物馆、开放时间及周边特色美食。';
     case 'ja':
-      return 'こんにちは！ホーチミン市の20の歴史遺産、博物館、周辺グルメについて何でもご質問ください。';
+      return 'こんにちは！ホーチミン市の50の歴史遺産・観光名所、博物館、周辺グルメについて何でもご質問ください。';
     default:
-      return 'Xin chào! Tôi là Trợ lý AI Hướng dẫn viên Di sản TP.HCM (RAG đa ngôn ngữ). Hãy hỏi về 20 di tích lịch sử, kiến trúc, giá vé hoặc quán ăn ngon gần bạn!';
+      return 'Xin chào! Tôi là Trợ lý AI Hướng dẫn viên Di sản TP.HCM (RAG đa ngôn ngữ). Hãy hỏi về 50 di tích lịch sử, điểm tham quan, kiến trúc, giá vé hoặc quán ăn ngon gần bạn!';
   }
 }
 

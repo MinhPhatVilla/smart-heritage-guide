@@ -1,5 +1,6 @@
 import * as Location from 'expo-location';
 import { Platform } from 'react-native';
+import { smoothAngleDegrees } from '../utils/geoUtils';
 
 export type CoordinatesTuple = [number, number];
 
@@ -211,6 +212,110 @@ export async function watchLocation(
     options.onError?.(
       'Không thể bật theo dõi GPS liên tục trên thiết bị này. Bạn vẫn có thể dùng chế độ mô phỏng đi bộ.'
     );
+    return null;
+  }
+}
+
+export interface HeadingWatchOptions {
+  onUpdate: (headingDegrees: number) => void;
+  onError?: (errorMessage: string) => void;
+}
+
+/**
+ * Theo dõi hướng la bàn của điện thoại (Heading-Up 3D Navigation).
+ * - iOS/Android: dùng `Location.watchHeadingAsync()` kết hợp bộ lọc mượt chống rung tay.
+ * - Web di động: đọc `deviceorientationabsolute` / `deviceorientation` nếu thiết bị có cảm biến.
+ */
+export async function watchDeviceHeading(
+  options: HeadingWatchOptions
+): Promise<LocationWatchHandle | null> {
+  let smoothedHeading: number | null = null;
+  let lastEmittedHeading: number | null = null;
+
+  const emitSmooth = (rawHeading: number) => {
+    if (!Number.isFinite(rawHeading) || rawHeading < 0) return;
+    const normalized = ((rawHeading % 360) + 360) % 360;
+    smoothedHeading =
+      smoothedHeading === null
+        ? normalized
+        : smoothAngleDegrees(smoothedHeading, normalized, 0.28);
+
+    if (lastEmittedHeading !== null) {
+      const delta = Math.abs(
+        ((((smoothedHeading - lastEmittedHeading) % 360) + 540) % 360) - 180
+      );
+      if (delta < 2.2) return;
+    }
+    lastEmittedHeading = smoothedHeading;
+    options.onUpdate(Math.round(smoothedHeading * 10) / 10);
+  };
+
+  if (Platform.OS === 'web') {
+    const win = globalThis as unknown as {
+      addEventListener?: (
+        ev: string,
+        fn: (e: {
+          webkitCompassHeading?: number;
+          alpha?: number | null;
+          absolute?: boolean;
+        }) => void
+      ) => void;
+      removeEventListener?: (
+        ev: string,
+        fn: (e: {
+          webkitCompassHeading?: number;
+          alpha?: number | null;
+          absolute?: boolean;
+        }) => void
+      ) => void;
+    };
+    if (!win.addEventListener || !win.removeEventListener) return null;
+
+    const handler = (event: {
+      webkitCompassHeading?: number;
+      alpha?: number | null;
+      absolute?: boolean;
+    }) => {
+      if (typeof event.webkitCompassHeading === 'number') {
+        emitSmooth(event.webkitCompassHeading);
+      } else if (typeof event.alpha === 'number') {
+        emitSmooth(360 - event.alpha);
+      }
+    };
+
+    win.addEventListener('deviceorientationabsolute', handler);
+    win.addEventListener('deviceorientation', handler);
+    return {
+      remove: () => {
+        win.removeEventListener?.('deviceorientationabsolute', handler);
+        win.removeEventListener?.('deviceorientation', handler);
+      },
+    };
+  }
+
+  try {
+    const permission = await requestLocationPermission();
+    if (!permission.granted) {
+      options.onError?.(permission.message);
+      return null;
+    }
+    const sub = await Location.watchHeadingAsync((headingObj) => {
+      const raw =
+        headingObj.trueHeading >= 0
+          ? headingObj.trueHeading
+          : headingObj.magHeading;
+      emitSmooth(raw);
+    });
+    return {
+      remove: () => {
+        try {
+          sub.remove();
+        } catch {
+          // Bỏ qua nếu đã hủy
+        }
+      },
+    };
+  } catch {
     return null;
   }
 }

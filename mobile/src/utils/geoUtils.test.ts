@@ -1,9 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import {
+  calculateBearingDegrees,
   calculateDistanceMeters,
   estimateWalkingSeconds,
   getRecommendedRestaurants,
+  interpolateRouteForSmoothWalk,
   rankVisitedSitesByWalkingTime,
+  smoothAngleDegrees,
 } from './geoUtils';
 import { NearbyRestaurant, VisitedSiteRecord } from '../types/heritage';
 
@@ -110,5 +113,29 @@ describe('geoUtils - Định vị, Ẩm thực & Xếp hạng thời gian đi b�
 
     const rankedShortest = rankVisitedSitesByWalkingTime(records, 'shortest_walk');
     expect(rankedShortest[0].record.siteName).toBe('Đền Ngọc Sơn');
+  });
+
+  it('Tính góc phương vị (bearing) và làm mượt góc xoay qua hướng Bắc (359° -> 1°)', () => {
+    const north = calculateBearingDegrees([10.77, 106.7], [10.78, 106.7]);
+    const east = calculateBearingDegrees([10.77, 106.7], [10.77, 106.71]);
+    expect(north).toBeLessThan(2);
+    expect(east).toBeGreaterThan(88);
+    expect(east).toBeLessThan(92);
+
+    const smoothed = smoothAngleDegrees(358, 2, 0.5);
+    expect(smoothed === 0 || smoothed > 359 || smoothed < 1).toBe(true);
+  });
+
+  it('Nội suy tuyến OSRM thành các bước đều mượt mà cho camera 3D', () => {
+    const dense = interpolateRouteForSmoothWalk(
+      [
+        [10.7725, 106.698],
+        [10.7745, 106.698],
+      ],
+      20
+    );
+    expect(dense.length).toBeGreaterThan(8);
+    expect(dense[0]).toEqual([10.7725, 106.698]);
+    expect(dense[dense.length - 1]).toEqual([10.7745, 106.698]);
   });
 });
