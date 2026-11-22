@@ -43,6 +43,7 @@ export interface AuthModalProps {
   onAuthSuccess: (profile: UserProfile) => void;
   onLogout: () => Promise<void>;
   onSyncOfflineJourneys: () => Promise<void>;
+  onOpenAdminDashboard?: () => void;
 }
 
 type AuthTabMode = 'login' | 'register';
@@ -57,6 +58,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   onAuthSuccess,
   onLogout,
   onSyncOfflineJourneys,
+  onOpenAdminDashboard,
 }) => {
   const [mode, setMode] = useState<AuthTabMode>('login');
   const [email, setEmail] = useState<string>('');
@@ -95,6 +97,36 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     } else {
       setErrorMsg(result.error);
     }
+  };
+
+  const handleQuickAdminDemoLogin = async () => {
+    setErrorMsg(null);
+    setIsSubmitting(true);
+    const result = await loginAccount(
+      'admin@smartheritage.vn',
+      'AdminHeritage@2026'
+    );
+    setIsSubmitting(false);
+
+    if (result.ok) {
+      onAuthSuccess(result.data.profile);
+      return;
+    }
+
+    // Fallback chế độ Local Admin Preview khi Backend chưa bật, giúp test ngay UI Quản trị Mobile
+    onAuthSuccess({
+      id: 'local-admin-preview',
+      email: 'admin@smartheritage.vn',
+      display_name: 'Quản trị Di sản TP.HCM',
+      avatar_url: null,
+      role: 'admin',
+      preferred_language: selectedLanguage,
+      preferred_categories: ['monument', 'museum'],
+      total_verified_walking_seconds: 0,
+      total_verified_walking_meters: 0,
+      verified_sites_count: 0,
+      created_at: new Date().toISOString(),
+    });
   };
 
   const handleLogoutPress = async () => {
@@ -240,6 +272,20 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     </Text>
                   </TouchableOpacity>
                 </View>
+
+                {/* Admin Console Shortcut when logged in as Admin */}
+                {profile.role === 'admin' && onOpenAdminDashboard && (
+                  <TouchableOpacity
+                    onPress={onOpenAdminDashboard}
+                    style={styles.adminShortcutBtn}
+                    activeOpacity={0.85}
+                  >
+                    <ShieldCheck size={16} color={COLORS.white} />
+                    <Text style={styles.primaryBtnText}>
+                      Mở bảng Quản trị Admin
+                    </Text>
+                  </TouchableOpacity>
+                )}
 
                 {/* Logout Button */}
                 <TouchableOpacity
@@ -397,6 +443,19 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     </Text>
                   </TouchableOpacity>
                 </View>
+
+                {/* Quick Admin Demo Access */}
+                <TouchableOpacity
+                  onPress={handleQuickAdminDemoLogin}
+                  disabled={isSubmitting}
+                  style={styles.quickAdminBtn}
+                  activeOpacity={0.8}
+                >
+                  <ShieldCheck size={15} color={COLORS.accent} />
+                  <Text style={styles.quickAdminBtnText}>
+                    Vào giao diện Quản trị (Admin Demo)
+                  </Text>
+                </TouchableOpacity>
 
                 <TouchableOpacity
                   onPress={onClose}
@@ -574,6 +633,33 @@ const styles = StyleSheet.create({
   continueGuestBtn: {
     alignItems: 'center',
     paddingVertical: SPACING.sm,
+  },
+  adminShortcutBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: COLORS.accent,
+    borderRadius: RADII.md,
+    paddingVertical: 13,
+    paddingHorizontal: SPACING.lg,
+  },
+  quickAdminBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 7,
+    backgroundColor: COLORS.accentSoft,
+    borderWidth: 1,
+    borderColor: COLORS.accentBorder,
+    borderRadius: RADII.md,
+    paddingVertical: 12,
+    paddingHorizontal: SPACING.md,
+  },
+  quickAdminBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: COLORS.accent,
   },
   continueGuestText: {
     fontSize: 12.5,

@@ -186,7 +186,7 @@ def test_sites_spatial_filter_detail_and_restaurants(api_client) -> None:
 
     all_sites = client.get("/api/v1/sites")
     assert all_sites.status_code == 200
-    assert all_sites.json()["total"] == 20
+    assert all_sites.json()["total"] == 50
 
     # Spatial filter around Dinh Doc Lap (10.777, 106.6953) within 1500m
     nearby = client.get(

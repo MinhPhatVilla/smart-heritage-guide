@@ -1,6 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  AppState,
   FlatList,
+  Image,
+  Modal,
   Platform,
   ScrollView,
   StyleSheet,
@@ -17,18 +20,35 @@ import {
   useSafeAreaInsets,
 } from 'react-native-safe-area-context';
 import {
+  BookOpen,
   Check,
+  ChevronDown,
+  Cloud,
+  CloudLightning,
+  CloudRain,
+  CloudSun,
   Compass,
+  Droplets,
+  Footprints,
+  Globe,
   LocateFixed,
   Map as MapIcon,
   MessageSquareText,
   Navigation,
   Route,
   Search,
+  ShieldCheck,
+  SlidersHorizontal,
   Sparkles,
+  Star,
+  Sun,
   Trophy,
+  Umbrella,
   User,
+  Utensils,
   Volume2,
+  VolumeX,
+  Wind,
   X,
 } from 'lucide-react-native';
 import {
@@ -43,8 +63,13 @@ import {
 } from './src/types/heritage';
 import { CITY_PRESETS, HERITAGE_SITES } from './src/data/heritageSites';
 import {
+  calculateBearingDegrees,
+  calculateDistanceMeters,
+  estimateWalkingSeconds,
   formatDistance,
+  formatWalkingDuration,
   getNearbySitesWithMetrics,
+  interpolateRouteForSmoothWalk,
 } from './src/utils/geoUtils';
 import { fetchWalkingRoute } from './src/services/routingService';
 import {
@@ -67,9 +92,14 @@ import {
   LocationWatchHandle,
   formatCoordinatesLabel,
   getCurrentLocation,
+  watchDeviceHeading,
   watchLocation,
 } from './src/services/locationService';
 import { speechService } from './src/services/speechService';
+import {
+  WeatherSnapshot,
+  fetchLiveWeather,
+} from './src/services/weatherService';
 import { MapExplorer } from './src/components/MapExplorer';
 import { HeritageDetailModal } from './src/components/HeritageDetailModal';
 import { PhotoCaptureModal } from './src/components/PhotoCaptureModal';
@@ -79,9 +109,11 @@ import { SiteCard } from './src/components/SiteCard';
 import { SmartTourModal } from './src/components/SmartTourModal';
 import { AiChatModal } from './src/components/AiChatModal';
 import { AuthModal } from './src/components/AuthModal';
+import { AdminDashboardView } from './src/components/AdminDashboardView';
+import { WeatherWidgetCard } from './src/components/WeatherWidgetCard';
 import { COLORS, RADII, SERIF_FONT, SHADOWS, SPACING } from './src/theme';
 
-type MainTab = 'explore' | 'map' | 'journey';
+type MainTab = 'explore' | 'map' | 'journey' | 'ranking' | 'admin';
 
 const PROXIMITY_TRIGGER_METERS = 150;
 const PROXIMITY_RESET_METERS = 220;
@@ -97,12 +129,12 @@ const CATEGORY_FILTERS: Array<{
   id: 'all' | HeritageCategory;
   label: string;
 }> = [
-  { id: 'all', label: `Tất cả (${HERITAGE_SITES.length})` },
-  { id: 'monument', label: 'Di tích & Biểu tượng' },
+  { id: 'all', label: 'Tất cả' },
+  { id: 'monument', label: 'Di tích' },
   { id: 'museum', label: 'Bảo tàng' },
-  { id: 'temple', label: 'Đền Chùa & Hội quán' },
-  { id: 'imperial', label: 'Dinh thự & Lăng miếu' },
-  { id: 'ancient_town', label: 'Chợ cổ & Sinh quyển' },
+  { id: 'temple', label: 'Đền Chùa' },
+  { id: 'imperial', label: 'Dinh thự' },
+  { id: 'ancient_town', label: 'Chợ & Sinh quyển' },
 ];
 
 function triggerHaptic(type: 'light' | 'success' | 'selection'): void {
@@ -123,14 +155,13 @@ function triggerHaptic(type: 'light' | 'success' | 'selection'): void {
 function SmartHeritageAppContent() {
   const insets = useSafeAreaInsets();
 
-  // Default: District 1 Center, Ho Chi Minh City (all 20 heritage sites)
   const [userLocation, setUserLocation] = useState<[number, number]>([
     10.7775, 106.699,
   ]);
+  const [userHeading, setUserHeading] = useState<number | null>(null);
   const [activeCityId, setActiveCityId] = useState<string>('ALL_HCM');
-  const [gpsStatus, setGpsStatus] = useState<string>(
-    'Trung tâm Quận 1 · TP.HCM'
-  );
+  const [focusHcmcOnly, setFocusHcmcOnly] = useState<boolean>(true);
+  const [gpsStatus, setGpsStatus] = useState<string>('Trung tâm Quận 1');
   const [isLocatingGps, setIsLocatingGps] = useState<boolean>(false);
 
   const [selectedLanguage, setSelectedLanguage] =
@@ -141,6 +172,13 @@ function SmartHeritageAppContent() {
   >('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [activeTab, setActiveTab] = useState<MainTab>('explore');
+  const [exploreSection, setExploreSection] = useState<'sites' | 'dining'>('sites');
+  const [isMapMounted, setIsMapMounted] = useState<boolean>(false);
+
+  // Compact bottom sheets (replaces cluttered stacked toolbars)
+  const [filterSheetVisible, setFilterSheetVisible] = useState<boolean>(false);
+  const [langSheetVisible, setLangSheetVisible] = useState<boolean>(false);
+  const [weatherSheetVisible, setWeatherSheetVisible] = useState<boolean>(false);
 
   const [selectedSite, setSelectedSite] = useState<HeritageSite | null>(null);
   const [quickAudioSite, setQuickAudioSite] = useState<HeritageSite | null>(
@@ -158,11 +196,11 @@ function SmartHeritageAppContent() {
   const [autoAudioGuide, setAutoAudioGuide] = useState<boolean>(true);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
+  const [catalogSites, setCatalogSites] = useState<HeritageSite[]>(HERITAGE_SITES);
   const [visitedRecords, setVisitedRecords] = useState<VisitedSiteRecord[]>(
     INITIAL_SAMPLE_JOURNEYS
   );
 
-  // Backend Auth & Smart AI modals state (Offline-first Guest by default)
   const [authState, setAuthState] = useState<AuthSessionState>({
     isAuthenticated: false,
     isGuest: true,
@@ -174,13 +212,15 @@ function SmartHeritageAppContent() {
   const [aiChatContextSite, setAiChatContextSite] =
     useState<HeritageSite | null>(null);
   const [isSyncingCloud, setIsSyncingCloud] = useState<boolean>(false);
+  const [weather, setWeather] = useState<WeatherSnapshot | null>(null);
+  const [isWeatherLoading, setIsWeatherLoading] = useState<boolean>(false);
+  const lastWeatherCoordsRef = useRef<[number, number] | null>(null);
 
   const walkTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const gpsWatchRef = useRef<LocationWatchHandle | null>(null);
   const lastAutoTriggeredSiteIdRef = useRef<string | null>(null);
   const usedSimulatedWalkRef = useRef<boolean>(false);
 
-  // Load persisted journeys & optional auth session from AsyncStorage on mount
   useEffect(() => {
     let mounted = true;
     void loadJourneys().then((loaded) => {
@@ -215,7 +255,6 @@ function SmartHeritageAppContent() {
     };
   }, []);
 
-  // Clean up walk simulation, GPS watch, and TTS on unmount
   useEffect(() => {
     return () => {
       if (walkTimerRef.current) {
@@ -230,7 +269,6 @@ function SmartHeritageAppContent() {
     };
   }, []);
 
-  // Active walking navigation timer
   useEffect(() => {
     if (!activeRoute) return;
     const interval = setInterval(() => {
@@ -239,12 +277,103 @@ function SmartHeritageAppContent() {
     return () => clearInterval(interval);
   }, [activeRoute]);
 
-  // Toast auto-dismiss
+  // Theo dõi la bàn điện thoại thật (Heading-Up 3D) khi đang dẫn đường OSRM và không chạy mô phỏng
+  useEffect(() => {
+    if (!activeRoute || isSimulatingWalk) return;
+    let cancelled = false;
+    let handle: LocationWatchHandle | null = null;
+
+    void watchDeviceHeading({
+      onUpdate: (headingDeg) => {
+        if (!cancelled) {
+          setUserHeading(headingDeg);
+        }
+      },
+    }).then((sub) => {
+      if (cancelled) {
+        sub?.remove();
+      } else {
+        handle = sub;
+      }
+    });
+
+    return () => {
+      cancelled = true;
+      handle?.remove();
+    };
+  }, [activeRoute, isSimulatingWalk]);
+
   useEffect(() => {
     if (!toastMessage) return;
     const timeout = setTimeout(() => setToastMessage(null), 3800);
     return () => clearTimeout(timeout);
   }, [toastMessage]);
+
+  const refreshLiveWeather = useCallback(
+    async (lat: number, lng: number, forceRefresh = false) => {
+      setIsWeatherLoading(true);
+      const snapshot = await fetchLiveWeather(lat, lng, { forceRefresh });
+      setWeather(snapshot);
+      lastWeatherCoordsRef.current = [lat, lng];
+      setIsWeatherLoading(false);
+    },
+    []
+  );
+
+  // Tự động cập nhật thời tiết khi đổi vị trí (> 1.5km), mỗi 5 phút & khi quay lại ứng dụng
+  useEffect(() => {
+    const prev = lastWeatherCoordsRef.current;
+    const movedEnough =
+      !prev ||
+      calculateDistanceMeters(
+        prev[0],
+        prev[1],
+        userLocation[0],
+        userLocation[1]
+      ) > 1500;
+
+    if (movedEnough) {
+      void refreshLiveWeather(userLocation[0], userLocation[1], false);
+    }
+
+    const interval = setInterval(() => {
+      void refreshLiveWeather(userLocation[0], userLocation[1], true);
+    }, 5 * 60 * 1000);
+
+    const appSub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') {
+        void refreshLiveWeather(userLocation[0], userLocation[1], true);
+      }
+    });
+
+    let removeVisibility: (() => void) | undefined;
+    if (Platform.OS === 'web') {
+      const doc = (
+        globalThis as unknown as {
+          document?: {
+            visibilityState?: string;
+            addEventListener?: (ev: string, fn: () => void) => void;
+            removeEventListener?: (ev: string, fn: () => void) => void;
+          };
+        }
+      ).document;
+      if (doc?.addEventListener && doc.removeEventListener) {
+        const onVis = () => {
+          if (doc.visibilityState === 'visible') {
+            void refreshLiveWeather(userLocation[0], userLocation[1], true);
+          }
+        };
+        doc.addEventListener('visibilitychange', onVis);
+        removeVisibility = () => doc.removeEventListener?.('visibilitychange', onVis);
+      }
+    }
+
+    return () => {
+      clearInterval(interval);
+      appSub.remove();
+      removeVisibility?.();
+    };
+  }, [userLocation, refreshLiveWeather]);
 
   const stopWalkSimulation = useCallback(() => {
     if (walkTimerRef.current) {
@@ -261,27 +390,25 @@ function SmartHeritageAppContent() {
     }
   }, []);
 
-  // Compute distance & walking time metrics for all sites
   const rawNearbySites = useMemo(
     () =>
       getNearbySitesWithMetrics(
-        HERITAGE_SITES,
+        catalogSites,
         userLocation[0],
         userLocation[1],
         searchRadiusMeters > 0 ? searchRadiusMeters : undefined
       ),
-    [userLocation, searchRadiusMeters]
+    [catalogSites, userLocation, searchRadiusMeters]
   );
 
-  // Full unfiltered list (for modal distance lookups regardless of radius filter)
   const allSitesWithMetrics = useMemo(
     () =>
       getNearbySitesWithMetrics(
-        HERITAGE_SITES,
+        catalogSites,
         userLocation[0],
         userLocation[1]
       ),
-    [userLocation]
+    [catalogSites, userLocation]
   );
 
   const nearbySitesWithMetrics = useMemo(() => {
@@ -309,7 +436,6 @@ function SmartHeritageAppContent() {
 
   const closestSiteItem = allSitesWithMetrics[0];
 
-  // Automatic proximity < 150m audio guide trigger
   useEffect(() => {
     if (!closestSiteItem) return;
 
@@ -340,12 +466,11 @@ function SmartHeritageAppContent() {
     return map;
   }, [visitedRecords]);
 
-  // Real GPS detection + live watch via expo-location
   const handleDetectRealGps = useCallback(async () => {
     stopWalkSimulation();
     stopGpsWatch();
     setIsLocatingGps(true);
-    setGpsStatus('Đang xác định GPS…');
+    setGpsStatus('Đang định vị…');
 
     const result = await getCurrentLocation({ timeoutMs: 8000 });
     setIsLocatingGps(false);
@@ -356,10 +481,9 @@ function SmartHeritageAppContent() {
       setSearchRadiusMeters(0);
       setActiveCityId('GPS');
       setGpsStatus(formatCoordinatesLabel(lat, lng));
-      setToastMessage('Đã cập nhật vị trí GPS thực tế của bạn.');
+      setToastMessage('Đã cập nhật vị trí GPS thực tế.');
       triggerHaptic('light');
 
-      // Start background foreground watch for live walking updates
       const handle = await watchLocation({
         distanceIntervalMeters: 15,
         timeIntervalMs: 5000,
@@ -370,10 +494,10 @@ function SmartHeritageAppContent() {
       });
       gpsWatchRef.current = handle;
     } else {
-      setGpsStatus('Tâm điểm Quận 1 · TP.HCM');
+      setGpsStatus('Trung tâm Quận 1');
       setToastMessage(
         result.error ||
-          'Không lấy được GPS thực tế. Hãy chọn khu vực TP.HCM hoặc chạm bản đồ.'
+          'Chưa lấy được GPS thực tế. Bạn có thể chọn khu vực trong Bộ lọc.'
       );
     }
   }, [stopGpsWatch, stopWalkSimulation]);
@@ -385,6 +509,7 @@ function SmartHeritageAppContent() {
       stopWalkSimulation();
       stopGpsWatch();
       setActiveCityId(preset.id);
+      setFocusHcmcOnly(true);
       setUserLocation([preset.lat, preset.lng]);
       setSearchRadiusMeters(preset.defaultRadius);
       setActiveRoute(null);
@@ -414,6 +539,13 @@ function SmartHeritageAppContent() {
       );
       setIsRoutingLoading(false);
       setActiveRoute(route);
+      if (route.coordinates.length >= 2) {
+        setUserHeading(
+          calculateBearingDegrees(route.coordinates[0], route.coordinates[1])
+        );
+      } else {
+        setUserHeading(calculateBearingDegrees(userLocation, [site.lat, site.lng]));
+      }
       setActiveWalkSeconds(0);
       usedSimulatedWalkRef.current = false;
     },
@@ -437,6 +569,15 @@ function SmartHeritageAppContent() {
       );
       setIsRoutingLoading(false);
       setActiveRoute(route);
+      if (route.coordinates.length >= 2) {
+        setUserHeading(
+          calculateBearingDegrees(route.coordinates[0], route.coordinates[1])
+        );
+      } else {
+        setUserHeading(
+          calculateBearingDegrees(userLocation, [restaurant.lat, restaurant.lng])
+        );
+      }
       setActiveWalkSeconds(0);
     },
     [stopWalkSimulation, userLocation]
@@ -449,14 +590,19 @@ function SmartHeritageAppContent() {
     setIsSimulatingWalk(true);
     triggerHaptic('light');
 
-    const coords = activeRoute.coordinates;
+    // Nội suy đều ~10m mỗi bước dọc tuyến OSRM để camera 3D lướt êm qua mọi khúc cua
+    const coords = interpolateRouteForSmoothWalk(activeRoute.coordinates, 10);
     let stepIdx = 0;
     const stepDurationIncrement = Math.max(
-      25,
+      6,
       Math.round(
         activeRoute.estimatedDurationSeconds / Math.max(1, coords.length)
       )
     );
+
+    if (coords.length >= 2) {
+      setUserHeading(calculateBearingDegrees(coords[0], coords[1]));
+    }
 
     walkTimerRef.current = setInterval(() => {
       stepIdx += 1;
@@ -475,7 +621,7 @@ function SmartHeritageAppContent() {
         triggerHaptic('success');
 
         if (activeRoute.targetType === 'heritage') {
-          const targetSite = HERITAGE_SITES.find(
+          const targetSite = catalogSites.find(
             (s) => s.id === activeRoute.targetId
           );
           if (targetSite) {
@@ -494,14 +640,20 @@ function SmartHeritageAppContent() {
       }
 
       const nextCoord = coords[stepIdx];
+      const lookAheadIdx = Math.min(coords.length - 1, stepIdx + 2);
+      const lookAheadCoord = coords[lookAheadIdx];
+      if (lookAheadIdx > stepIdx) {
+        setUserHeading(calculateBearingDegrees(nextCoord, lookAheadCoord));
+      }
       setUserLocation(nextCoord);
       setActiveWalkSeconds((prev) => prev + stepDurationIncrement);
-    }, 320);
+    }, 260);
   }, [activeRoute, autoAudioGuide, isSimulatingWalk, stopGpsWatch]);
 
   const handleCancelRoute = useCallback(() => {
     stopWalkSimulation();
     setActiveRoute(null);
+    setUserHeading(null);
     setActiveWalkSeconds(0);
   }, [stopWalkSimulation]);
 
@@ -509,7 +661,7 @@ function SmartHeritageAppContent() {
     if (!activeRoute) return;
     stopWalkSimulation();
     triggerHaptic('success');
-    const targetSite = HERITAGE_SITES.find(
+    const targetSite = catalogSites.find(
       (s) => s.id === activeRoute.targetId
     );
     if (targetSite) {
@@ -518,7 +670,7 @@ function SmartHeritageAppContent() {
       setActiveRoute(null);
       setToastMessage(`Hoàn thành hành trình tới ${activeRoute.targetName}!`);
     }
-  }, [activeRoute, stopWalkSimulation]);
+  }, [activeRoute, catalogSites, stopWalkSimulation]);
 
   const handleSavePhotoCheckIn = useCallback(
     async (data: {
@@ -539,7 +691,6 @@ function SmartHeritageAppContent() {
       ];
       const wasSimulated = usedSimulatedWalkRef.current;
 
-      // 1. Lưu cục bộ AsyncStorage trước (Offline-first 100%)
       const updated = await upsertSiteVisitRecord(visitedRecords, {
         siteId: photoCaptureSite.id,
         siteName: photoCaptureSite.translations.vi.name,
@@ -559,7 +710,6 @@ function SmartHeritageAppContent() {
       setPhotoCaptureSite(null);
       triggerHaptic('success');
 
-      // 2. Nếu đã đăng nhập, đồng bộ lên Backend (Anti-Fake + Badges + Storage)
       if (!authState.isAuthenticated) {
         setToastMessage(
           `Đã lưu ảnh & xếp hạng hành trình tại ${photoCaptureSite.translations.vi.name}.`
@@ -648,6 +798,8 @@ function SmartHeritageAppContent() {
     ]
   );
 
+  const isAdminUser = authState.isAuthenticated && authState.profile?.role === 'admin';
+
   const handleAuthSuccess = useCallback((profile: UserProfile) => {
     setAuthState({
       isAuthenticated: true,
@@ -655,7 +807,12 @@ function SmartHeritageAppContent() {
       profile,
     });
     setAuthModalVisible(false);
-    setToastMessage(`Xin chào ${profile.display_name}! Đã bật đồng bộ Cloud.`);
+    if (profile.role === 'admin') {
+      setActiveTab('admin');
+      setToastMessage(`Xin chào Admin ${profile.display_name}! Đã mở bảng Quản trị.`);
+    } else {
+      setToastMessage(`Xin chào ${profile.display_name}! Đã bật đồng bộ Cloud.`);
+    }
     triggerHaptic('success');
   }, []);
 
@@ -666,8 +823,64 @@ function SmartHeritageAppContent() {
       isGuest: true,
       profile: null,
     });
+    setActiveTab((prev) => (prev === 'admin' ? 'explore' : prev));
     setToastMessage('Đã chuyển về chế độ Khách (Offline).');
   }, []);
+
+  const handleAdminUpsertSite = useCallback((nextSite: HeritageSite) => {
+    setCatalogSites((prev) => {
+      const exists = prev.some((s) => s.id === nextSite.id);
+      if (exists) {
+        return prev.map((s) => (s.id === nextSite.id ? nextSite : s));
+      }
+      return [nextSite, ...prev];
+    });
+  }, []);
+
+  const handleAdminDeleteSite = useCallback((siteId: string) => {
+    setCatalogSites((prev) => prev.filter((s) => s.id !== siteId));
+    setSelectedSite((prev) => (prev?.id === siteId ? null : prev));
+  }, []);
+
+  const handleAdminUpsertRestaurant = useCallback(
+    (siteId: string, nextRestaurant: NearbyRestaurant) => {
+      setCatalogSites((prev) =>
+        prev.map((site) => {
+          if (site.id !== siteId) return site;
+          const exists = site.nearbyRestaurants.some(
+            (r) => r.id === nextRestaurant.id
+          );
+          return {
+            ...site,
+            nearbyRestaurants: exists
+              ? site.nearbyRestaurants.map((r) =>
+                  r.id === nextRestaurant.id ? nextRestaurant : r
+                )
+              : [nextRestaurant, ...site.nearbyRestaurants],
+          };
+        })
+      );
+    },
+    []
+  );
+
+  const handleAdminDeleteRestaurant = useCallback(
+    (siteId: string, restaurantId: string) => {
+      setCatalogSites((prev) =>
+        prev.map((site) =>
+          site.id === siteId
+            ? {
+                ...site,
+                nearbyRestaurants: site.nearbyRestaurants.filter(
+                  (r) => r.id !== restaurantId
+                ),
+              }
+            : site
+        )
+      );
+    },
+    []
+  );
 
   const handleSyncOfflineJourneys = useCallback(async () => {
     if (!authState.isAuthenticated || isSyncingCloud) return;
@@ -717,6 +930,63 @@ function SmartHeritageAppContent() {
     }
   }, [authState.isAuthenticated, isSyncingCloud, visitedRecords]);
 
+  const autoSyncAttemptedKeyRef = useRef<string>('');
+
+  // Pre-warm bản đồ 3D ngầm sau khi tab Khám phá vừa hiển thị ổn định (~650ms) và giữ sống mãi để chuyển tab 0ms lag!
+  useEffect(() => {
+    if (isMapMounted) return;
+    if (activeTab === 'map') {
+      setIsMapMounted(true);
+      return;
+    }
+    const timer = setTimeout(() => {
+      setIsMapMounted(true);
+    }, 650);
+    return () => clearTimeout(timer);
+  }, [activeTab, isMapMounted]);
+
+  const handleToggleFocusHcmcOnly = useCallback((next: boolean) => {
+    setFocusHcmcOnly(next);
+    triggerHaptic('selection');
+    setToastMessage(
+      next
+        ? 'Đang tập trung TP.HCM · Đã làm mờ các tỉnh xung quanh.'
+        : 'Đang mở bản đồ toàn lãnh thổ Việt Nam.'
+    );
+  }, []);
+
+  const handleMoveUserLocation = useCallback(
+    (lat: number, lng: number) => {
+      stopWalkSimulation();
+      stopGpsWatch();
+      setUserLocation([lat, lng]);
+      setActiveCityId('CUSTOM');
+      setGpsStatus(formatCoordinatesLabel(lat, lng));
+    },
+    [stopGpsWatch, stopWalkSimulation]
+  );
+
+  // Tự động đồng bộ ngầm các hành trình offline lên Cloud ngay khi người dùng đã đăng nhập
+  useEffect(() => {
+    if (!authState.isAuthenticated || isSyncingCloud) return;
+    const unsyncedIds = visitedRecords
+      .filter((r) => !r.cloudJourneyId)
+      .map((r) => r.id)
+      .sort()
+      .join(',');
+    if (!unsyncedIds) return;
+    const key = `${authState.profile?.id || 'user'}|${unsyncedIds}`;
+    if (autoSyncAttemptedKeyRef.current === key) return;
+    autoSyncAttemptedKeyRef.current = key;
+    void handleSyncOfflineJourneys();
+  }, [
+    authState.isAuthenticated,
+    authState.profile?.id,
+    isSyncingCloud,
+    visitedRecords,
+    handleSyncOfflineJourneys,
+  ]);
+
   const handleOpenGlobalAiChat = useCallback(() => {
     setAiChatContextSite(null);
     setAiChatVisible(true);
@@ -730,29 +1000,28 @@ function SmartHeritageAppContent() {
     triggerHaptic('light');
   }, []);
 
-  const handleOpenRecognizedSite = useCallback((siteId: string) => {
-    const matched = HERITAGE_SITES.find((s) => s.id === siteId);
-    if (!matched) return;
-    setQuickAudioSite(matched);
-    setSelectedSite(matched);
-    triggerHaptic('success');
-  }, []);
+  const handleOpenRecognizedSite = useCallback(
+    (siteId: string) => {
+      const matched = catalogSites.find((s) => s.id === siteId);
+      if (!matched) return;
+      setQuickAudioSite(matched);
+      setSelectedSite(matched);
+      triggerHaptic('success');
+    },
+    [catalogSites]
+  );
 
   const handleCloseQuickAudio = useCallback(() => {
-    speechService.stop();
+    try {
+      speechService.stop();
+    } catch {
+      // Ignore audio stop errors
+    }
     setQuickAudioSite(null);
   }, []);
 
-  const handleCycleRadius = useCallback(() => {
-    const idx = RADIUS_OPTIONS.findIndex((o) => o.value === searchRadiusMeters);
-    const next = RADIUS_OPTIONS[(idx + 1) % RADIUS_OPTIONS.length];
-    setSearchRadiusMeters(next.value);
-    triggerHaptic('selection');
-  }, [searchRadiusMeters]);
-
-  const currentRadiusLabel =
-    RADIUS_OPTIONS.find((o) => o.value === searchRadiusMeters)?.label ||
-    `${Math.round(searchRadiusMeters / 1000)} km`;
+  const activeFilterCount =
+    (activeCityId !== 'ALL_HCM' ? 1 : 0) + (searchRadiusMeters > 0 ? 1 : 0);
 
   const selectedSiteMetrics = useMemo(() => {
     if (!selectedSite) return null;
@@ -786,16 +1055,65 @@ function SmartHeritageAppContent() {
         isActiveRouteTarget={activeRoute?.targetId === item.site.id}
         onOpenDetail={setSelectedSite}
         onStartNavigation={handleStartNavigationToSite}
+        onNavigateToRestaurant={handleNavigateToRestaurant}
         onOpenPhotoCapture={setPhotoCaptureSite}
       />
     ),
     [
       activeRoute?.targetId,
+      handleNavigateToRestaurant,
       handleStartNavigationToSite,
       selectedLanguage,
       visitedMap,
     ]
   );
+
+  // Top quán ăn & đồ uống gần vị trí hiện tại để hiển thị nổi bật ngay trong tab Khám phá
+  const nearbyFeaturedRestaurants = useMemo(() => {
+    const seen = new Set<string>();
+    const list: Array<{
+      restaurant: NearbyRestaurant;
+      parentSite: HeritageSite;
+      parentName: string;
+      distanceMeters: number;
+      walkingSeconds: number;
+    }> = [];
+
+    for (const { site } of nearbySitesWithMetrics.slice(0, 28)) {
+      const parentName =
+        (site.translations?.[selectedLanguage] || site.translations?.vi)?.name ||
+        site.city;
+      const eateries = Array.isArray(site.nearbyRestaurants)
+        ? site.nearbyRestaurants
+        : [];
+      for (const res of eateries) {
+        const key = `${res.name.trim().toLowerCase()}|${res.lat.toFixed(4)}|${res.lng.toFixed(4)}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        const dist = calculateDistanceMeters(
+          userLocation[0],
+          userLocation[1],
+          res.lat,
+          res.lng
+        );
+        list.push({
+          restaurant: res,
+          parentSite: site,
+          parentName,
+          distanceMeters: dist,
+          walkingSeconds: estimateWalkingSeconds(dist),
+        });
+      }
+    }
+
+    return list
+      .sort((a, b) => {
+        const scoreA = a.distanceMeters - (a.restaurant.rating ?? 4.5) * 140;
+        const scoreB = b.distanceMeters - (b.restaurant.rating ?? 4.5) * 140;
+        return scoreA - scoreB;
+      })
+      .slice(0, 12);
+  }, [nearbySitesWithMetrics, selectedLanguage, userLocation]);
 
   const mapSites = useMemo(
     () => nearbySitesWithMetrics.map((i) => i.site),
@@ -808,210 +1126,313 @@ function SmartHeritageAppContent() {
   const isNearbyBannerVisible =
     !quickAudioSite &&
     !!closestSiteItem &&
-    closestSiteItem.distanceMeters <= 350;
+    closestSiteItem.distanceMeters <= 300;
+
+  const activeCityLabel =
+    activeCityId === 'GPS'
+      ? 'GPS thực tế'
+      : CITY_PRESETS.find((c) => c.id === activeCityId)?.label || gpsStatus;
+
+  // Scrollable list header: Ultra-clean Compact Weather Bar + Quick AI Pills + Segmented Switcher
+  const exploreListHeader = (
+    <View style={styles.listHeaderWrap}>
+      {/* Compact Expandable Live Auto-Updating Weather Bar */}
+      <WeatherWidgetCard
+        weather={weather}
+        locationLabel={activeCityLabel}
+        isLoading={isWeatherLoading}
+        onPlanTourWithWeather={() => {
+          setSmartTourVisible(true);
+          triggerHaptic('light');
+        }}
+      />
+
+      {/* Smart Mode Switcher: Địa điểm vs Ẩm thực + Slim AI Action Chips */}
+      <View style={styles.exploreControlsRow}>
+        <View style={styles.segmentedControl}>
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={() => {
+              setExploreSection('sites');
+              triggerHaptic('selection');
+            }}
+            style={[
+              styles.segBtn,
+              exploreSection === 'sites' && styles.segBtnActive,
+            ]}
+          >
+            <Compass
+              size={13}
+              color={exploreSection === 'sites' ? COLORS.white : COLORS.inkSecondary}
+            />
+            <Text
+              style={[
+                styles.segBtnText,
+                exploreSection === 'sites' && styles.segBtnTextActive,
+              ]}
+            >
+              Địa điểm ({nearbySitesWithMetrics.length})
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={() => {
+              setExploreSection('dining');
+              triggerHaptic('selection');
+            }}
+            style={[
+              styles.segBtn,
+              exploreSection === 'dining' && styles.segBtnActive,
+            ]}
+          >
+            <Utensils
+              size={13}
+              color={exploreSection === 'dining' ? COLORS.white : COLORS.inkSecondary}
+            />
+            <Text
+              style={[
+                styles.segBtnText,
+                exploreSection === 'dining' && styles.segBtnTextActive,
+              ]}
+            >
+              Ẩm thực ({nearbyFeaturedRestaurants.length})
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Slim 1-Row Quick AI & Reset Strip */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.quickActionPillsRow}
+      >
+        <TouchableOpacity
+          activeOpacity={0.82}
+          onPress={() => {
+            setSmartTourVisible(true);
+            triggerHaptic('light');
+          }}
+          style={styles.quickAiPillDark}
+        >
+          <Route size={13} color={COLORS.white} />
+          <Text style={styles.quickAiPillDarkText}>Lập Tour AI</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          activeOpacity={0.82}
+          onPress={handleOpenGlobalAiChat}
+          style={styles.quickAiPillLight}
+        >
+          <MessageSquareText size={13} color={COLORS.accent} />
+          <Text style={styles.quickAiPillLightText}>Hỏi AI Di sản</Text>
+        </TouchableOpacity>
+
+        {activeFilterCount > 0 && (
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={() => {
+              setActiveCityId('ALL_HCM');
+              setSearchRadiusMeters(0);
+              setSelectedCategory('all');
+              setSearchQuery('');
+              setGpsStatus('Trung tâm Quận 1');
+            }}
+            style={styles.quickResetPill}
+          >
+            <X size={12} color={COLORS.accent} />
+            <Text style={styles.quickResetPillText}>Đặt lại lọc</Text>
+          </TouchableOpacity>
+        )}
+      </ScrollView>
+
+      {/* Compact Proximity Banner (only shown when actually near a monument < 300m) */}
+      {isNearbyBannerVisible && closestSiteItem && (
+        <View
+          style={[
+            styles.proximityCard,
+            isWithinProximity && styles.proximityCardHot,
+          ]}
+        >
+          <View style={styles.proximityTextCol}>
+            <Text style={styles.proximityEyebrow}>
+              {isWithinProximity
+                ? `Trong phạm vi < 150m · ${formatDistance(
+                    closestSiteItem.distanceMeters
+                  )}`
+                : `Ngay gần bạn · ${formatDistance(
+                    closestSiteItem.distanceMeters
+                  )}`}
+            </Text>
+            <Text style={styles.proximityTitle} numberOfLines={1}>
+              {(
+                closestSiteItem.site.translations[selectedLanguage] ||
+                closestSiteItem.site.translations.vi
+              ).name}
+            </Text>
+          </View>
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={() => setQuickAudioSite(closestSiteItem.site)}
+            style={styles.proximityPlayBtn}
+          >
+            <Volume2 size={14} color={COLORS.white} />
+            <Text style={styles.proximityPlayText}>Nghe</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+    </View>
+  );
 
   return (
     <View style={styles.root}>
       <StatusBar style="dark" />
 
-      {/* Compact Mobile Top Header */}
+      {/* Ultra-Clean 1-Line Mobile Header */}
       <View
-        style={[
-          styles.header,
-          { paddingTop: Math.max(insets.top, 8) + 4 },
-        ]}
+        style={[styles.header, { paddingTop: Math.max(insets.top, 8) + 4 }]}
       >
-        <View style={styles.headerTopRow}>
-          {/* Brand + Live GPS Pill */}
-          <View style={styles.brandGroup}>
-            <View style={styles.shgBadge}>
-              <Text style={styles.shgBadgeText}>SHG</Text>
-            </View>
-            <View style={styles.brandTextCol}>
-              <Text style={styles.brandTitle} numberOfLines={1}>
-                Smart Heritage Guide
+        <View style={styles.headerRow}>
+          <TouchableOpacity
+            activeOpacity={0.75}
+            onPress={() => setFilterSheetVisible(true)}
+            style={styles.brandCol}
+          >
+            <Text style={styles.brandTitle} numberOfLines={1}>
+              Smart Heritage
+            </Text>
+            <View style={styles.locationSubtitleRow}>
+              <View
+                style={[
+                  styles.gpsDot,
+                  isLocatingGps && styles.gpsDotLocating,
+                ]}
+              />
+              <Text style={styles.locationSubtitle} numberOfLines={1}>
+                {gpsStatus}
               </Text>
-              <TouchableOpacity
-                activeOpacity={0.75}
-                onPress={handleDetectRealGps}
-                style={styles.gpsPillInline}
-              >
-                <View
-                  style={[
-                    styles.gpsDot,
-                    isLocatingGps && styles.gpsDotLocating,
-                  ]}
-                />
-                <Text style={styles.gpsPillText} numberOfLines={1}>
-                  {gpsStatus}
-                </Text>
-              </TouchableOpacity>
+              <ChevronDown size={12} color={COLORS.inkMuted} />
             </View>
-          </View>
+          </TouchableOpacity>
 
-          {/* Compact Language Switcher + Account/Guest Badge */}
-          <View style={styles.headerRightGroup}>
-            <View style={styles.langSwitcher}>
-              {SUPPORTED_LANGUAGES.map((lang) => {
-                const active = selectedLanguage === lang.code;
-                return (
-                  <TouchableOpacity
-                    key={lang.code}
-                    activeOpacity={0.75}
-                    onPress={() => {
-                      setSelectedLanguage(lang.code);
-                      triggerHaptic('selection');
-                    }}
-                    style={[styles.langBtn, active && styles.langBtnActive]}
-                    accessibilityLabel={lang.nativeLabel}
-                  >
-                    <Text
-                      style={[
-                        styles.langBtnText,
-                        active && styles.langBtnTextActive,
-                      ]}
-                    >
-                      {lang.code.toUpperCase()}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
+          <View style={styles.headerActions}>
+            {/* Live Weather Compact Pill (accessible directly on Map & all tabs) */}
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={() => {
+                setWeatherSheetVisible(true);
+                triggerHaptic('selection');
+              }}
+              style={[
+                styles.headerWeatherBtn,
+                weather?.aiTourAdvice.comfortLevel === 'rain_alert' &&
+                  styles.headerWeatherBtnRain,
+              ]}
+              accessibilityLabel="Xem thời tiết trực tiếp (nhiệt độ, độ ẩm, khả năng mưa)"
+            >
+              {weather?.conditionKind === 'sunny' ? (
+                <Sun size={13} color="#D97706" />
+              ) : weather?.conditionKind === 'cloudy' ? (
+                <Cloud size={13} color={COLORS.inkSecondary} />
+              ) : weather?.conditionKind === 'rain' ? (
+                <CloudRain size={13} color={COLORS.gpsBlue} />
+              ) : weather?.conditionKind === 'storm' ? (
+                <CloudLightning size={13} color={COLORS.accent} />
+              ) : (
+                <CloudSun size={13} color={COLORS.accent} />
+              )}
+              <Text style={styles.headerWeatherText}>
+                {weather ? `${Math.round(weather.temperatureC)}°` : '--°'}
+              </Text>
+            </TouchableOpacity>
 
+            {/* 1-Tap Auto Audio Guide Toggle Icon (right next to Language) */}
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={() => {
+                setAutoAudioGuide((prev) => {
+                  const next = !prev;
+                  setToastMessage(
+                    next
+                      ? 'Đã bật tự động thuyết minh khi đến gần di tích (< 150m).'
+                      : 'Đã tắt tự động thuyết minh.'
+                  );
+                  return next;
+                });
+                triggerHaptic('selection');
+              }}
+              style={[
+                styles.headerAudioBtn,
+                autoAudioGuide && styles.headerAudioBtnActive,
+              ]}
+              accessibilityLabel={
+                autoAudioGuide
+                  ? 'Tắt tự động thuyết minh khi đến gần'
+                  : 'Bật tự động thuyết minh khi đến gần'
+              }
+            >
+              {autoAudioGuide ? (
+                <Volume2 size={14} color={COLORS.accent} />
+              ) : (
+                <VolumeX size={14} color={COLORS.inkMuted} />
+              )}
+              {autoAudioGuide && <View style={styles.audioActiveDot} />}
+            </TouchableOpacity>
+
+            {/* Compact Language Pill (opens clean 5-language sheet instead of cramming 5 buttons) */}
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={() => {
+                setLangSheetVisible(true);
+                triggerHaptic('selection');
+              }}
+              style={styles.langPillBtn}
+              accessibilityLabel="Chọn ngôn ngữ thuyết minh"
+            >
+              <Globe size={13} color={COLORS.inkSecondary} />
+              <Text style={styles.langPillText}>
+                {selectedLanguage.toUpperCase()}
+              </Text>
+            </TouchableOpacity>
+
+            {/* Clean Circular Account Avatar Button */}
             <TouchableOpacity
               activeOpacity={0.8}
               onPress={() => setAuthModalVisible(true)}
               style={[
-                styles.accountPill,
-                authState.isAuthenticated && styles.accountPillSignedIn,
+                styles.avatarBtn,
+                authState.isAuthenticated && styles.avatarBtnSignedIn,
               ]}
               accessibilityLabel="Tài khoản và đồng bộ Cloud"
             >
               <User
-                size={12}
+                size={15}
                 color={
-                  authState.isAuthenticated ? COLORS.visited : COLORS.inkSecondary
+                  authState.isAuthenticated
+                    ? COLORS.visited
+                    : COLORS.inkSecondary
                 }
               />
-              <Text
-                style={[
-                  styles.accountPillText,
-                  authState.isAuthenticated && styles.accountPillTextSignedIn,
-                ]}
-                numberOfLines={1}
-              >
-                {authState.isAuthenticated && authState.profile
-                  ? authState.profile.display_name.split(' ')[0]
-                  : 'Khách'}
-              </Text>
+              {authState.isAuthenticated && <View style={styles.onlineDot} />}
             </TouchableOpacity>
           </View>
         </View>
       </View>
 
-      {/* Main Content Area (3 Tabs) */}
+      {/* Main Content Area */}
       <View style={styles.mainBody}>
         {activeTab === 'explore' && (
           <View style={styles.tabContainer}>
-            {/* Filter Controls Panel (kept outside FlatList to prevent keyboard dismissal) */}
-            <View style={styles.controlsPanel}>
-              {/* Area / District Presets + Real GPS */}
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.chipRow}
-              >
-                <TouchableOpacity
-                  activeOpacity={0.8}
-                  onPress={handleDetectRealGps}
-                  style={[
-                    styles.areaChip,
-                    activeCityId === 'GPS' && styles.areaChipActive,
-                  ]}
-                >
-                  <LocateFixed
-                    size={13}
-                    color={
-                      activeCityId === 'GPS' ? COLORS.white : COLORS.gpsBlue
-                    }
-                  />
-                  <Text
-                    style={[
-                      styles.areaChipText,
-                      activeCityId === 'GPS' && styles.areaChipTextActive,
-                    ]}
-                  >
-                    GPS của tôi
-                  </Text>
-                </TouchableOpacity>
-
-                {CITY_PRESETS.map((city) => {
-                  const active = activeCityId === city.id;
-                  return (
-                    <TouchableOpacity
-                      key={city.id}
-                      activeOpacity={0.8}
-                      onPress={() => handleSelectCityPreset(city.id)}
-                      style={[
-                        styles.areaChip,
-                        active && styles.areaChipActive,
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          styles.areaChipText,
-                          active && styles.areaChipTextActive,
-                        ]}
-                      >
-                        {city.label}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </ScrollView>
-
-              {/* Category Chips */}
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.categoryRow}
-              >
-                {CATEGORY_FILTERS.map((cat) => {
-                  const active = selectedCategory === cat.id;
-                  return (
-                    <TouchableOpacity
-                      key={cat.id}
-                      activeOpacity={0.75}
-                      onPress={() => {
-                        setSelectedCategory(cat.id);
-                        triggerHaptic('selection');
-                      }}
-                      style={[
-                        styles.categoryChip,
-                        active && styles.categoryChipActive,
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          styles.categoryChipText,
-                          active && styles.categoryChipTextActive,
-                        ]}
-                      >
-                        {cat.label}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </ScrollView>
-
-              {/* Search Input + Radius Picker */}
-              <View style={styles.searchRadiusRow}>
-                <View style={styles.searchBox}>
-                  <Search size={14} color={COLORS.inkMuted} />
+            {/* Minimalist Sticky Search + Single Category Bar */}
+            <View style={styles.stickySearchArea}>
+              <View style={styles.searchFilterRow}>
+                <View style={styles.searchPill}>
+                  <Search size={15} color={COLORS.inkMuted} />
                   <TextInput
                     value={searchQuery}
                     onChangeText={setSearchQuery}
-                    placeholder="Tìm di tích, quận huyện, món ăn…"
+                    placeholder="Tìm di tích, quận, món đặc sản…"
                     placeholderTextColor={COLORS.inkMuted}
                     style={styles.searchInput}
                     returnKeyType="search"
@@ -1022,81 +1443,82 @@ function SmartHeritageAppContent() {
                       hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                       accessibilityLabel="Xóa tìm kiếm"
                     >
-                      <X size={14} color={COLORS.inkMuted} />
+                      <X size={15} color={COLORS.inkMuted} />
                     </TouchableOpacity>
                   )}
                 </View>
 
                 <TouchableOpacity
                   activeOpacity={0.8}
-                  onPress={handleCycleRadius}
-                  style={styles.radiusBtn}
-                  accessibilityLabel="Đổi bán kính tìm kiếm"
-                >
-                  <Text style={styles.radiusBtnText}>{currentRadiusLabel}</Text>
-                </TouchableOpacity>
-              </View>
-
-              {/* Smart AI Quick Actions: Tour AI (2-Opt) & Hỏi AI (RAG) */}
-              <View style={styles.aiQuickRow}>
-                <TouchableOpacity
-                  activeOpacity={0.85}
                   onPress={() => {
-                    setSmartTourVisible(true);
-                    triggerHaptic('light');
+                    setFilterSheetVisible(true);
+                    triggerHaptic('selection');
                   }}
-                  style={styles.aiTourBtn}
+                  style={[
+                    styles.filterIconBtn,
+                    activeFilterCount > 0 && styles.filterIconBtnActive,
+                  ]}
+                  accessibilityLabel="Mở bộ lọc khu vực và bán kính"
                 >
-                  <Route size={14} color={COLORS.white} />
-                  <Text style={styles.aiTourBtnText}>Tour AI (2-Opt)</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  activeOpacity={0.85}
-                  onPress={handleOpenGlobalAiChat}
-                  style={styles.aiChatBtn}
-                >
-                  <MessageSquareText size={14} color={COLORS.accent} />
-                  <Text style={styles.aiChatBtnText}>Hỏi AI Di sản</Text>
-                </TouchableOpacity>
-              </View>
-
-              {/* Result Count + Auto-Audio Proximity Toggle */}
-              <View style={styles.metaFooterRow}>
-                <Text style={styles.countText}>
-                  Hiển thị{' '}
-                  <Text style={styles.countStrong}>
-                    {nearbySitesWithMetrics.length}
-                  </Text>{' '}
-                  di tích TP.HCM
-                </Text>
-
-                <View style={styles.autoAudioRow}>
-                  <Text style={styles.autoAudioLabel}>
-                    Tự đọc (&lt;150m)
-                  </Text>
-                  <Switch
-                    value={autoAudioGuide}
-                    onValueChange={setAutoAudioGuide}
-                    trackColor={{
-                      false: COLORS.borderStrong,
-                      true: COLORS.ink,
-                    }}
-                    thumbColor={COLORS.white}
-                    style={styles.compactSwitch}
+                  <SlidersHorizontal
+                    size={16}
+                    color={activeFilterCount > 0 ? COLORS.white : COLORS.ink}
                   />
-                </View>
+                  {activeFilterCount > 0 && (
+                    <View style={styles.filterCountBadge}>
+                      <Text style={styles.filterCountText}>
+                        {activeFilterCount}
+                      </Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
               </View>
+
+              {/* Single Clean Category Bar (only shown on Địa điểm view) */}
+              {exploreSection === 'sites' && (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.categoryBar}
+                >
+                  {CATEGORY_FILTERS.map((cat) => {
+                    const active = selectedCategory === cat.id;
+                    return (
+                      <TouchableOpacity
+                        key={cat.id}
+                        activeOpacity={0.75}
+                        onPress={() => {
+                          setSelectedCategory(cat.id);
+                          triggerHaptic('selection');
+                        }}
+                        style={[
+                          styles.catTab,
+                          active && styles.catTabActive,
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.catTabText,
+                            active && styles.catTabTextActive,
+                          ]}
+                        >
+                          {cat.label}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+              )}
             </View>
 
-            {/* Quick Audio Player (Triggered by Proximity < 150m or User Tap) */}
+            {/* Quick Audio Player (when active) */}
             {quickAudioSite && (
               <View style={styles.quickAudioCard}>
                 <View style={styles.quickAudioHeader}>
                   <View style={styles.quickAudioTitleWrap}>
                     <Sparkles size={13} color={COLORS.accent} />
                     <Text style={styles.quickAudioEyebrow}>
-                      ĐANG PHÁT THUYẾT MINH TỰ ĐỘNG
+                      ĐANG PHÁT THUYẾT MINH
                     </Text>
                   </View>
                   <TouchableOpacity
@@ -1116,83 +1538,150 @@ function SmartHeritageAppContent() {
               </View>
             )}
 
-            {/* Proximity < 150m (or <= 350m nearby) Alert Banner */}
-            {isNearbyBannerVisible && closestSiteItem && (
-              <View
-                style={[
-                  styles.proximityBanner,
-                  isWithinProximity && styles.proximityBannerHot,
-                ]}
-              >
-                <View style={styles.proximityTextCol}>
-                  <Text style={styles.proximityLabel}>
-                    {isWithinProximity
-                      ? `Trong vùng thuyết minh < 150m · Cách bạn ${formatDistance(
-                          closestSiteItem.distanceMeters
-                        )}`
-                      : `Rất gần bạn · Cách ${formatDistance(
-                          closestSiteItem.distanceMeters
-                        )}`}
-                  </Text>
-                  <Text style={styles.proximitySiteName} numberOfLines={1}>
-                    {(
-                      closestSiteItem.site.translations[selectedLanguage] ||
-                      closestSiteItem.site.translations.vi
-                    ).name}
-                  </Text>
-                </View>
-                <TouchableOpacity
-                  activeOpacity={0.85}
-                  onPress={() => setQuickAudioSite(closestSiteItem.site)}
-                  style={styles.proximityBtn}
-                >
-                  <Volume2 size={14} color={COLORS.white} />
-                  <Text style={styles.proximityBtnText}>Nghe ngay</Text>
-                </TouchableOpacity>
-              </View>
-            )}
-
-            {/* Heritage Sites FlatList */}
-            <FlatList
-              data={nearbySitesWithMetrics}
-              keyExtractor={(item) => item.site.id}
-              renderItem={renderSiteItem}
-              contentContainerStyle={styles.listContent}
-              showsVerticalScrollIndicator={false}
-              keyboardShouldPersistTaps="handled"
-              ListEmptyComponent={
-                <View style={styles.emptyBox}>
-                  <Text style={styles.emptyTitle}>
-                    Không tìm thấy địa điểm phù hợp trong phạm vi lọc
-                  </Text>
-                  <Text style={styles.emptySubtitle}>
-                    Chọn "Toàn TP.HCM" để xem đầy đủ {HERITAGE_SITES.length} di
-                    tích lịch sử và điểm tham quan.
-                  </Text>
-                  <TouchableOpacity
-                    activeOpacity={0.85}
-                    onPress={() => {
-                      setSearchRadiusMeters(0);
-                      setSelectedCategory('all');
-                      setSearchQuery('');
-                      setActiveCityId('ALL_HCM');
-                    }}
-                    style={styles.emptyResetBtn}
-                  >
-                    <Text style={styles.emptyResetBtnText}>
-                      Hiển thị toàn bộ {HERITAGE_SITES.length} di tích TP.HCM
+            {/* Main Explore Feed: Cleanly switches between Heritage Sites and Nearby Dining */}
+            {exploreSection === 'sites' ? (
+              <FlatList
+                data={nearbySitesWithMetrics}
+                keyExtractor={(item) => item.site.id}
+                renderItem={renderSiteItem}
+                ListHeaderComponent={exploreListHeader}
+                contentContainerStyle={styles.listContent}
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+                ListEmptyComponent={
+                  <View style={styles.emptyBox}>
+                    <Text style={styles.emptyTitle}>
+                      Không tìm thấy địa điểm phù hợp
                     </Text>
-                  </TouchableOpacity>
-                </View>
-              }
-            />
+                    <Text style={styles.emptySubtitle}>
+                      Hãy đặt lại bộ lọc để xem toàn bộ {catalogSites.length} di
+                      tích lịch sử TP.HCM.
+                    </Text>
+                    <TouchableOpacity
+                      activeOpacity={0.85}
+                      onPress={() => {
+                        setSearchRadiusMeters(0);
+                        setSelectedCategory('all');
+                        setSearchQuery('');
+                        setActiveCityId('ALL_HCM');
+                        setGpsStatus('Trung tâm Quận 1');
+                      }}
+                      style={styles.emptyResetBtn}
+                    >
+                      <Text style={styles.emptyResetBtnText}>
+                        Xem tất cả {catalogSites.length} di tích
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                }
+              />
+            ) : (
+              <FlatList
+                data={nearbyFeaturedRestaurants}
+                keyExtractor={(item) => item.restaurant.id}
+                ListHeaderComponent={exploreListHeader}
+                contentContainerStyle={styles.listContent}
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+                renderItem={({ item: entry }) => (
+                  <View style={styles.diningFeedCard}>
+                    <TouchableOpacity
+                      activeOpacity={0.88}
+                      onPress={() => setSelectedSite(entry.parentSite)}
+                      style={styles.diningFeedTop}
+                    >
+                      <Image
+                        source={{
+                          uri:
+                            entry.restaurant.imageUrl ||
+                            'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=600&q=80',
+                        }}
+                        style={styles.diningFeedThumb}
+                        resizeMode="cover"
+                      />
+                      <View style={styles.diningFeedInfo}>
+                        <View style={styles.diningFeedTitleRow}>
+                          <Text style={styles.diningFeedName} numberOfLines={1}>
+                            {entry.restaurant.name}
+                          </Text>
+                          <View style={styles.diningFeedRatingPill}>
+                            <Star
+                              size={11}
+                              color={COLORS.amberStar}
+                              fill={COLORS.amberStar}
+                            />
+                            <Text style={styles.diningFeedRatingText}>
+                              {(entry.restaurant.rating ?? 4.5).toFixed(1)}
+                            </Text>
+                          </View>
+                        </View>
+                        <Text style={styles.diningFeedCuisine} numberOfLines={1}>
+                          {entry.restaurant.cuisine}
+                          {entry.restaurant.priceRange
+                            ? ` · ${entry.restaurant.priceRange}`
+                            : ''}
+                        </Text>
+                        <Text style={styles.diningFeedDish} numberOfLines={1}>
+                          {entry.restaurant.specialtyDishes?.length
+                            ? entry.restaurant.specialtyDishes.slice(0, 2).join(' · ')
+                            : `Gần ${entry.parentName}`}
+                        </Text>
+                        <Text style={styles.diningFeedNearSite} numberOfLines={1}>
+                          Gần {entry.parentName}
+                        </Text>
+                      </View>
+                    </TouchableOpacity>
+
+                    <View style={styles.diningFeedFooter}>
+                      <View style={styles.diningFeedDistWrap}>
+                        <Footprints size={12} color={COLORS.accent} />
+                        <Text style={styles.diningFeedDistText}>
+                          {formatDistance(entry.distanceMeters)} ·{' '}
+                          {formatWalkingDuration(entry.walkingSeconds)}
+                        </Text>
+                      </View>
+
+                      <TouchableOpacity
+                        activeOpacity={0.85}
+                        onPress={() =>
+                          handleNavigateToRestaurant(
+                            entry.restaurant,
+                            entry.parentSite
+                          )
+                        }
+                        style={styles.diningFeedGoBtn}
+                      >
+                        <Navigation size={12} color={COLORS.white} />
+                        <Text style={styles.diningFeedGoText}>Chỉ đường</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                )}
+                ListEmptyComponent={
+                  <View style={styles.emptyBox}>
+                    <Text style={styles.emptyTitle}>
+                      Chưa có quán ăn trong khu vực lọc
+                    </Text>
+                    <Text style={styles.emptySubtitle}>
+                      Hãy mở rộng bán kính hoặc xóa từ khóa tìm kiếm.
+                    </Text>
+                  </View>
+                }
+              />
+            )}
           </View>
         )}
 
-        {activeTab === 'map' && (
-          <View style={styles.mapTabContainer}>
-            {/* Floating Quick Audio overlay when triggered during map walk */}
-            {quickAudioSite && (
+        {/* Keep-Alive 3D Map Layer: giữ WebGL sống liên tục, chuyển tab Bản đồ tức thì (<16ms, không tải lại!) */}
+        {isMapMounted && (
+          <View
+            pointerEvents={activeTab === 'map' ? 'auto' : 'none'}
+            style={[
+              styles.mapTabKeepAlive,
+              activeTab !== 'map' && styles.mapTabKeepAliveHidden,
+            ]}
+          >
+            {activeTab === 'map' && quickAudioSite && (
               <View style={styles.mapQuickAudioOverlay}>
                 <View style={styles.quickAudioHeader}>
                   <View style={styles.quickAudioTitleWrap}>
@@ -1216,7 +1705,9 @@ function SmartHeritageAppContent() {
             )}
 
             <MapExplorer
+              isVisible={activeTab === 'map'}
               userLocation={userLocation}
+              userHeading={userHeading}
               sites={mapSites}
               selectedSiteId={selectedSite?.id || activeRoute?.targetId}
               visitedRecords={visitedRecords}
@@ -1226,20 +1717,16 @@ function SmartHeritageAppContent() {
               activeWalkSeconds={activeWalkSeconds}
               isSimulatingWalk={isSimulatingWalk}
               searchRadiusMeters={searchRadiusMeters}
-              onSelectSite={(site) => setSelectedSite(site)}
+              focusHcmcOnly={focusHcmcOnly}
+              onToggleFocusHcmcOnly={handleToggleFocusHcmcOnly}
+              onSelectSite={setSelectedSite}
               onStartRouteToSite={handleStartNavigationToSite}
               onStartRouteToRestaurant={handleNavigateToRestaurant}
               onSimulateWalkAlongRoute={handleSimulateWalkAlongRoute}
               onFinishWalkAndCheckIn={handleFinishWalkAndCheckIn}
               onCancelRoute={handleCancelRoute}
               onDetectRealGps={handleDetectRealGps}
-              onMoveUserLocation={(lat, lng) => {
-                stopWalkSimulation();
-                stopGpsWatch();
-                setUserLocation([lat, lng]);
-                setActiveCityId('CUSTOM');
-                setGpsStatus(formatCoordinatesLabel(lat, lng));
-              }}
+              onMoveUserLocation={handleMoveUserLocation}
             />
           </View>
         )}
@@ -1247,34 +1734,73 @@ function SmartHeritageAppContent() {
         {activeTab === 'journey' && (
           <View style={styles.tabContainer}>
             <JourneyAndRankingView
+              viewMode="journey"
               records={visitedRecords}
-              allSites={HERITAGE_SITES}
+              allSites={catalogSites}
               userLocation={userLocation}
               selectedLanguage={selectedLanguage}
               authState={authState}
               isSyncing={isSyncingCloud}
               onSelectSiteById={(siteId) => {
-                const target = HERITAGE_SITES.find((s) => s.id === siteId);
+                const target = catalogSites.find((s) => s.id === siteId);
                 if (target) setSelectedSite(target);
               }}
               onOpenCaptureForSite={(siteId) => {
-                const target = HERITAGE_SITES.find((s) => s.id === siteId);
+                const target = catalogSites.find((s) => s.id === siteId);
                 if (target) setPhotoCaptureSite(target);
               }}
               onOpenAuthModal={() => setAuthModalVisible(true)}
-              onSyncNow={handleSyncOfflineJourneys}
+            />
+          </View>
+        )}
+
+        {activeTab === 'ranking' && (
+          <View style={styles.tabContainer}>
+            <JourneyAndRankingView
+              viewMode="ranking"
+              records={visitedRecords}
+              allSites={catalogSites}
+              userLocation={userLocation}
+              selectedLanguage={selectedLanguage}
+              authState={authState}
+              isSyncing={isSyncingCloud}
+              onSelectSiteById={(siteId) => {
+                const target = catalogSites.find((s) => s.id === siteId);
+                if (target) setSelectedSite(target);
+              }}
+              onOpenCaptureForSite={(siteId) => {
+                const target = catalogSites.find((s) => s.id === siteId);
+                if (target) setPhotoCaptureSite(target);
+              }}
+              onOpenAuthModal={() => setAuthModalVisible(true)}
+            />
+          </View>
+        )}
+
+        {activeTab === 'admin' && isAdminUser && (
+          <View style={styles.tabContainer}>
+            <AdminDashboardView
+              sites={catalogSites}
+              userLocation={userLocation}
+              authState={authState}
+              onUpsertSite={handleAdminUpsertSite}
+              onDeleteSite={handleAdminDeleteSite}
+              onUpsertRestaurant={handleAdminUpsertRestaurant}
+              onDeleteRestaurant={handleAdminDeleteRestaurant}
+              onOpenAuthModal={() => setAuthModalVisible(true)}
+              onNotify={(msg) => setToastMessage(msg)}
             />
           </View>
         )}
       </View>
 
-      {/* Toast Notification Banner */}
+      {/* Toast Notification */}
       {toastMessage && (
         <View
           pointerEvents="none"
           style={[
             styles.toastWrap,
-            { bottom: Math.max(insets.bottom, 8) + 68 },
+            { bottom: Math.max(insets.bottom, 8) + 66 },
           ]}
         >
           <View style={styles.toastPill}>
@@ -1286,7 +1812,7 @@ function SmartHeritageAppContent() {
         </View>
       )}
 
-      {/* Bottom Tab Bar (3 Clear Native Tabs) */}
+      {/* Clean Bottom Tab Bar (3 Primary Tabs) */}
       <View
         style={[
           styles.tabBar,
@@ -1303,19 +1829,11 @@ function SmartHeritageAppContent() {
           accessibilityRole="tab"
           accessibilityState={{ selected: activeTab === 'explore' }}
         >
-          <View
-            style={[
-              styles.tabIconWrap,
-              activeTab === 'explore' && styles.tabIconWrapActive,
-            ]}
-          >
-            <Compass
-              size={20}
-              color={
-                activeTab === 'explore' ? COLORS.ink : COLORS.inkMuted
-              }
-            />
-          </View>
+          <Compass
+            size={21}
+            strokeWidth={activeTab === 'explore' ? 2.2 : 1.7}
+            color={activeTab === 'explore' ? COLORS.ink : COLORS.inkMuted}
+          />
           <Text
             style={[
               styles.tabLabel,
@@ -1336,22 +1854,17 @@ function SmartHeritageAppContent() {
           accessibilityRole="tab"
           accessibilityState={{ selected: activeTab === 'map' }}
         >
-          <View
-            style={[
-              styles.tabIconWrap,
-              activeTab === 'map' && styles.tabIconWrapActive,
-            ]}
-          >
+          <View style={styles.tabIconBox}>
             {activeRoute ? (
               <Navigation
-                size={20}
-                color={
-                  activeTab === 'map' ? COLORS.accent : COLORS.accent
-                }
+                size={21}
+                strokeWidth={2.2}
+                color={COLORS.accent}
               />
             ) : (
               <MapIcon
-                size={20}
+                size={21}
+                strokeWidth={activeTab === 'map' ? 2.2 : 1.7}
                 color={activeTab === 'map' ? COLORS.ink : COLORS.inkMuted}
               />
             )}
@@ -1377,17 +1890,11 @@ function SmartHeritageAppContent() {
           accessibilityRole="tab"
           accessibilityState={{ selected: activeTab === 'journey' }}
         >
-          <View
-            style={[
-              styles.tabIconWrap,
-              activeTab === 'journey' && styles.tabIconWrapActive,
-            ]}
-          >
-            <Trophy
-              size={20}
-              color={
-                activeTab === 'journey' ? COLORS.ink : COLORS.inkMuted
-              }
+          <View style={styles.tabIconBox}>
+            <BookOpen
+              size={21}
+              strokeWidth={activeTab === 'journey' ? 2.2 : 1.7}
+              color={activeTab === 'journey' ? COLORS.ink : COLORS.inkMuted}
             />
             {visitedRecords.length > 0 && (
               <View style={styles.journeyBadge}>
@@ -1406,7 +1913,425 @@ function SmartHeritageAppContent() {
             Hành trình
           </Text>
         </TouchableOpacity>
+
+        <TouchableOpacity
+          activeOpacity={0.8}
+          onPress={() => {
+            setActiveTab('ranking');
+            triggerHaptic('selection');
+          }}
+          style={styles.tabItem}
+          accessibilityRole="tab"
+          accessibilityState={{ selected: activeTab === 'ranking' }}
+        >
+          <Trophy
+            size={21}
+            strokeWidth={activeTab === 'ranking' ? 2.2 : 1.7}
+            color={activeTab === 'ranking' ? COLORS.ink : COLORS.inkMuted}
+          />
+          <Text
+            style={[
+              styles.tabLabel,
+              activeTab === 'ranking' && styles.tabLabelActive,
+            ]}
+          >
+            Xếp hạng
+          </Text>
+        </TouchableOpacity>
+
+        {isAdminUser && (
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={() => {
+              setActiveTab('admin');
+              triggerHaptic('selection');
+            }}
+            style={styles.tabItem}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: activeTab === 'admin' }}
+          >
+            <ShieldCheck
+              size={21}
+              strokeWidth={activeTab === 'admin' ? 2.2 : 1.7}
+              color={activeTab === 'admin' ? COLORS.accent : COLORS.inkMuted}
+            />
+            <Text
+              style={[
+                styles.tabLabel,
+                activeTab === 'admin' && styles.tabLabelActive,
+              ]}
+            >
+              Quản trị
+            </Text>
+          </TouchableOpacity>
+        )}
       </View>
+
+      {/* Filter & Location Bottom Sheet */}
+      <Modal
+        visible={filterSheetVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setFilterSheetVisible(false)}
+      >
+        <TouchableOpacity
+          activeOpacity={1}
+          onPress={() => setFilterSheetVisible(false)}
+          style={styles.sheetBackdrop}
+        >
+          <TouchableOpacity
+            activeOpacity={1}
+            onPress={() => {}}
+            style={[
+              styles.sheetCard,
+              { paddingBottom: Math.max(insets.bottom, 16) + 8 },
+            ]}
+          >
+            <View style={styles.sheetHandle} />
+            <View style={styles.sheetHeader}>
+              <Text style={styles.sheetTitle}>Khu vực & Bộ lọc</Text>
+              <TouchableOpacity
+                onPress={() => setFilterSheetVisible(false)}
+                style={styles.sheetCloseBtn}
+              >
+                <X size={18} color={COLORS.inkSecondary} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              style={styles.sheetScroll}
+            >
+              {/* Real GPS Button */}
+              <TouchableOpacity
+                activeOpacity={0.85}
+                onPress={() => {
+                  void handleDetectRealGps();
+                  setFilterSheetVisible(false);
+                }}
+                style={styles.sheetGpsBtn}
+              >
+                <LocateFixed size={16} color={COLORS.gpsBlue} />
+                <Text style={styles.sheetGpsBtnText}>
+                  Dùng vị trí GPS thực tế của tôi
+                </Text>
+              </TouchableOpacity>
+
+              {/* District Presets */}
+              <Text style={styles.sheetSectionLabel}>Khu vực tại TP.HCM</Text>
+              <View style={styles.sheetWrapGrid}>
+                {CITY_PRESETS.map((city) => {
+                  const active = activeCityId === city.id;
+                  return (
+                    <TouchableOpacity
+                      key={city.id}
+                      activeOpacity={0.8}
+                      onPress={() => handleSelectCityPreset(city.id)}
+                      style={[
+                        styles.sheetChip,
+                        active && styles.sheetChipActive,
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.sheetChipText,
+                          active && styles.sheetChipTextActive,
+                        ]}
+                      >
+                        {city.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              {/* Radius Options */}
+              <Text style={styles.sheetSectionLabel}>Bán kính tìm kiếm</Text>
+              <View style={styles.sheetWrapGrid}>
+                {RADIUS_OPTIONS.map((opt) => {
+                  const active = searchRadiusMeters === opt.value;
+                  return (
+                    <TouchableOpacity
+                      key={opt.value}
+                      activeOpacity={0.8}
+                      onPress={() => {
+                        setSearchRadiusMeters(opt.value);
+                        triggerHaptic('selection');
+                      }}
+                      style={[
+                        styles.sheetChip,
+                        active && styles.sheetChipActive,
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.sheetChipText,
+                          active && styles.sheetChipTextActive,
+                        ]}
+                      >
+                        {opt.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              {/* Focus HCMC Map Mask Switch */}
+              <View style={styles.sheetSwitchRow}>
+                <View style={styles.sheetSwitchTextCol}>
+                  <Text style={styles.sheetSwitchTitle}>
+                    Chỉ tập trung bản đồ TP.HCM
+                  </Text>
+                  <Text style={styles.sheetSwitchSub}>
+                    Làm mờ các tỉnh xung quanh (giới hạn toàn bản đồ trong lãnh thổ Việt Nam)
+                  </Text>
+                </View>
+                <Switch
+                  value={focusHcmcOnly}
+                  onValueChange={(val) => {
+                    setFocusHcmcOnly(val);
+                    triggerHaptic('selection');
+                  }}
+                  trackColor={{
+                    false: COLORS.borderStrong,
+                    true: COLORS.accent,
+                  }}
+                  thumbColor={COLORS.white}
+                />
+              </View>
+
+              {/* Auto Proximity Audio Switch */}
+              <View style={styles.sheetSwitchRow}>
+                <View style={styles.sheetSwitchTextCol}>
+                  <Text style={styles.sheetSwitchTitle}>
+                    Tự động thuyết minh khi đến gần
+                  </Text>
+                  <Text style={styles.sheetSwitchSub}>
+                    Tự mở giọng đọc khi vào vùng bán kính &lt; 150m
+                  </Text>
+                </View>
+                <Switch
+                  value={autoAudioGuide}
+                  onValueChange={setAutoAudioGuide}
+                  trackColor={{
+                    false: COLORS.borderStrong,
+                    true: COLORS.ink,
+                  }}
+                  thumbColor={COLORS.white}
+                />
+              </View>
+            </ScrollView>
+
+            <TouchableOpacity
+              activeOpacity={0.85}
+              onPress={() => setFilterSheetVisible(false)}
+              style={styles.sheetApplyBtn}
+            >
+              <Text style={styles.sheetApplyText}>
+                Xem {nearbySitesWithMetrics.length} di tích phù hợp
+              </Text>
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Live Weather Detail Bottom Sheet (opened from Header Weather Pill on Map or any tab) */}
+      <Modal
+        visible={weatherSheetVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setWeatherSheetVisible(false)}
+      >
+        <TouchableOpacity
+          activeOpacity={1}
+          onPress={() => setWeatherSheetVisible(false)}
+          style={styles.sheetBackdrop}
+        >
+          <TouchableOpacity
+            activeOpacity={1}
+            onPress={() => {}}
+            style={[
+              styles.sheetCard,
+              { paddingBottom: Math.max(insets.bottom, 16) + 8 },
+            ]}
+          >
+            <View style={styles.sheetHandle} />
+            <View style={styles.sheetHeader}>
+              <Text style={styles.sheetTitle}>Thời tiết trực tiếp</Text>
+              <TouchableOpacity
+                onPress={() => setWeatherSheetVisible(false)}
+                style={styles.sheetCloseBtn}
+              >
+                <X size={18} color={COLORS.inkSecondary} />
+              </TouchableOpacity>
+            </View>
+
+            {weather ? (
+              <View style={styles.weatherSheetBody}>
+                <View style={styles.weatherSheetTop}>
+                  <View>
+                    <Text style={styles.weatherSheetTemp}>
+                      {Math.round(weather.temperatureC)}°C
+                    </Text>
+                    <Text style={styles.weatherSheetCond}>
+                      {weather.conditionLabelVi} · Cảm giác{' '}
+                      {Math.round(weather.apparentTemperatureC)}°C
+                    </Text>
+                    <Text style={styles.weatherSheetLoc}>{activeCityLabel}</Text>
+                  </View>
+                  <View style={styles.weatherSheetLivePill}>
+                    <View style={styles.gpsDot} />
+                    <Text style={styles.weatherSheetLiveText}>
+                      Tự động cập nhật
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={styles.weatherSheetMetrics}>
+                  <View style={styles.weatherSheetMetricBox}>
+                    <Droplets size={15} color={COLORS.gpsBlue} />
+                    <Text style={styles.weatherSheetMetricVal}>
+                      {weather.humidityPercent}%
+                    </Text>
+                    <Text style={styles.weatherSheetMetricLbl}>Độ ẩm</Text>
+                  </View>
+                  <View style={styles.weatherSheetMetricBox}>
+                    <Umbrella size={15} color={COLORS.accent} />
+                    <Text style={styles.weatherSheetMetricVal}>
+                      {weather.rainProbabilityPercent}%
+                    </Text>
+                    <Text style={styles.weatherSheetMetricLbl}>
+                      Khả năng mưa
+                    </Text>
+                  </View>
+                  <View style={styles.weatherSheetMetricBox}>
+                    <Wind size={15} color={COLORS.inkSecondary} />
+                    <Text style={styles.weatherSheetMetricVal}>
+                      {weather.windSpeedKmh} km/h
+                    </Text>
+                    <Text style={styles.weatherSheetMetricLbl}>Gió</Text>
+                  </View>
+                </View>
+
+                {weather.hourlyPreview.length > 0 && (
+                  <View style={styles.weatherSheetHourlyRow}>
+                    {weather.hourlyPreview.map((slot, idx) => (
+                      <View
+                        key={`${slot.isoTime}-${idx}`}
+                        style={styles.weatherSheetHourlyCell}
+                      >
+                        <Text style={styles.weatherSheetHourlyTime}>
+                          {slot.hourLabel}
+                        </Text>
+                        <Text style={styles.weatherSheetHourlyTemp}>
+                          {slot.temperatureC}°
+                        </Text>
+                        <Text style={styles.weatherSheetHourlyRain}>
+                          {slot.rainProbabilityPercent}% mưa
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
+
+                <View style={styles.weatherSheetAdviceCard}>
+                  <Sparkles size={14} color={COLORS.accent} />
+                  <View style={{ flex: 1, gap: 2 }}>
+                    <Text style={styles.weatherSheetAdviceTitle}>
+                      {weather.aiTourAdvice.headlineVi}
+                    </Text>
+                    <Text style={styles.weatherSheetAdviceDesc}>
+                      {weather.aiTourAdvice.detailVi}
+                    </Text>
+                  </View>
+                </View>
+
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  onPress={() => {
+                    setWeatherSheetVisible(false);
+                    setSmartTourVisible(true);
+                  }}
+                  style={styles.sheetApplyBtn}
+                >
+                  <Text style={styles.sheetApplyText}>
+                    Lập lịch trình AI theo thời tiết này
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <Text style={styles.weatherSheetCond}>
+                Đang tự động cập nhật dữ liệu thời tiết…
+              </Text>
+            )}
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Language Picker Bottom Sheet */}
+      <Modal
+        visible={langSheetVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setLangSheetVisible(false)}
+      >
+        <TouchableOpacity
+          activeOpacity={1}
+          onPress={() => setLangSheetVisible(false)}
+          style={styles.sheetBackdrop}
+        >
+          <TouchableOpacity
+            activeOpacity={1}
+            onPress={() => {}}
+            style={[
+              styles.sheetCard,
+              { paddingBottom: Math.max(insets.bottom, 16) + 8 },
+            ]}
+          >
+            <View style={styles.sheetHandle} />
+            <View style={styles.sheetHeader}>
+              <Text style={styles.sheetTitle}>Ngôn ngữ thuyết minh</Text>
+              <TouchableOpacity
+                onPress={() => setLangSheetVisible(false)}
+                style={styles.sheetCloseBtn}
+              >
+                <X size={18} color={COLORS.inkSecondary} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.langList}>
+              {SUPPORTED_LANGUAGES.map((lang) => {
+                const active = selectedLanguage === lang.code;
+                return (
+                  <TouchableOpacity
+                    key={lang.code}
+                    activeOpacity={0.8}
+                    onPress={() => {
+                      setSelectedLanguage(lang.code);
+                      setLangSheetVisible(false);
+                      triggerHaptic('selection');
+                    }}
+                    style={[
+                      styles.langOptionRow,
+                      active && styles.langOptionRowActive,
+                    ]}
+                  >
+                    <View style={styles.langOptionLeft}>
+                      <Text style={styles.langCodeTag}>
+                        {lang.code.toUpperCase()}
+                      </Text>
+                      <Text style={styles.langNativeLabel}>
+                        {lang.nativeLabel}
+                      </Text>
+                    </View>
+                    {active && <Check size={16} color={COLORS.accent} />}
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
 
       {/* Heritage Detail Modal */}
       {selectedSite && (
@@ -1460,7 +2385,8 @@ function SmartHeritageAppContent() {
         userLocation={userLocation}
         selectedLanguage={selectedLanguage}
         visitedSiteIds={visitedRecords.map((r) => r.siteId)}
-        allSites={HERITAGE_SITES}
+        allSites={catalogSites}
+        weather={weather}
         onClose={() => setSmartTourVisible(false)}
         onStartNavigateStop={handleStartNavigationToSite}
         onSelectSite={(site) => setSelectedSite(site)}
@@ -1475,7 +2401,7 @@ function SmartHeritageAppContent() {
         userLocation={userLocation}
         onClose={() => setAiChatVisible(false)}
         onOpenSiteById={(siteId) => {
-          const target = HERITAGE_SITES.find((s) => s.id === siteId);
+          const target = catalogSites.find((s) => s.id === siteId);
           if (target) setSelectedSite(target);
         }}
       />
@@ -1491,6 +2417,10 @@ function SmartHeritageAppContent() {
         onAuthSuccess={handleAuthSuccess}
         onLogout={handleLogout}
         onSyncOfflineJourneys={handleSyncOfflineJourneys}
+        onOpenAdminDashboard={() => {
+          setAuthModalVisible(false);
+          setActiveTab('admin');
+        }}
       />
     </View>
   );
@@ -1511,54 +2441,31 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: COLORS.bg,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-    paddingHorizontal: SPACING.md,
-    paddingBottom: SPACING.sm + 2,
+    paddingHorizontal: SPACING.lg,
+    paddingBottom: 10,
   },
-  headerTopRow: {
+  headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: SPACING.sm,
+    gap: SPACING.md,
   },
-  brandGroup: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.sm,
-    flex: 1,
-    minWidth: 0,
-  },
-  shgBadge: {
-    width: 34,
-    height: 34,
-    borderRadius: RADII.md,
-    backgroundColor: COLORS.ink,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  shgBadgeText: {
-    color: COLORS.white,
-    fontSize: 11,
-    fontWeight: '800',
-    letterSpacing: 0.7,
-  },
-  brandTextCol: {
+  brandCol: {
     flex: 1,
     minWidth: 0,
   },
   brandTitle: {
     fontFamily: SERIF_FONT,
-    fontSize: 15.5,
+    fontSize: 20,
     fontWeight: '700',
     color: COLORS.ink,
-    letterSpacing: -0.2,
+    letterSpacing: -0.3,
   },
-  gpsPillInline: {
+  locationSubtitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    marginTop: 1,
+    marginTop: 2,
   },
   gpsDot: {
     width: 6,
@@ -1569,177 +2476,696 @@ const styles = StyleSheet.create({
   gpsDotLocating: {
     backgroundColor: COLORS.amberStar,
   },
-  gpsPillText: {
-    fontSize: 11,
+  locationSubtitle: {
+    fontSize: 12,
+    fontWeight: '500',
     color: COLORS.inkSecondary,
-    flex: 1,
+    flexShrink: 1,
   },
-  langSwitcher: {
+  headerActions: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 6,
+  },
+  headerWeatherBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    height: 34,
+    paddingHorizontal: 9,
+    borderRadius: RADII.pill,
     backgroundColor: COLORS.surface,
     borderWidth: 1,
     borderColor: COLORS.border,
-    borderRadius: RADII.md,
-    padding: 2,
-    gap: 1,
   },
-  langBtn: {
-    paddingHorizontal: 6,
-    paddingVertical: 4,
-    borderRadius: RADII.sm,
+  headerWeatherBtnRain: {
+    backgroundColor: COLORS.gpsBlueSoft,
+    borderColor: '#BFDBFE',
   },
-  langBtnActive: {
-    backgroundColor: COLORS.ink,
-  },
-  langBtnText: {
-    fontSize: 10,
+  headerWeatherText: {
+    fontSize: 12,
     fontWeight: '700',
-    color: COLORS.inkSecondary,
+    color: COLORS.ink,
+    fontVariant: ['tabular-nums'],
   },
-  langBtnTextActive: {
-    color: COLORS.white,
+  headerAudioBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: RADII.pill,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  headerAudioBtnActive: {
+    backgroundColor: COLORS.accentSoft,
+    borderColor: COLORS.accentBorder,
+  },
+  audioActiveDot: {
+    position: 'absolute',
+    top: 2,
+    right: 2,
+    width: 7,
+    height: 7,
+    borderRadius: RADII.pill,
+    backgroundColor: COLORS.visitedDot,
+    borderWidth: 1.5,
+    borderColor: COLORS.surface,
+  },
+  weatherHeaderPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    height: 34,
+    paddingHorizontal: 9,
+    borderRadius: RADII.pill,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  weatherHeaderTemp: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.ink,
+    fontVariant: ['tabular-nums'],
+  },
+  langPillBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    height: 34,
+    paddingHorizontal: 9,
+    borderRadius: RADII.pill,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  langPillText: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: COLORS.ink,
+  },
+  avatarBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: RADII.pill,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  avatarBtnSignedIn: {
+    backgroundColor: COLORS.visitedBg,
+    borderColor: COLORS.visitedBorder,
+  },
+  onlineDot: {
+    position: 'absolute',
+    top: 2,
+    right: 2,
+    width: 8,
+    height: 8,
+    borderRadius: RADII.pill,
+    backgroundColor: COLORS.visitedDot,
+    borderWidth: 1.5,
+    borderColor: COLORS.surface,
   },
   mainBody: {
     flex: 1,
+    position: 'relative',
   },
   tabContainer: {
     flex: 1,
     backgroundColor: COLORS.bg,
+    zIndex: 2,
   },
   mapTabContainer: {
     flex: 1,
     position: 'relative',
     backgroundColor: COLORS.bg,
   },
-  controlsPanel: {
-    backgroundColor: COLORS.surface,
+  mapTabKeepAlive: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 5,
+    backgroundColor: COLORS.bg,
+    opacity: 1,
+  },
+  mapTabKeepAliveHidden: {
+    opacity: 0,
+    zIndex: -5,
+  },
+  stickySearchArea: {
+    backgroundColor: COLORS.bg,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
-    paddingTop: SPACING.sm + 2,
-    paddingBottom: SPACING.sm,
-    gap: SPACING.sm,
+    paddingTop: 2,
   },
-  chipRow: {
-    paddingHorizontal: SPACING.lg,
-    gap: 6,
-    alignItems: 'center',
-  },
-  areaChip: {
+  searchFilterRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
-    backgroundColor: COLORS.bg,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: RADII.md,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-  },
-  areaChipActive: {
-    backgroundColor: COLORS.ink,
-    borderColor: COLORS.ink,
-  },
-  areaChipText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: COLORS.inkSecondary,
-  },
-  areaChipTextActive: {
-    color: COLORS.white,
-  },
-  categoryRow: {
+    gap: 10,
     paddingHorizontal: SPACING.lg,
-    gap: 6,
-    alignItems: 'center',
+    paddingBottom: 10,
   },
-  categoryChip: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: RADII.sm,
-    borderWidth: 1,
-    borderColor: 'transparent',
-  },
-  categoryChipActive: {
-    backgroundColor: COLORS.surfaceMuted,
-    borderColor: COLORS.borderStrong,
-  },
-  categoryChipText: {
-    fontSize: 11.5,
-    fontWeight: '500',
-    color: COLORS.inkMuted,
-  },
-  categoryChipTextActive: {
-    color: COLORS.ink,
-    fontWeight: '700',
-  },
-  searchRadiusRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.sm,
-    paddingHorizontal: SPACING.lg,
-  },
-  searchBox: {
+  searchPill: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    backgroundColor: COLORS.bg,
+    gap: 9,
+    backgroundColor: COLORS.surface,
     borderWidth: 1,
     borderColor: COLORS.border,
-    borderRadius: RADII.md,
-    paddingHorizontal: 10,
-    height: 36,
+    borderRadius: RADII.pill,
+    paddingHorizontal: 14,
+    height: 42,
+    ...SHADOWS.card,
   },
   searchInput: {
     flex: 1,
-    fontSize: 12.5,
+    fontSize: 13.5,
     color: COLORS.ink,
     paddingVertical: 0,
   },
-  radiusBtn: {
-    height: 36,
-    paddingHorizontal: 11,
-    borderRadius: RADII.md,
-    backgroundColor: COLORS.bg,
+  filterIconBtn: {
+    width: 42,
+    height: 42,
+    borderRadius: RADII.pill,
+    backgroundColor: COLORS.surface,
     borderWidth: 1,
     borderColor: COLORS.border,
     alignItems: 'center',
     justifyContent: 'center',
+    position: 'relative',
+    ...SHADOWS.card,
   },
-  radiusBtnText: {
-    fontSize: 11.5,
+  filterIconBtnActive: {
+    backgroundColor: COLORS.ink,
+    borderColor: COLORS.ink,
+  },
+  filterCountBadge: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    width: 17,
+    height: 17,
+    borderRadius: RADII.pill,
+    backgroundColor: COLORS.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: COLORS.bg,
+  },
+  filterCountText: {
+    fontFamily: SERIF_FONT,
+    color: COLORS.white,
+    fontSize: 9.5,
+    fontWeight: '700',
+  },
+  categoryBar: {
+    paddingHorizontal: SPACING.lg,
+    gap: 18,
+  },
+  catTab: {
+    paddingVertical: 9,
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+  },
+  catTabActive: {
+    borderBottomColor: COLORS.ink,
+  },
+  catTabText: {
+    fontSize: 13,
     fontWeight: '600',
-    color: COLORS.ink,
+    color: COLORS.inkMuted,
   },
-  metaFooterRow: {
+  catTabTextActive: {
+    color: COLORS.ink,
+    fontWeight: '700',
+  },
+  listHeaderWrap: {
+    paddingHorizontal: SPACING.lg,
+    paddingTop: 10,
+    paddingBottom: 10,
+    gap: 10,
+  },
+  exploreControlsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  segmentedControl: {
+    flex: 1,
+    flexDirection: 'row',
+    backgroundColor: COLORS.surfaceMuted,
+    borderRadius: RADII.pill,
+    padding: 3,
+    gap: 3,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  segBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    borderRadius: RADII.pill,
+  },
+  segBtnActive: {
+    backgroundColor: COLORS.ink,
+  },
+  segBtnText: {
+    fontSize: 12.5,
+    fontWeight: '700',
+    color: COLORS.inkSecondary,
+  },
+  segBtnTextActive: {
+    color: COLORS.white,
+  },
+  quickActionPillsRow: {
+    gap: 8,
+    paddingRight: SPACING.md,
+  },
+  quickAiPillDark: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: COLORS.ink,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: RADII.pill,
+  },
+  quickAiPillDarkText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.white,
+  },
+  quickAiPillLight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.accentBorder,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: RADII.pill,
+  },
+  quickAiPillLightText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.accent,
+  },
+  quickResetPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: COLORS.accentSoft,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: RADII.pill,
+  },
+  quickResetPillText: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: COLORS.accent,
+  },
+  diningFeedCard: {
+    backgroundColor: COLORS.surface,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    marginHorizontal: SPACING.lg,
+    marginBottom: 12,
+    padding: 12,
+    gap: 10,
+    ...SHADOWS.card,
+  },
+  diningFeedTop: {
+    flexDirection: 'row',
+    gap: 12,
+    alignItems: 'center',
+  },
+  diningFeedThumb: {
+    width: 72,
+    height: 72,
+    borderRadius: 12,
+    backgroundColor: COLORS.surfaceMuted,
+  },
+  diningFeedInfo: {
+    flex: 1,
+    minWidth: 0,
+    gap: 3,
+  },
+  diningFeedTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: SPACING.lg,
-    paddingTop: 2,
+    gap: 6,
   },
-  countText: {
-    fontSize: 12,
-    color: COLORS.inkSecondary,
+  diningFeedName: {
+    flex: 1,
+    fontSize: 14.5,
+    fontWeight: '700',
+    color: COLORS.ink,
   },
-  countStrong: {
+  diningFeedRatingPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: COLORS.amberBg,
+    borderRadius: RADII.pill,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+  },
+  diningFeedRatingText: {
+    fontSize: 11,
     fontWeight: '700',
     color: COLORS.ink,
     fontVariant: ['tabular-nums'],
   },
-  autoAudioRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
+  diningFeedCuisine: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: COLORS.accent,
   },
-  autoAudioLabel: {
-    fontSize: 11.5,
-    fontWeight: '500',
+  diningFeedDish: {
+    fontSize: 12,
     color: COLORS.inkSecondary,
   },
-  compactSwitch: {
-    transform: [{ scaleX: 0.8 }, { scaleY: 0.8 }],
+  diningFeedNearSite: {
+    fontSize: 11,
+    color: COLORS.inkMuted,
+  },
+  diningFeedFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+    paddingTop: 9,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.surfaceMuted,
+  },
+  diningFeedDistWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    flex: 1,
+  },
+  diningFeedDistText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: COLORS.inkSecondary,
+    fontVariant: ['tabular-nums'],
+  },
+  diningFeedGoBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: COLORS.ink,
+    borderRadius: RADII.pill,
+    paddingHorizontal: 13,
+    paddingVertical: 7,
+  },
+  diningFeedGoText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.white,
+  },
+  aiStripRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  aiCardPrimary: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 14,
+    padding: 11,
+    ...SHADOWS.card,
+  },
+  aiCardSecondary: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 14,
+    padding: 11,
+    ...SHADOWS.card,
+  },
+  aiIconCircleDark: {
+    width: 32,
+    height: 32,
+    borderRadius: RADII.md,
+    backgroundColor: COLORS.ink,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  aiIconCircleAccent: {
+    width: 32,
+    height: 32,
+    borderRadius: RADII.md,
+    backgroundColor: COLORS.accentSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  aiTextCol: {
+    flex: 1,
+    minWidth: 0,
+  },
+  aiCardTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: COLORS.ink,
+  },
+  aiCardSub: {
+    fontSize: 11,
+    color: COLORS.inkMuted,
+    marginTop: 1,
+  },
+  proximityCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: SPACING.md,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+  },
+  proximityCardHot: {
+    backgroundColor: COLORS.amberBg,
+    borderColor: COLORS.amberBorder,
+  },
+  proximityTextCol: {
+    flex: 1,
+    minWidth: 0,
+  },
+  proximityEyebrow: {
+    fontFamily: SERIF_FONT,
+    fontSize: 11,
+    fontWeight: '700',
+    color: COLORS.accent,
+  },
+  proximityTitle: {
+    fontFamily: SERIF_FONT,
+    fontSize: 14,
+    fontWeight: '700',
+    color: COLORS.ink,
+    marginTop: 2,
+  },
+  proximityPlayBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: COLORS.ink,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: RADII.pill,
+  },
+  proximityPlayText: {
+    fontFamily: SERIF_FONT,
+    color: COLORS.white,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  sectionMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: 4,
+  },
+  sectionMetaText: {
+    fontSize: 12.5,
+    fontWeight: '700',
+    color: COLORS.ink,
+  },
+  clearFilterText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.accent,
+  },
+  foodShowcaseWrap: {
+    gap: 10,
+  },
+  foodShowcaseHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  foodShowcaseTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 9,
+    flex: 1,
+  },
+  foodShowcaseIcon: {
+    width: 30,
+    height: 30,
+    borderRadius: RADII.md,
+    backgroundColor: COLORS.accentSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  foodShowcaseTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: COLORS.ink,
+  },
+  foodShowcaseSub: {
+    fontSize: 11.5,
+    color: COLORS.inkMuted,
+    marginTop: 1,
+  },
+  foodShowcaseMapLink: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: RADII.pill,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  foodShowcaseMapLinkText: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: COLORS.accent,
+  },
+  foodCarouselContent: {
+    gap: 10,
+    paddingRight: SPACING.md,
+  },
+  foodCarouselCard: {
+    width: 248,
+    backgroundColor: COLORS.surface,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    padding: 10,
+    gap: 9,
+    ...SHADOWS.card,
+  },
+  foodCarouselTop: {
+    flexDirection: 'row',
+    gap: 10,
+    alignItems: 'center',
+  },
+  foodCarouselThumb: {
+    width: 58,
+    height: 58,
+    borderRadius: 12,
+    backgroundColor: COLORS.surfaceMuted,
+  },
+  foodCarouselInfo: {
+    flex: 1,
+    minWidth: 0,
+    gap: 3,
+  },
+  foodCarouselNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  foodCarouselName: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: COLORS.ink,
+  },
+  foodCarouselRatingLine: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  foodCarouselRating: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: COLORS.ink,
+    fontVariant: ['tabular-nums'],
+  },
+  foodCarouselDot: {
+    fontSize: 11,
+    color: COLORS.inkMuted,
+  },
+  foodCarouselPrice: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: COLORS.accent,
+    flexShrink: 1,
+  },
+  foodCarouselDish: {
+    fontSize: 11,
+    color: COLORS.inkSecondary,
+  },
+  foodCarouselFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.surfaceMuted,
+  },
+  foodCarouselDistWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    flex: 1,
+    minWidth: 0,
+  },
+  foodCarouselDistText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: COLORS.inkSecondary,
+    fontVariant: ['tabular-nums'],
+  },
+  foodCarouselGoBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: COLORS.ink,
+    borderRadius: RADII.pill,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  foodCarouselGoText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: COLORS.white,
   },
   quickAudioCard: {
     backgroundColor: COLORS.surface,
@@ -1773,6 +3199,7 @@ const styles = StyleSheet.create({
     gap: 5,
   },
   quickAudioEyebrow: {
+    fontFamily: SERIF_FONT,
     fontSize: 10.5,
     fontWeight: '700',
     letterSpacing: 0.5,
@@ -1783,57 +3210,13 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
   },
   quickAudioCloseText: {
+    fontFamily: SERIF_FONT,
     fontSize: 12,
     fontWeight: '600',
     color: COLORS.inkMuted,
   },
-  proximityBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: SPACING.md,
-    backgroundColor: COLORS.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-    paddingHorizontal: SPACING.lg,
-    paddingVertical: SPACING.md,
-  },
-  proximityBannerHot: {
-    backgroundColor: COLORS.amberBg,
-    borderBottomColor: COLORS.amberBorder,
-  },
-  proximityTextCol: {
-    flex: 1,
-    minWidth: 0,
-  },
-  proximityLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: COLORS.accent,
-  },
-  proximitySiteName: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: COLORS.ink,
-    marginTop: 2,
-  },
-  proximityBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    backgroundColor: COLORS.ink,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: RADII.md,
-  },
-  proximityBtnText: {
-    color: COLORS.white,
-    fontSize: 12,
-    fontWeight: '600',
-  },
   listContent: {
-    paddingTop: SPACING.md,
-    paddingBottom: SPACING.xxl,
+    paddingBottom: SPACING.xxl + 8,
   },
   emptyBox: {
     padding: SPACING.xxl,
@@ -1841,28 +3224,31 @@ const styles = StyleSheet.create({
     gap: SPACING.sm,
   },
   emptyTitle: {
-    fontSize: 14.5,
+    fontFamily: SERIF_FONT,
+    fontSize: 16,
     fontWeight: '700',
     color: COLORS.ink,
     textAlign: 'center',
   },
   emptySubtitle: {
-    fontSize: 12.5,
+    fontFamily: SERIF_FONT,
+    fontSize: 13,
     color: COLORS.inkMuted,
     textAlign: 'center',
-    lineHeight: 18,
+    lineHeight: 19,
   },
   emptyResetBtn: {
     marginTop: SPACING.sm,
     backgroundColor: COLORS.ink,
-    paddingHorizontal: 16,
+    paddingHorizontal: 18,
     paddingVertical: 10,
-    borderRadius: RADII.md,
+    borderRadius: RADII.pill,
   },
   emptyResetBtnText: {
+    fontFamily: SERIF_FONT,
     color: COLORS.white,
-    fontSize: 12.5,
-    fontWeight: '600',
+    fontSize: 13,
+    fontWeight: '700',
   },
   toastWrap: {
     position: 'absolute',
@@ -1876,15 +3262,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
     backgroundColor: COLORS.ink,
-    borderRadius: RADII.lg,
-    paddingHorizontal: 14,
+    borderRadius: RADII.pill,
+    paddingHorizontal: 16,
     paddingVertical: 10,
     maxWidth: 420,
     ...SHADOWS.floating,
   },
   toastText: {
+    fontFamily: SERIF_FONT,
     color: COLORS.white,
-    fontSize: 12,
+    fontSize: 12.5,
     fontWeight: '500',
     flexShrink: 1,
   },
@@ -1893,27 +3280,20 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surface,
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
-    paddingTop: SPACING.sm,
-    ...SHADOWS.bar,
+    paddingTop: 10,
   },
   tabItem: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 3,
+    gap: 4,
   },
-  tabIconWrap: {
+  tabIconBox: {
     position: 'relative',
-    paddingHorizontal: 16,
-    paddingVertical: 4,
-    borderRadius: RADII.pill,
-  },
-  tabIconWrapActive: {
-    backgroundColor: COLORS.surfaceMuted,
   },
   tabLabel: {
     fontSize: 11,
-    fontWeight: '500',
+    fontWeight: '600',
     color: COLORS.inkMuted,
   },
   tabLabelActive: {
@@ -1922,8 +3302,8 @@ const styles = StyleSheet.create({
   },
   routeActiveDot: {
     position: 'absolute',
-    top: 2,
-    right: 11,
+    top: -2,
+    right: -4,
     width: 8,
     height: 8,
     borderRadius: RADII.pill,
@@ -1933,12 +3313,12 @@ const styles = StyleSheet.create({
   },
   journeyBadge: {
     position: 'absolute',
-    top: 0,
-    right: 6,
-    minWidth: 17,
-    height: 17,
+    top: -5,
+    right: -10,
+    minWidth: 16,
+    height: 16,
     borderRadius: RADII.pill,
-    backgroundColor: COLORS.visited,
+    backgroundColor: COLORS.ink,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 4,
@@ -1946,78 +3326,299 @@ const styles = StyleSheet.create({
     borderColor: COLORS.surface,
   },
   journeyBadgeText: {
+    fontFamily: SERIF_FONT,
     color: COLORS.white,
-    fontSize: 9.5,
-    fontWeight: '800',
+    fontSize: 9,
+    fontWeight: '700',
     fontVariant: ['tabular-nums'],
   },
-  headerRightGroup: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  accountPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: COLORS.surface,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: RADII.md,
-    paddingHorizontal: 8,
-    paddingVertical: 5,
-    maxWidth: 82,
-  },
-  accountPillSignedIn: {
-    backgroundColor: COLORS.visitedBg,
-    borderColor: COLORS.visitedBorder,
-  },
-  accountPillText: {
-    fontSize: 10.5,
-    fontWeight: '700',
-    color: COLORS.inkSecondary,
-    flexShrink: 1,
-  },
-  accountPillTextSignedIn: {
-    color: COLORS.visited,
-  },
-  aiQuickRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.sm,
-    paddingHorizontal: SPACING.lg,
-  },
-  aiTourBtn: {
+  // Bottom Sheet Styles
+  sheetBackdrop: {
     flex: 1,
+    backgroundColor: COLORS.overlayScrim,
+    justifyContent: 'flex-end',
+  },
+  sheetCard: {
+    backgroundColor: COLORS.surface,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: SPACING.xl,
+    paddingTop: 10,
+    maxHeight: '82%',
+  },
+  sheetHandle: {
+    width: 38,
+    height: 4,
+    borderRadius: RADII.pill,
+    backgroundColor: COLORS.borderStrong,
+    alignSelf: 'center',
+    marginBottom: 14,
+  },
+  sheetHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 14,
+  },
+  sheetTitle: {
+    fontFamily: SERIF_FONT,
+    fontSize: 18,
+    fontWeight: '700',
+    color: COLORS.ink,
+  },
+  sheetCloseBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: RADII.pill,
+    backgroundColor: COLORS.surfaceMuted,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sheetScroll: {
+    maxHeight: 420,
+  },
+  sheetGpsBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
-    backgroundColor: COLORS.accent,
-    paddingVertical: 8,
-    borderRadius: RADII.md,
+    gap: 8,
+    backgroundColor: COLORS.gpsBlueSoft,
+    borderRadius: RADII.lg,
+    paddingVertical: 12,
+    marginBottom: 16,
   },
-  aiTourBtnText: {
-    color: COLORS.white,
+  sheetGpsBtnText: {
+    fontFamily: SERIF_FONT,
+    fontSize: 13.5,
+    fontWeight: '700',
+    color: COLORS.gpsBlue,
+  },
+  sheetSectionLabel: {
+    fontFamily: SERIF_FONT,
     fontSize: 12,
     fontWeight: '700',
+    color: COLORS.inkMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 10,
+    marginTop: 4,
   },
-  aiChatBtn: {
-    flex: 1,
+  sheetWrapGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 16,
+  },
+  sheetChip: {
+    paddingHorizontal: 13,
+    paddingVertical: 8,
+    borderRadius: RADII.pill,
+    backgroundColor: COLORS.bg,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  sheetChipActive: {
+    backgroundColor: COLORS.ink,
+    borderColor: COLORS.ink,
+  },
+  sheetChipText: {
+    fontFamily: SERIF_FONT,
+    fontSize: 12.5,
+    fontWeight: '600',
+    color: COLORS.inkSecondary,
+  },
+  sheetChipTextActive: {
+    color: COLORS.white,
+  },
+  sheetSwitchRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+    paddingVertical: 12,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+    marginBottom: 8,
+  },
+  sheetSwitchTextCol: {
+    flex: 1,
+  },
+  sheetSwitchTitle: {
+    fontFamily: SERIF_FONT,
+    fontSize: 14,
+    fontWeight: '700',
+    color: COLORS.ink,
+  },
+  sheetSwitchSub: {
+    fontFamily: SERIF_FONT,
+    fontSize: 12,
+    color: COLORS.inkMuted,
+    marginTop: 2,
+  },
+  sheetApplyBtn: {
+    backgroundColor: COLORS.ink,
+    borderRadius: RADII.lg,
+    paddingVertical: 13,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  sheetApplyText: {
+    fontFamily: SERIF_FONT,
+    color: COLORS.white,
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  weatherSheetBody: {
+    gap: 12,
+  },
+  weatherSheetTop: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  weatherSheetTemp: {
+    fontSize: 32,
+    fontWeight: '800',
+    color: COLORS.ink,
+    fontVariant: ['tabular-nums'],
+    letterSpacing: -0.6,
+  },
+  weatherSheetCond: {
+    fontSize: 13.5,
+    fontWeight: '600',
+    color: COLORS.inkSecondary,
+    marginTop: 2,
+  },
+  weatherSheetLoc: {
+    fontSize: 12,
+    color: COLORS.inkMuted,
+    marginTop: 2,
+  },
+  weatherSheetLivePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: COLORS.bg,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: RADII.pill,
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+  },
+  weatherSheetLiveText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: COLORS.inkSecondary,
+  },
+  weatherSheetMetrics: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  weatherSheetMetricBox: {
+    flex: 1,
+    alignItems: 'center',
+    backgroundColor: COLORS.bg,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    paddingVertical: 10,
+    gap: 3,
+  },
+  weatherSheetMetricVal: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: COLORS.ink,
+    fontVariant: ['tabular-nums'],
+  },
+  weatherSheetMetricLbl: {
+    fontSize: 11,
+    color: COLORS.inkMuted,
+  },
+  weatherSheetHourlyRow: {
+    flexDirection: 'row',
+    gap: 7,
+  },
+  weatherSheetHourlyCell: {
+    flex: 1,
+    alignItems: 'center',
+    backgroundColor: COLORS.bg,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: COLORS.surfaceMuted,
+    paddingVertical: 7,
+    gap: 2,
+  },
+  weatherSheetHourlyTime: {
+    fontSize: 10.5,
+    fontWeight: '600',
+    color: COLORS.inkMuted,
+  },
+  weatherSheetHourlyTemp: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: COLORS.ink,
+    fontVariant: ['tabular-nums'],
+  },
+  weatherSheetHourlyRain: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: COLORS.inkSecondary,
+  },
+  weatherSheetAdviceCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: COLORS.surfaceTint,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.accentBorder,
+    padding: 11,
+  },
+  weatherSheetAdviceTitle: {
+    fontSize: 12.5,
+    fontWeight: '700',
+    color: COLORS.ink,
+  },
+  weatherSheetAdviceDesc: {
+    fontSize: 11.5,
+    color: COLORS.inkSecondary,
+    lineHeight: 16.5,
+  },
+  langList: {
     gap: 6,
+  },
+  langOptionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: RADII.lg,
+    backgroundColor: COLORS.bg,
+  },
+  langOptionRowActive: {
     backgroundColor: COLORS.accentSoft,
     borderWidth: 1,
     borderColor: COLORS.accentBorder,
-    paddingVertical: 8,
-    borderRadius: RADII.md,
   },
-  aiChatBtnText: {
-    color: COLORS.accent,
+  langOptionLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  langCodeTag: {
+    fontFamily: SERIF_FONT,
     fontSize: 12,
     fontWeight: '700',
+    color: COLORS.inkMuted,
+    width: 26,
+  },
+  langNativeLabel: {
+    fontFamily: SERIF_FONT,
+    fontSize: 15,
+    fontWeight: '600',
+    color: COLORS.ink,
   },
 });
 

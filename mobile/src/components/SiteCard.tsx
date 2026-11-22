@@ -9,14 +9,17 @@ import {
 import {
   Camera,
   Check,
+  Clock,
   Footprints,
   Navigation,
   Star,
+  Ticket,
   Utensils,
   Volume2,
 } from 'lucide-react-native';
 import {
   HeritageSite,
+  NearbyRestaurant,
   SupportedLanguage,
   VisitedSiteRecord,
 } from '../types/heritage';
@@ -33,13 +36,16 @@ export interface SiteCardProps {
   isActiveRouteTarget?: boolean;
   onOpenDetail: (site: HeritageSite) => void;
   onStartNavigation: (site: HeritageSite) => void;
+  onNavigateToRestaurant?: (
+    restaurant: NearbyRestaurant,
+    parentSite: HeritageSite
+  ) => void;
   onOpenPhotoCapture: (site: HeritageSite) => void;
 }
 
 export const SiteCard: React.FC<SiteCardProps> = memo(
   ({
     site,
-    index,
     distanceMeters,
     estimatedWalkingSeconds,
     selectedLanguage,
@@ -47,149 +53,149 @@ export const SiteCard: React.FC<SiteCardProps> = memo(
     isActiveRouteTarget = false,
     onOpenDetail,
     onStartNavigation,
+    onNavigateToRestaurant,
     onOpenPhotoCapture,
   }) => {
-    const local = site.translations[selectedLanguage] || site.translations.vi;
-    const bestRestaurant =
-      site.nearbyRestaurants.length > 0
-        ? [...site.nearbyRestaurants].sort((a, b) => b.rating - a.rating)[0]
-        : null;
-    const badgeNum = index + 1 < 10 ? `0${index + 1}` : `${index + 1}`;
+    const local = site.translations?.[selectedLanguage] ||
+      site.translations?.vi || {
+        name: site.id,
+        shortSummary: '',
+        historicalEra: '',
+        openingHours: '07:00 – 18:00',
+        architecturalHighlights: [],
+        audioScript: [],
+      };
+
+    const nearbyList = Array.isArray(site.nearbyRestaurants)
+      ? [...site.nearbyRestaurants].sort(
+          (a, b) => (b.rating ?? 0) - (a.rating ?? 0)
+        )
+      : [];
+    const topFood = nearbyList[0] || null;
+
+    const statusTag = visitedRecord
+      ? 'Đã check-in'
+      : site.nationalSpecialMonument
+        ? 'Di tích QG Đặc biệt'
+        : site.unescoRecognized
+          ? 'Di sản UNESCO'
+          : null;
+
+    const safeRating = Number.isFinite(site.rating) ? site.rating : 4.7;
 
     return (
-      <View
-        style={[
-          styles.card,
-          isActiveRouteTarget && styles.cardActive,
-        ]}
-      >
-        {/* Top Row: Thumbnail + Metadata */}
-        <View style={styles.topRow}>
-          <TouchableOpacity
-            activeOpacity={0.85}
-            onPress={() => onOpenDetail(site)}
-            style={styles.thumbWrap}
-            accessibilityRole="button"
-            accessibilityLabel={`Xem chi tiết ${local.name}`}
-          >
+      <View style={[styles.card, isActiveRouteTarget && styles.cardActive]}>
+        <TouchableOpacity
+          activeOpacity={0.92}
+          onPress={() => onOpenDetail(site)}
+          accessibilityRole="button"
+          accessibilityLabel={`Xem chi tiết ${local.name}`}
+        >
+          {/* Clean Editorial Photo (max 1 left status pill + 1 right rating pill) */}
+          <View style={styles.heroWrap}>
             <Image
               source={{ uri: site.coverImage }}
-              style={styles.thumbImage}
+              style={styles.heroImage}
               resizeMode="cover"
             />
-            <View style={styles.indexBadge}>
-              <Text style={styles.indexBadgeText}>{badgeNum}</Text>
-            </View>
-            {visitedRecord && (
-              <View style={styles.visitedThumbBadge}>
-                <Check size={10} color={COLORS.white} strokeWidth={3} />
-              </View>
-            )}
-          </TouchableOpacity>
+            <View style={styles.heroTopRow}>
+              {statusTag ? (
+                <View
+                  style={[
+                    styles.statusPill,
+                    visitedRecord && styles.statusPillVisited,
+                  ]}
+                >
+                  {visitedRecord && (
+                    <Check size={10.5} color={COLORS.white} strokeWidth={3} />
+                  )}
+                  <Text style={styles.statusPillText} numberOfLines={1}>
+                    {statusTag}
+                  </Text>
+                </View>
+              ) : (
+                <View />
+              )}
 
-          <View style={styles.contentCol}>
-            {/* District + Era & Status Tag */}
-            <View style={styles.metaTopRow}>
-              <Text style={styles.districtText} numberOfLines={1}>
-                {site.city} · {local.historicalEra}
-              </Text>
-            </View>
-
-            {/* Status badges row */}
-            {(site.nationalSpecialMonument || site.unescoRecognized || visitedRecord) && (
-              <View style={styles.badgeRow}>
-                {site.nationalSpecialMonument && (
-                  <View style={styles.specialBadge}>
-                    <Text style={styles.specialBadgeText}>
-                      Di tích Quốc gia Đặc biệt
-                    </Text>
-                  </View>
-                )}
-                {!site.nationalSpecialMonument && site.unescoRecognized && (
-                  <View style={styles.specialBadge}>
-                    <Text style={styles.specialBadgeText}>UNESCO</Text>
-                  </View>
-                )}
-                {visitedRecord && (
-                  <View style={styles.visitedPill}>
-                    <Check size={10} color={COLORS.visited} strokeWidth={2.5} />
-                    <Text style={styles.visitedPillText}>
-                      Đã đi {formatWalkingDuration(visitedRecord.walkingDurationSeconds)}
-                    </Text>
-                  </View>
-                )}
-              </View>
-            )}
-
-            {/* Title */}
-            <TouchableOpacity
-              activeOpacity={0.75}
-              onPress={() => onOpenDetail(site)}
-            >
-              <Text style={styles.title} numberOfLines={2}>
-                {local.name}
-              </Text>
-            </TouchableOpacity>
-
-            {/* Metrics Row: Walking time · Distance · Rating */}
-            <View style={styles.metricsRow}>
-              <View style={styles.metricItem}>
-                <Footprints size={13} color={COLORS.accent} />
-                <Text style={styles.metricHighlight}>
-                  {formatWalkingDuration(estimatedWalkingSeconds)}
-                </Text>
-              </View>
-              <Text style={styles.dot}>·</Text>
-              <Text style={styles.metricText}>
-                {formatDistance(distanceMeters)}
-              </Text>
-              <Text style={styles.dot}>·</Text>
-              <View style={styles.metricItem}>
+              <View style={styles.ratingPill}>
                 <Star
-                  size={12}
+                  size={11}
                   color={COLORS.amberStar}
                   fill={COLORS.amberStar}
                 />
-                <Text style={styles.ratingText}>{site.rating.toFixed(1)}</Text>
+                <Text style={styles.ratingPillText}>
+                  {safeRating.toFixed(1)}
+                </Text>
               </View>
             </View>
           </View>
-        </View>
 
-        {/* Short Summary Snippet */}
-        <Text style={styles.summary} numberOfLines={2}>
-          {local.shortSummary}
-        </Text>
+          {/* Clean, Airy Content Block (4 effortless lines, zero clutter) */}
+          <View style={styles.body}>
+            {/* Line 1: Location & Distance */}
+            <View style={styles.metaRow}>
+              <Text style={styles.cityText} numberOfLines={1}>
+                {site.city}
+              </Text>
+              <Text style={styles.dot}>·</Text>
+              <Footprints size={11.5} color={COLORS.accent} />
+              <Text style={styles.walkText}>
+                {formatWalkingDuration(estimatedWalkingSeconds)} ({formatDistance(distanceMeters)})
+              </Text>
+            </View>
 
-        {/* Top Nearby Restaurant Recommendation */}
-        {bestRestaurant && (
+            {/* Line 2: Clear Title */}
+            <Text style={styles.title} numberOfLines={2}>
+              {local.name}
+            </Text>
+
+            {/* Line 3: Concise 2-line Summary */}
+            <Text style={styles.summary} numberOfLines={2}>
+              {local.shortSummary}
+            </Text>
+
+            {/* Line 4: Subtle Practical Details (Hours · Ticket) */}
+            <View style={styles.practicalRow}>
+              <View style={styles.practicalItem}>
+                <Clock size={11.5} color={COLORS.inkMuted} />
+                <Text style={styles.practicalText} numberOfLines={1}>
+                  {local.openingHours || '07:00 – 18:00'}
+                </Text>
+              </View>
+              <Text style={styles.dot}>·</Text>
+              <View style={styles.practicalItem}>
+                <Ticket size={11.5} color={COLORS.inkMuted} />
+                <Text style={styles.practicalText} numberOfLines={1}>
+                  {site.ticketPrice || 'Miễn phí'}
+                </Text>
+              </View>
+            </View>
+          </View>
+        </TouchableOpacity>
+
+        {/* Subtle 1-Line Nearby Eatery Strip (tappable to navigate, zero bulky nested cards) */}
+        {topFood && (
           <TouchableOpacity
             activeOpacity={0.8}
-            onPress={() => onOpenDetail(site)}
-            style={styles.foodBanner}
+            onPress={() =>
+              onNavigateToRestaurant
+                ? onNavigateToRestaurant(topFood, site)
+                : onOpenDetail(site)
+            }
+            style={styles.foodStrip}
           >
-            <View style={styles.foodLeft}>
-              <Utensils size={12} color={COLORS.inkMuted} />
-              <Text style={styles.foodLabel} numberOfLines={1}>
-                Gần đó:{' '}
-                <Text style={styles.foodName}>{bestRestaurant.name}</Text>
-              </Text>
-            </View>
-            <View style={styles.foodRatingWrap}>
-              <Star
-                size={11}
-                color={COLORS.amber}
-                fill={COLORS.amberStar}
-              />
-              <Text style={styles.foodRating}>
-                {bestRestaurant.rating.toFixed(1)}
-              </Text>
-            </View>
+            <Utensils size={12} color={COLORS.accent} />
+            <Text style={styles.foodStripText} numberOfLines={1}>
+              Gần đây: <Text style={styles.foodStripName}>{topFood.name}</Text>{' '}
+              ({(topFood.rating ?? 4.5).toFixed(1)}★
+              {nearbyList.length > 1 ? ` · +${nearbyList.length - 1} quán` : ''})
+            </Text>
+            <Text style={styles.foodStripCta}>Đi tới</Text>
           </TouchableOpacity>
         )}
 
-        {/* Action Buttons Row */}
-        <View style={styles.actionsRow}>
+        {/* Clean Action Row */}
+        <View style={styles.actionRow}>
           <TouchableOpacity
             activeOpacity={0.85}
             onPress={() => onOpenDetail(site)}
@@ -197,9 +203,7 @@ export const SiteCard: React.FC<SiteCardProps> = memo(
             accessibilityRole="button"
           >
             <Volume2 size={14} color={COLORS.white} />
-            <Text style={styles.primaryBtnText} numberOfLines={1}>
-              Thuyết minh & Tư liệu
-            </Text>
+            <Text style={styles.primaryBtnText}>Chi tiết & Nghe</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -210,20 +214,30 @@ export const SiteCard: React.FC<SiteCardProps> = memo(
               isActiveRouteTarget && styles.secondaryBtnActive,
             ]}
             accessibilityRole="button"
+            accessibilityLabel={`Dẫn đường tới ${local.name}`}
           >
-            <Navigation size={14} color={COLORS.accent} />
-            <Text style={styles.secondaryBtnText}>Dẫn đường</Text>
+            <Navigation
+              size={14}
+              color={isActiveRouteTarget ? COLORS.white : COLORS.accent}
+            />
+            <Text
+              style={[
+                styles.secondaryBtnText,
+                isActiveRouteTarget && styles.secondaryBtnTextActive,
+              ]}
+            >
+              Dẫn đường
+            </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             activeOpacity={0.8}
             onPress={() => onOpenPhotoCapture(site)}
-            style={styles.cameraBtn}
+            style={styles.iconOnlyBtn}
             accessibilityRole="button"
-            accessibilityLabel="Lưu ảnh tại di tích"
+            accessibilityLabel={`Chụp ảnh tại ${local.name}`}
           >
-            <Camera size={14} color={COLORS.inkSecondary} />
-            <Text style={styles.cameraBtnText}>Lưu ảnh</Text>
+            <Camera size={16} color={COLORS.inkSecondary} />
           </TouchableOpacity>
         </View>
       </View>
@@ -236,212 +250,161 @@ SiteCard.displayName = 'SiteCard';
 const styles = StyleSheet.create({
   card: {
     backgroundColor: COLORS.surface,
-    borderRadius: RADII.xl,
+    borderRadius: 18,
     borderWidth: 1,
     borderColor: COLORS.border,
-    padding: SPACING.md + 2,
     marginHorizontal: SPACING.lg,
-    marginBottom: SPACING.md,
+    marginBottom: 14,
+    overflow: 'hidden',
     ...SHADOWS.card,
   },
   cardActive: {
     borderColor: COLORS.accent,
     borderWidth: 1.5,
   },
-  topRow: {
-    flexDirection: 'row',
-    gap: SPACING.md,
-  },
-  thumbWrap: {
-    width: 88,
-    height: 88,
-    borderRadius: RADII.lg,
-    overflow: 'hidden',
+  heroWrap: {
+    width: '100%',
+    height: 164,
     backgroundColor: COLORS.surfaceMuted,
-    borderWidth: 1,
-    borderColor: COLORS.border,
     position: 'relative',
   },
-  thumbImage: {
+  heroImage: {
     width: '100%',
     height: '100%',
   },
-  indexBadge: {
+  heroTopRow: {
     position: 'absolute',
-    top: 6,
-    left: 6,
-    backgroundColor: COLORS.overlayDark,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: RADII.xs,
-  },
-  indexBadgeText: {
-    color: COLORS.white,
-    fontSize: 10,
-    fontWeight: '700',
-    fontVariant: ['tabular-nums'],
-  },
-  visitedThumbBadge: {
-    position: 'absolute',
-    bottom: 6,
-    right: 6,
-    width: 18,
-    height: 18,
-    borderRadius: RADII.pill,
-    backgroundColor: COLORS.visitedDot,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1.5,
-    borderColor: COLORS.white,
-  },
-  contentCol: {
-    flex: 1,
-    minWidth: 0,
-  },
-  metaTopRow: {
+    top: 11,
+    left: 11,
+    right: 11,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    gap: 8,
   },
-  districtText: {
-    fontSize: 11,
-    fontWeight: '500',
-    color: COLORS.inkSecondary,
-    flex: 1,
-  },
-  badgeRow: {
+  statusPill: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     alignItems: 'center',
-    gap: 5,
-    marginTop: 4,
+    gap: 4,
+    backgroundColor: 'rgba(20, 20, 19, 0.78)',
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: RADII.pill,
+    maxWidth: '70%',
   },
-  specialBadge: {
-    backgroundColor: COLORS.accentSoft,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: RADII.xs,
+  statusPillVisited: {
+    backgroundColor: 'rgba(4, 120, 87, 0.92)',
   },
-  specialBadgeText: {
-    fontSize: 10,
+  statusPillText: {
+    color: COLORS.white,
+    fontSize: 10.5,
     fontWeight: '700',
-    color: COLORS.accent,
   },
-  visitedPill: {
+  ratingPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
-    backgroundColor: COLORS.visitedBg,
-    borderWidth: 1,
-    borderColor: COLORS.visitedBorder,
-    paddingHorizontal: 6,
-    paddingVertical: 1.5,
-    borderRadius: RADII.xs,
+    backgroundColor: 'rgba(250, 249, 246, 0.95)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: RADII.pill,
   },
-  visitedPillText: {
-    fontSize: 10,
+  ratingPillText: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: COLORS.ink,
+    fontVariant: ['tabular-nums'],
+  },
+  body: {
+    paddingHorizontal: 14,
+    paddingTop: 12,
+    paddingBottom: 10,
+    gap: 5,
+  },
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  cityText: {
+    fontSize: 11.5,
     fontWeight: '600',
-    color: COLORS.visited,
+    color: COLORS.inkMuted,
+    flexShrink: 1,
+  },
+  dot: {
+    fontSize: 11,
+    color: COLORS.borderStrong,
+  },
+  walkText: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: COLORS.ink,
     fontVariant: ['tabular-nums'],
   },
   title: {
     fontFamily: SERIF_FONT,
-    fontSize: 15.5,
+    fontSize: 17.5,
     fontWeight: '700',
-    lineHeight: 21,
+    lineHeight: 23,
     color: COLORS.ink,
-    marginTop: 4,
-  },
-  metricsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: 6,
-    marginTop: 6,
-  },
-  metricItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-  },
-  metricHighlight: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: COLORS.ink,
-    fontVariant: ['tabular-nums'],
-  },
-  metricText: {
-    fontSize: 12,
-    color: COLORS.inkSecondary,
-    fontVariant: ['tabular-nums'],
-  },
-  ratingText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: COLORS.amber,
-    fontVariant: ['tabular-nums'],
-  },
-  dot: {
-    fontSize: 12,
-    color: COLORS.inkMuted,
   },
   summary: {
-    fontSize: 12.5,
-    lineHeight: 18,
+    fontSize: 13,
+    lineHeight: 18.5,
     color: COLORS.inkSecondary,
-    marginTop: SPACING.sm + 2,
   },
-  foodBanner: {
-    marginTop: SPACING.sm + 2,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: SPACING.sm,
-    backgroundColor: COLORS.bg,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: RADII.md,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-  },
-  foodLeft: {
+  practicalRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    flex: 1,
-    minWidth: 0,
+    marginTop: 2,
   },
-  foodLabel: {
+  practicalItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    flexShrink: 1,
+  },
+  practicalText: {
+    fontSize: 11.5,
+    fontWeight: '500',
+    color: COLORS.inkMuted,
+    flexShrink: 1,
+  },
+  foodStrip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginHorizontal: 14,
+    marginBottom: 11,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 10,
+    backgroundColor: COLORS.bg,
+    borderWidth: 1,
+    borderColor: COLORS.surfaceMuted,
+  },
+  foodStripText: {
+    flex: 1,
     fontSize: 11.5,
     color: COLORS.inkSecondary,
-    flex: 1,
   },
-  foodName: {
-    fontWeight: '600',
+  foodStripName: {
+    fontWeight: '700',
     color: COLORS.ink,
   },
-  foodRatingWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-    backgroundColor: COLORS.amberBg,
-    borderWidth: 1,
-    borderColor: COLORS.amberBorder,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: RADII.sm,
-  },
-  foodRating: {
+  foodStripCta: {
     fontSize: 11,
     fontWeight: '700',
-    color: COLORS.amber,
-    fontVariant: ['tabular-nums'],
+    color: COLORS.accent,
   },
-  actionsRow: {
-    marginTop: SPACING.md,
+  actionRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 7,
+    gap: 8,
+    paddingHorizontal: 14,
+    paddingBottom: 13,
   },
   primaryBtn: {
     flex: 1,
@@ -450,53 +413,47 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 6,
     backgroundColor: COLORS.ink,
-    paddingVertical: 9,
-    paddingHorizontal: 10,
-    borderRadius: RADII.md,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: RADII.pill,
   },
   primaryBtnText: {
     color: COLORS.white,
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: 12.5,
+    fontWeight: '700',
   },
   secondaryBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 5,
-    backgroundColor: COLORS.surface,
+    backgroundColor: COLORS.accentSoft,
     borderWidth: 1,
-    borderColor: COLORS.border,
-    paddingVertical: 9,
-    paddingHorizontal: 11,
-    borderRadius: RADII.md,
+    borderColor: COLORS.accentBorder,
+    paddingHorizontal: 12,
+    paddingVertical: 9.5,
+    borderRadius: RADII.pill,
   },
   secondaryBtnActive: {
+    backgroundColor: COLORS.accent,
     borderColor: COLORS.accent,
-    backgroundColor: COLORS.accentSoft,
   },
   secondaryBtnText: {
-    color: COLORS.ink,
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '700',
+    color: COLORS.accent,
   },
-  cameraBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
-    backgroundColor: COLORS.surface,
+  secondaryBtnTextActive: {
+    color: COLORS.white,
+  },
+  iconOnlyBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: RADII.pill,
+    backgroundColor: COLORS.surfaceMuted,
     borderWidth: 1,
     borderColor: COLORS.border,
-    paddingVertical: 9,
-    paddingHorizontal: 10,
-    borderRadius: RADII.md,
-  },
-  cameraBtnText: {
-    color: COLORS.inkSecondary,
-    fontSize: 12,
-    fontWeight: '600',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
-
-export default SiteCard;

@@ -34,6 +34,10 @@ smart-heritage-guide-backend/
 │   ├── schemas/dto.py               # Pydantic v2 Request/Response DTOs
 │   ├── routers/                     # health, auth, sites, admin, ai, routing, journeys, leaderboard
 │   └── services/                    # geo, storage, recommendation, rag, vision, antifake, routing, badge
+├── prisma/
+│   ├── schema.prisma                # Prisma ORM Schema (9 bảng PostgreSQL, dùng chung backend/.env)
+│   ├── client.ts                    # PrismaClient singleton helper
+│   └── seed.ts                      # Seed idempotent 20 di tích, quán ăn, RAG chunks & 6 huy hiệu
 ├── supabase/migrations/
 │   └── 001_initial_schema.sql       # PostGIS, pgvector, 9 bảng, GIST/HNSW/GIN, bucket heritage-photos & RLS
 ├── scripts/

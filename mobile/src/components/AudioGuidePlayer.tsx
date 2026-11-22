@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   ScrollView,
   StyleSheet,
   Text,
@@ -11,6 +12,7 @@ import {
   Play,
   SkipBack,
   SkipForward,
+  Sparkles,
   Square,
   Volume2,
 } from 'lucide-react-native';
@@ -21,8 +23,11 @@ import {
 } from '../types/heritage';
 import {
   SPEECH_RATES,
+  SpeechEngineMode,
   SpeechPlayState,
   SpeechRate,
+  SpeechVoiceGender,
+  VOICE_GENDER_OPTIONS,
   speechService,
 } from '../services/speechService';
 import { COLORS, RADII, SPACING } from '../theme';
@@ -45,6 +50,19 @@ export const AudioGuidePlayer: React.FC<AudioGuidePlayerProps> = ({
   const [playState, setPlayState] = useState<SpeechPlayState>('idle');
   const [activeSegment, setActiveSegment] = useState<number>(0);
   const [speechRate, setSpeechRate] = useState<SpeechRate>(1.0);
+  const [voiceGender, setVoiceGender] = useState<SpeechVoiceGender>(() =>
+    speechService.getVoiceGender()
+  );
+  const [engineMode, setEngineMode] = useState<SpeechEngineMode>(() =>
+    speechService.getActiveEngine()
+  );
+  const [activeVoiceLabel, setActiveVoiceLabel] = useState<string>('');
+  const [isBufferingAudio, setIsBufferingAudio] = useState<boolean>(false);
+  const [segmentProgress, setSegmentProgress] = useState<number>(0);
+  const [segmentTiming, setSegmentTiming] = useState<{
+    current: number;
+    duration: number;
+  }>({ current: 0, duration: 0 });
   const [speechError, setSpeechError] = useState<string | null>(null);
 
   const mountedRef = useRef(true);
@@ -55,7 +73,8 @@ export const AudioGuidePlayer: React.FC<AudioGuidePlayerProps> = ({
     (
       index: number,
       lang: SupportedLanguage = selectedLanguage,
-      rate: SpeechRate = speechRate
+      rate: SpeechRate = speechRate,
+      gender: SpeechVoiceGender = voiceGender
     ) => {
       setSpeechError(null);
       const script = (site.translations[lang] || site.translations.vi)
@@ -64,28 +83,61 @@ export const AudioGuidePlayer: React.FC<AudioGuidePlayerProps> = ({
 
       const clampedIndex = Math.max(0, Math.min(index, script.length - 1));
       setActiveSegment(clampedIndex);
+      setSegmentProgress(0);
+      setSegmentTiming({ current: 0, duration: 0 });
 
-      speechService.speakScript(script, lang, rate, clampedIndex, {
-        onSegmentChange: (idx) => {
-          if (mountedRef.current) setActiveSegment(idx);
+      speechService.speakScript(
+        script,
+        lang,
+        rate,
+        clampedIndex,
+        {
+          onSegmentChange: (idx) => {
+            if (mountedRef.current) {
+              setActiveSegment(idx);
+              setSegmentProgress(0);
+              setSegmentTiming({ current: 0, duration: 0 });
+            }
+          },
+          onStateChange: (st) => {
+            if (mountedRef.current) setPlayState(st);
+          },
+          onEngineChange: (engine, label) => {
+            if (mountedRef.current) {
+              setEngineMode(engine);
+              setActiveVoiceLabel(label || '');
+            }
+          },
+          onLoadingChange: (loading) => {
+            if (mountedRef.current) setIsBufferingAudio(loading);
+          },
+          onProgress: (ratio, curSec, durSec) => {
+            if (mountedRef.current) {
+              setSegmentProgress(Math.max(0, Math.min(1, ratio)));
+              if (durSec > 0) {
+                setSegmentTiming({ current: curSec, duration: durSec });
+              }
+            }
+          },
+          onEnd: () => {
+            if (mountedRef.current) {
+              setPlayState('idle');
+              setActiveSegment(0);
+              setSegmentProgress(0);
+              setSegmentTiming({ current: 0, duration: 0 });
+              setIsBufferingAudio(false);
+            }
+          },
+          onError: (msg) => {
+            if (mountedRef.current) {
+              setSpeechError(msg);
+            }
+          },
         },
-        onStateChange: (st) => {
-          if (mountedRef.current) setPlayState(st);
-        },
-        onEnd: () => {
-          if (mountedRef.current) {
-            setPlayState('idle');
-            setActiveSegment(0);
-          }
-        },
-        onError: (msg) => {
-          if (mountedRef.current) {
-            setSpeechError(msg);
-          }
-        },
-      });
+        gender
+      );
     },
-    [site, selectedLanguage, speechRate]
+    [site, selectedLanguage, speechRate, voiceGender]
   );
 
   useEffect(() => {
@@ -93,6 +145,8 @@ export const AudioGuidePlayer: React.FC<AudioGuidePlayerProps> = ({
     speechService.stop();
     setPlayState('idle');
     setActiveSegment(0);
+    setSegmentProgress(0);
+    setSegmentTiming({ current: 0, duration: 0 });
     setSpeechError(null);
 
     if (autoPlayOnOpen) {
@@ -130,6 +184,8 @@ export const AudioGuidePlayer: React.FC<AudioGuidePlayerProps> = ({
     speechService.stop();
     setPlayState('idle');
     setActiveSegment(0);
+    setSegmentProgress(0);
+    setSegmentTiming({ current: 0, duration: 0 });
     setSpeechError(null);
   };
 
@@ -149,9 +205,14 @@ export const AudioGuidePlayer: React.FC<AudioGuidePlayerProps> = ({
 
   const handleRateChange = (nextRate: SpeechRate) => {
     setSpeechRate(nextRate);
-    if (playState === 'playing') {
+    if (playState === 'playing' || playState === 'paused') {
       speechService.setRate(nextRate);
     }
+  };
+
+  const handleVoiceGenderChange = (nextGender: SpeechVoiceGender) => {
+    setVoiceGender(nextGender);
+    speechService.setVoiceGender(nextGender);
   };
 
   const handleStepSegment = (delta: number) => {
@@ -160,6 +221,8 @@ export const AudioGuidePlayer: React.FC<AudioGuidePlayerProps> = ({
       Math.min(segments.length - 1, safeActiveSegment + delta)
     );
     setActiveSegment(nextIdx);
+    setSegmentProgress(0);
+    setSegmentTiming({ current: 0, duration: 0 });
     if (playState === 'playing') {
       speechService.jumpToSegment(nextIdx, true);
     } else if (playState === 'paused') {
@@ -167,13 +230,26 @@ export const AudioGuidePlayer: React.FC<AudioGuidePlayerProps> = ({
     }
   };
 
-  const progressPercent =
-    segments.length > 0
-      ? Math.min(
-          100,
-          Math.round(((safeActiveSegment + 1) / segments.length) * 100)
-        )
-      : 0;
+  const formatAudioTime = (seconds: number): string => {
+    const safe = Math.max(0, Math.floor(seconds));
+    const mins = Math.floor(safe / 60);
+    const secs = safe % 60;
+    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+  };
+
+  // Tiến độ thời gian thực mượt từ 0% → 100% theo tỷ trọng độ dài từng đoạn + tiến độ đang đọc
+  const progressPercent = (() => {
+    if (segments.length === 0) return 0;
+    if (playState === 'idle' && segmentProgress === 0) return 0;
+    const weights = segments.map((s) => Math.max(24, s.length));
+    const totalWeight = weights.reduce((acc, w) => acc + w, 0) || 1;
+    let completed = 0;
+    for (let i = 0; i < safeActiveSegment; i += 1) {
+      completed += weights[i];
+    }
+    completed += weights[safeActiveSegment] * segmentProgress;
+    return Math.max(0, Math.min(100, Math.round((completed / totalWeight) * 100)));
+  })();
 
   return (
     <View style={styles.container}>
@@ -193,7 +269,33 @@ export const AudioGuidePlayer: React.FC<AudioGuidePlayerProps> = ({
           </View>
           <View style={styles.titleTextWrap}>
             <View style={styles.titleTopLine}>
-              <Text style={styles.headerTitle}>Thuyết minh âm thanh</Text>
+              <View style={styles.titleLeftGroup}>
+                <Text style={styles.headerTitle}>Thuyết minh âm thanh</Text>
+                {playState !== 'idle' && (
+                  <View
+                    style={[
+                      styles.engineChip,
+                      engineMode === 'neural' && styles.engineChipNeural,
+                    ]}
+                  >
+                    {engineMode === 'neural' && (
+                      <Sparkles size={10} color={COLORS.accent} />
+                    )}
+                    <Text
+                      style={[
+                        styles.engineChipText,
+                        engineMode === 'neural' && styles.engineChipTextNeural,
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {activeVoiceLabel ||
+                        (engineMode === 'neural'
+                          ? 'AI Neural'
+                          : 'Giọng thiết bị')}
+                    </Text>
+                  </View>
+                )}
+              </View>
               <Text style={styles.segmentCounter}>
                 Đoạn {segments.length > 0 ? safeActiveSegment + 1 : 0}/
                 {segments.length}
@@ -232,7 +334,7 @@ export const AudioGuidePlayer: React.FC<AudioGuidePlayerProps> = ({
         })}
       </ScrollView>
 
-      {/* Progress Bar */}
+      {/* Progress Bar (Real-time smooth audio progress) */}
       <View style={styles.progressWrap}>
         <View style={styles.progressTrack}>
           <View
@@ -246,7 +348,13 @@ export const AudioGuidePlayer: React.FC<AudioGuidePlayerProps> = ({
             ]}
           />
         </View>
-        <Text style={styles.progressPct}>{progressPercent}%</Text>
+        <Text style={styles.progressPct}>
+          {segmentTiming.duration > 0 && playState !== 'idle'
+            ? `${formatAudioTime(segmentTiming.current)} / ${formatAudioTime(
+                segmentTiming.duration
+              )}`
+            : `${progressPercent}%`}
+        </Text>
       </View>
 
       {/* Transport Controls */}
@@ -259,7 +367,12 @@ export const AudioGuidePlayer: React.FC<AudioGuidePlayerProps> = ({
           ]}
           activeOpacity={0.8}
         >
-          {playState === 'playing' ? (
+          {isBufferingAudio ? (
+            <>
+              <ActivityIndicator size="small" color={COLORS.white} />
+              <Text style={styles.playPrimaryText}>Đang tạo giọng AI…</Text>
+            </>
+          ) : playState === 'playing' ? (
             <>
               <Pause size={15} color={COLORS.white} />
               <Text style={styles.playPrimaryText}>Tạm dừng</Text>
@@ -312,6 +425,33 @@ export const AudioGuidePlayer: React.FC<AudioGuidePlayerProps> = ({
               <Square size={14} color={COLORS.accent} fill={COLORS.accent} />
             </TouchableOpacity>
           )}
+        </View>
+      </View>
+
+      {/* Voice Persona Selector: Female (Hoài My) vs Male (Nam Minh) */}
+      <View style={styles.rateRow}>
+        <Text style={styles.rateLabel}>Giọng đọc:</Text>
+        <View style={styles.rateChips}>
+          {VOICE_GENDER_OPTIONS.map((opt) => {
+            const active = voiceGender === opt.id;
+            return (
+              <TouchableOpacity
+                key={opt.id}
+                onPress={() => handleVoiceGenderChange(opt.id)}
+                style={[styles.rateChip, active && styles.rateChipActive]}
+                activeOpacity={0.75}
+              >
+                <Text
+                  style={[
+                    styles.rateChipText,
+                    active && styles.rateChipTextActive,
+                  ]}
+                >
+                  {selectedLanguage === 'vi' ? opt.labelVi : opt.shortLabel}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
       </View>
 
@@ -439,6 +579,37 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: SPACING.sm,
   },
+  titleLeftGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flex: 1,
+    minWidth: 0,
+  },
+  engineChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: RADII.pill,
+    backgroundColor: COLORS.surfaceMuted,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    maxWidth: 112,
+  },
+  engineChipNeural: {
+    backgroundColor: COLORS.accentSoft,
+    borderColor: COLORS.accentBorder,
+  },
+  engineChipText: {
+    fontSize: 9.5,
+    fontWeight: '700',
+    color: COLORS.inkSecondary,
+  },
+  engineChipTextNeural: {
+    color: COLORS.accent,
+  },
   headerTitle: {
     fontSize: 13,
     fontWeight: '700',
@@ -500,10 +671,10 @@ const styles = StyleSheet.create({
     borderRadius: RADII.pill,
   },
   progressPct: {
-    fontSize: 10,
+    fontSize: 10.5,
     fontWeight: '700',
     color: COLORS.inkMuted,
-    width: 30,
+    minWidth: 34,
     textAlign: 'right',
     fontVariant: ['tabular-nums'],
   },

@@ -1,6 +1,7 @@
 import { HeritageCategory, SupportedLanguage } from '../types/heritage';
 import { ApiResult, apiRequest } from './apiClient';
 import { UserProfile } from './authService';
+import { WeatherContextPayload } from './weatherService';
 
 // ---------------------------------------------------------------------------
 // Smart AI Pillar 1: Explainable Recommendations & 2-Opt Walking Tour Planner
@@ -79,6 +80,7 @@ export interface TourPlanRequest {
   include_meal_stop?: boolean;
   language?: SupportedLanguage;
   max_stops?: number;
+  weather_context?: WeatherContextPayload;
 }
 
 export interface TourStopItem {

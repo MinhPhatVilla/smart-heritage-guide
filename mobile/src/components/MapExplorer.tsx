@@ -3,30 +3,43 @@ import {
   ActivityIndicator,
   Image,
   Linking,
+  Modal,
   Platform,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { WebView, type WebViewMessageEvent } from 'react-native-webview';
 import {
   ArrowUp,
+  Box,
   Check,
   ChevronDown,
   ChevronUp,
+  Compass,
   CornerUpLeft,
   CornerUpRight,
   ExternalLink,
   Flag,
   Footprints,
+  Globe,
+  KeyRound,
   Layers,
   LocateFixed,
+  MapPin,
   Maximize2,
+  Minus,
+  Moon,
   Navigation,
   Play,
+  Plus,
   Star,
+  Sun,
+  Sunset,
   Utensils,
   Volume2,
   X,
@@ -47,16 +60,31 @@ import {
 } from '../utils/geoUtils';
 import {
   BaseMapStyle,
+  MAPBOX_TOKEN_STORAGE_KEY,
   MapTileConfig,
-  buildGoogleMapsWalkingUrl,
+  MapboxLightPreset,
+  buildOsmWalkingUrl,
   getAvailableMapStyles,
   getDefaultMapStyle,
   getTileConfig,
+  isValidMapboxPublicToken,
+  resolveMapboxAccessToken,
 } from '../services/mapTiles';
+import {
+  HCMC_BOUNDARY_RINGS,
+  HCMC_FOCUS_BOUNDS,
+  HCMC_MAX_BOUNDS,
+  HCMC_MIN_ZOOM,
+  VIETNAM_BOUNDARY_RINGS,
+  VIETNAM_FOCUS_BOUNDS,
+  VIETNAM_MAX_BOUNDS,
+  VIETNAM_MIN_ZOOM,
+} from '../data/vietnamMapBounds';
 import { COLORS, RADII, SERIF_FONT, SHADOWS, SPACING } from '../theme';
 
 export interface MapExplorerProps {
   userLocation: [number, number];
+  userHeading?: number | null;
   sites: HeritageSite[];
   selectedSiteId?: string | null;
   visitedRecords: VisitedSiteRecord[];
@@ -66,6 +94,9 @@ export interface MapExplorerProps {
   activeWalkSeconds: number;
   isSimulatingWalk: boolean;
   searchRadiusMeters: number;
+  focusHcmcOnly?: boolean;
+  isVisible?: boolean;
+  onToggleFocusHcmcOnly?: (next: boolean) => void;
   onSelectSite: (site: HeritageSite) => void;
   onStartRouteToSite: (site: HeritageSite) => void;
   onStartRouteToRestaurant?: (
@@ -94,13 +125,21 @@ interface SerializedSiteMarker {
     lng: number;
     rating: number;
     name: string;
+    source?: 'curated' | 'overture';
   }>;
 }
 
 interface MapStatePayload {
   tileConfig: MapTileConfig;
+  is3D: boolean;
+  lightPreset: MapboxLightPreset;
+  selectedLanguage: SupportedLanguage;
   userLocation: [number, number];
+  userHeading: number | null;
+  followNav: boolean;
+  isSimulatingWalk: boolean;
   searchRadiusMeters: number;
+  focusHcmcOnly: boolean;
   sites: SerializedSiteMarker[];
   showRestaurants: boolean;
   route: {
@@ -114,10 +153,19 @@ interface MapStatePayload {
 type MapCommand =
   | { type: 'FIT_ALL' }
   | { type: 'CENTER_USER' }
-  | { type: 'FLY_TO'; lat: number; lng: number; zoom?: number };
+  | { type: 'RECENTER_NAV' }
+  | { type: 'ZOOM_IN' }
+  | { type: 'ZOOM_OUT' }
+  | { type: 'SET_3D'; enabled: boolean }
+  | { type: 'SET_LIGHT'; preset: MapboxLightPreset }
+  | { type: 'FIT_SCOPE'; focusHcmcOnly: boolean }
+  | { type: 'FLY_TO'; lat: number; lng: number; zoom?: number }
+  | { type: 'RESIZE' };
 
 type MapBridgeIncomingMessage =
-  | { source: 'shg-map'; mapId: string; type: 'MAP_READY' }
+  | { source: 'shg-map'; mapId: string; type: 'MAP_READY'; engine?: string }
+  | { source: 'shg-map'; mapId: string; type: 'MAPBOX_AUTH_ERROR'; message?: string }
+  | { source: 'shg-map'; mapId: string; type: 'NAV_FOLLOW_CHANGED'; following: boolean }
   | { source: 'shg-map'; mapId: string; type: 'SITE_CLICK'; siteId: string }
   | {
       source: 'shg-map';
@@ -126,40 +174,136 @@ type MapBridgeIncomingMessage =
       restaurantId: string;
       siteId: string;
     }
-  | { source: 'shg-map'; mapId: string; type: 'MAP_CLICK'; lat: number; lng: number }
+  | {
+      source: 'shg-map';
+      mapId: string;
+      type: 'MAP_CLICK';
+      lat: number;
+      lng: number;
+      placeName?: string;
+      placeCategory?: string;
+    }
   | { source: 'shg-map'; mapId: string; type: 'USER_DRAG'; lat: number; lng: number };
 
-function buildExplorerLeafletHtml(
+/**
+ * Trình dựng bản đồ hợp nhất:
+ * - Khi có Mapbox Public Token (`pk.`) => chạy **Mapbox GL JS v3.7.0** (Mapbox Standard 3D, ánh sáng Ngày/Hoàng hôn/Đêm, Streets v12, Satellite Streets v12, Outdoors v12).
+ * - Khi chưa có token => chạy **MapLibre GL JS + OpenStreetMap Vector 3D** (miễn phí, không cần key), kèm tự động dự phòng sang Leaflet OSM HOT nếu thiết bị thiếu WebGL.
+ */
+function buildExplorerMapHtml(
   mapId: string,
   initialCenter: [number, number],
-  initialTile: MapTileConfig
+  initialTile: MapTileConfig,
+  mapboxToken: string,
+  initialFocusHcmcOnly: boolean
 ): string {
+  const useMapboxEngine = Boolean(mapboxToken);
   const safeMapId = JSON.stringify(mapId);
   const safeCenter = JSON.stringify(initialCenter);
   const safeTile = JSON.stringify(initialTile);
+  const safeMapboxToken = JSON.stringify(mapboxToken);
+  const safeInitialFocusHcmc = JSON.stringify(initialFocusHcmcOnly);
+  const safeVietnamBounds = JSON.stringify(VIETNAM_MAX_BOUNDS);
+  const safeVietnamFocusBounds = JSON.stringify(VIETNAM_FOCUS_BOUNDS);
+  const safeVietnamMinZoom = JSON.stringify(VIETNAM_MIN_ZOOM);
+  const safeVietnamRings = JSON.stringify(VIETNAM_BOUNDARY_RINGS);
+  const safeHcmcBounds = JSON.stringify(HCMC_MAX_BOUNDS);
+  const safeHcmcFocusBounds = JSON.stringify(HCMC_FOCUS_BOUNDS);
+  const safeHcmcMinZoom = JSON.stringify(HCMC_MIN_ZOOM);
+  const safeHcmcRings = JSON.stringify(HCMC_BOUNDARY_RINGS);
+
+  const glCssUrl = useMapboxEngine
+    ? 'https://api.mapbox.com/mapbox-gl-js/v3.10.0/mapbox-gl.css'
+    : 'https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.css';
+  const glJsUrl = useMapboxEngine
+    ? 'https://api.mapbox.com/mapbox-gl-js/v3.10.0/mapbox-gl.js'
+    : 'https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.js';
 
   return `<!DOCTYPE html>
 <html lang="vi">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="${glCssUrl}" />
   <style>
-    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; font-family: "Times New Roman", Times, serif; }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     html, body, #map {
       margin: 0;
       padding: 0;
       width: 100%;
       height: 100%;
-      background: #EFEDE6;
+      background: #F4F2EC;
       overflow: hidden;
-      font-family: "Times New Roman", Times, serif;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
     }
-    .leaflet-container { background: #EFEDE6; font-family: "Times New Roman", Times, serif !important; }
-    .leaflet-control-attribution {
+    .mapboxgl-map, .maplibregl-map, .leaflet-container {
+      background: #F4F2EC;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+    }
+    .mapboxgl-ctrl-attrib, .maplibregl-ctrl-attrib {
       font-size: 9px !important;
-      background: rgba(255, 255, 255, 0.78) !important;
+      background: rgba(250, 249, 246, 0.78) !important;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      color: #8A877F !important;
+      border-radius: 10px 0 0 0;
+      padding: 1px 6px !important;
+    }
+    .mapboxgl-ctrl-scale, .maplibregl-ctrl-scale {
+      background: rgba(250, 249, 246, 0.86) !important;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border: 1.5px solid rgba(20, 20, 19, 0.38) !important;
+      border-top: none !important;
       color: #57554F !important;
+      font-size: 9.5px !important;
+      font-weight: 600 !important;
+      padding: 0 6px !important;
+      border-radius: 0 0 4px 4px;
+      box-shadow: 0 2px 6px rgba(20, 20, 19, 0.06);
+    }
+    .mapboxgl-ctrl-bottom-left, .maplibregl-ctrl-bottom-left {
+      left: 12px !important;
+      bottom: 12px !important;
+    }
+    @keyframes shgGpsPulse {
+      0% { transform: scale(0.8); opacity: 0.78; }
+      70% { transform: scale(2.35); opacity: 0; }
+      100% { transform: scale(2.35); opacity: 0; }
+    }
+    .shg-gps-ring {
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      border-radius: 9999px;
+      background: rgba(0, 122, 255, 0.34);
+      animation: shgGpsPulse 2s ease-out infinite;
+    }
+    .shg-pin-badge {
+      transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease;
+      transform-origin: bottom center;
+    }
+    .shg-pin-badge:hover {
+      transform: translateY(-2px) scale(1.06);
+    }
+    .shg-pin-badge:active {
+      transform: scale(0.94);
+    }
+    .shg-teardrop-shadow {
+      width: 14px;
+      height: 4px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.24);
+      filter: blur(1.5px);
+      margin-top: -1px;
+    }
+    .shg-dest-pulse {
+      position: absolute;
+      width: 26px;
+      height: 26px;
+      border-radius: 9999px;
+      background: rgba(185, 56, 21, 0.32);
+      animation: shgGpsPulse 1.8s ease-out infinite;
     }
     .custom-user-marker,
     .custom-heritage-marker,
@@ -168,35 +312,72 @@ function buildExplorerLeafletHtml(
       background: transparent !important;
       border: none !important;
     }
-    @keyframes shgGpsPulse {
-      0% { transform: scale(0.85); opacity: 0.75; }
-      70% { transform: scale(2.1); opacity: 0; }
-      100% { transform: scale(2.1); opacity: 0; }
-    }
-    .shg-gps-ring {
-      position: absolute;
-      width: 18px;
-      height: 18px;
-      border-radius: 9999px;
-      background: rgba(37, 99, 235, 0.35);
-      animation: shgGpsPulse 2s ease-out infinite;
-    }
-    .shg-pin-badge {
-      transition: transform 0.16s ease;
-    }
-    .shg-pin-badge:active {
-      transform: scale(0.95);
-    }
   </style>
 </head>
 <body>
   <div id="map"></div>
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="${glJsUrl}"></script>
   <script>
     (function() {
       var MAP_ID = ${safeMapId};
-      var INITIAL_CENTER = ${safeCenter};
+      var INITIAL_CENTER = ${safeCenter}; // [lat, lng]
       var INITIAL_TILE = ${safeTile};
+      var MAPBOX_TOKEN = ${safeMapboxToken};
+      var USE_MAPBOX = Boolean(MAPBOX_TOKEN);
+      var INITIAL_FOCUS_HCMC = ${safeInitialFocusHcmc};
+      var VIETNAM_MAX_BOUNDS = ${safeVietnamBounds};
+      var VIETNAM_FOCUS_BOUNDS = ${safeVietnamFocusBounds};
+      var VIETNAM_MIN_ZOOM = ${safeVietnamMinZoom};
+      var VIETNAM_BOUNDARY_RINGS = ${safeVietnamRings};
+      var HCMC_MAX_BOUNDS = ${safeHcmcBounds};
+      var HCMC_FOCUS_BOUNDS = ${safeHcmcFocusBounds};
+      var HCMC_MIN_ZOOM = ${safeHcmcMinZoom};
+      var HCMC_BOUNDARY_RINGS = ${safeHcmcRings};
+
+      function ringSignedArea(ring) {
+        var area = 0;
+        for (var i = 0; i < ring.length - 1; i++) {
+          area += ring[i][0] * ring[i + 1][1] - ring[i + 1][0] * ring[i][1];
+        }
+        return area / 2;
+      }
+
+      function normalizeRing(ring, wantClockwise) {
+        var copy = ring.slice();
+        var isCw = ringSignedArea(copy) < 0;
+        if (isCw !== wantClockwise) copy.reverse();
+        return copy;
+      }
+
+      function buildInverseMaskGeoJson(rings) {
+        // Outer world veil (CCW), inner spotlight cutouts (CW) — keeps active region crisp while softly misting outside
+        var outerWorld = [[82, -8], [136, -8], [136, 36], [82, 36], [82, -8]];
+        var holes = rings.map(function(r) { return normalizeRing(r, true); });
+        return {
+          type: 'FeatureCollection',
+          features: [{
+            type: 'Feature',
+            geometry: {
+              type: 'Polygon',
+              coordinates: [normalizeRing(outerWorld, false)].concat(holes)
+            },
+            properties: { role: 'spotlight-dim-mask' }
+          }]
+        };
+      }
+
+      function buildBorderGeoJson(rings) {
+        return {
+          type: 'FeatureCollection',
+          features: rings.map(function(ring) {
+            return {
+              type: 'Feature',
+              geometry: { type: 'LineString', coordinates: ring },
+              properties: { role: 'spotlight-border' }
+            };
+          })
+        };
+      }
 
       function postToHost(payload) {
         try {
@@ -218,281 +399,1719 @@ function buildExplorerLeafletHtml(
           .replace(/'/g, '&#39;');
       }
 
-      function bootLeaflet() {
-        if (typeof L === 'undefined') {
-          var fallbackScript = document.createElement('script');
-          fallbackScript.src = 'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js';
-          fallbackScript.onload = initMap;
-          document.head.appendChild(fallbackScript);
-          return;
-        }
-        initMap();
+      function expandSubdomainUrls(template, subdomains) {
+        if (!template) return [];
+        if (template.indexOf('{s}') === -1) return [template];
+        return (subdomains || 'abc').split('').map(function(s) {
+          return template.replace('{s}', s);
+        });
       }
 
-      function initMap() {
-        var map = L.map('map', {
-          center: INITIAL_CENTER,
-          zoom: 15,
-          zoomControl: false,
-          attributionControl: true
-        });
+      function createCircleGeoJson(centerLngLat, radiusMeters, steps) {
+        var count = steps || 64;
+        var coords = [];
+        var km = radiusMeters / 1000;
+        var distanceX = km / (111.320 * Math.cos((centerLngLat[1] * Math.PI) / 180));
+        var distanceY = km / 110.574;
+        for (var i = 0; i <= count; i++) {
+          var theta = (i / count) * (2 * Math.PI);
+          coords.push([
+            centerLngLat[0] + distanceX * Math.cos(theta),
+            centerLngLat[1] + distanceY * Math.sin(theta)
+          ]);
+        }
+        return {
+          type: 'FeatureCollection',
+          features: [{
+            type: 'Feature',
+            geometry: { type: 'Polygon', coordinates: [coords] },
+            properties: {}
+          }]
+        };
+      }
 
-        var currentTileId = null;
-        var tileLayer = null;
-        var radiusLayer = L.layerGroup().addTo(map);
-        var routeLayer = L.layerGroup().addTo(map);
-        var sitesLayer = L.layerGroup().addTo(map);
-        var userLayer = L.layerGroup().addTo(map);
+      function buildRasterStyleJson(tileCfg) {
+        var sources = {
+          'osm-raster': {
+            type: 'raster',
+            tiles: expandSubdomainUrls(tileCfg.url, tileCfg.subdomains),
+            tileSize: 256,
+            maxzoom: tileCfg.maxZoom || 19,
+            attribution: tileCfg.attribution || ''
+          }
+        };
+        var layers = [{
+          id: 'osm-raster-layer',
+          type: 'raster',
+          source: 'osm-raster',
+          minzoom: 0,
+          maxzoom: 22
+        }];
+        if (tileCfg.renderMode === 'hybrid' && tileCfg.overlayUrl) {
+          sources['hybrid-labels'] = {
+            type: 'raster',
+            tiles: expandSubdomainUrls(tileCfg.overlayUrl, 'abc'),
+            tileSize: 256,
+            maxzoom: 19
+          };
+          layers.push({
+            id: 'hybrid-labels-layer',
+            type: 'raster',
+            source: 'hybrid-labels',
+            minzoom: 0,
+            maxzoom: 22,
+            paint: { 'raster-opacity': 0.96 }
+          });
+        }
+        return {
+          version: 8,
+          glyphs: 'https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf',
+          sources: sources,
+          layers: layers
+        };
+      }
 
-        var userMarker = null;
-        var radiusCircle = null;
+      function resolveGlStyle(tileCfg) {
+        if (USE_MAPBOX && tileCfg.renderMode === 'mapbox' && tileCfg.mapboxStyleUrl) {
+          return tileCfg.mapboxStyleUrl;
+        }
+        if (tileCfg.renderMode === 'vector' && tileCfg.vectorStyleUrl) {
+          return tileCfg.vectorStyleUrl;
+        }
+        return buildRasterStyleJson(tileCfg);
+      }
+
+      function createSiteMarkerElement(site, compactMode) {
+        var el = document.createElement('div');
+        el.style.cursor = 'pointer';
+        el.style.zIndex = site.isSelected ? '45' : '15';
+        var accent = site.isVisited ? '#047857' : '#B93815';
+        var badgeText = site.isVisited ? '✓' : String(site.index);
+
+        if (site.isSelected) {
+          var shortLabel = site.label.length > 20 ? site.label.slice(0, 18) + '…' : site.label;
+          el.style.willChange = 'transform';
+          el.innerHTML = '<div class="shg-pin-badge" style="display:inline-flex;flex-direction:column;align-items:center;user-select:none;">'
+            + '<div style="display:inline-flex;align-items:center;gap:7px;padding:4px 11px 4px 4px;border-radius:999px;background:rgba(250,249,246,0.98);border:1.5px solid ' + accent + ';box-shadow:0 8px 22px rgba(20,20,19,0.22);">'
+            + '<div style="width:26px;height:26px;border-radius:999px;overflow:hidden;flex-shrink:0;background:#F3F1EC;border:1px solid rgba(20,20,19,0.08);">'
+            + '<img src="' + escapeHtml(site.coverImage) + '" alt="" style="width:26px;height:26px;object-fit:cover;display:block;" />'
+            + '</div>'
+            + '<span style="font-size:12px;font-weight:700;color:#141413;letter-spacing:-0.01em;white-space:nowrap;">'
+            + escapeHtml(shortLabel)
+            + '</span>'
+            + '<span style="display:inline-flex;align-items:center;justify-content:center;min-width:19px;height:19px;padding:0 5px;border-radius:999px;background:' + accent + ';color:#FAF9F6;font-size:10px;font-weight:700;">'
+            + badgeText
+            + '</span>'
+            + '</div>'
+            + '<div style="width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:7px solid ' + accent + ';margin-top:-1px;"></div>'
+            + '<div class="shg-teardrop-shadow" style="width:18px;"></div>'
+            + '</div>';
+          return el;
+        }
+
+        if (compactMode) {
+          // Clean minimalist medallion for city/province overview — zero overlap clutter
+          el.innerHTML = '<div class="shg-pin-badge" style="display:inline-flex;flex-direction:column;align-items:center;user-select:none;">'
+            + '<div style="position:relative;width:30px;height:30px;border-radius:999px;background:#FAF9F6;padding:2px;box-shadow:0 4px 12px rgba(20,20,19,0.20),0 1px 2px rgba(20,20,19,0.10);border:1.5px solid ' + accent + ';">'
+            + '<div style="width:100%;height:100%;border-radius:999px;overflow:hidden;background:#F3F1EC;">'
+            + '<img src="' + escapeHtml(site.coverImage) + '" alt="" style="width:100%;height:100%;object-fit:cover;display:block;" />'
+            + '</div>'
+            + '<span style="position:absolute;bottom:-2px;right:-2px;width:9px;height:9px;border-radius:999px;background:' + accent + ';border:1.5px solid #FAF9F6;"></span>'
+            + '</div>'
+            + '</div>';
+          return el;
+        }
+
+        // Refined Editorial Teardrop Photo Pin — harmonized with #FAF9F6 & #B93815
+        el.innerHTML = '<div class="shg-pin-badge" style="display:inline-flex;flex-direction:column;align-items:center;user-select:none;">'
+          + '<div style="position:relative;width:34px;height:34px;border-radius:999px;background:#FAF9F6;padding:2.5px;box-shadow:0 6px 14px rgba(20,20,19,0.20),0 1px 3px rgba(20,20,19,0.10);border:1px solid rgba(20,20,19,0.08);">'
+          + '<div style="width:100%;height:100%;border-radius:999px;overflow:hidden;background:#F3F1EC;">'
+          + '<img src="' + escapeHtml(site.coverImage) + '" alt="" style="width:100%;height:100%;object-fit:cover;display:block;" />'
+          + '</div>'
+          + '<span style="position:absolute;bottom:-3px;right:-3px;display:inline-flex;align-items:center;justify-content:center;min-width:16px;height:16px;padding:0 3.5px;border-radius:999px;background:' + accent + ';color:#FAF9F6;border:1.5px solid #FAF9F6;font-size:8.5px;font-weight:700;line-height:1;box-shadow:0 2px 5px rgba(20,20,19,0.20);">'
+          + badgeText
+          + '</span>'
+          + '</div>'
+          + '<div style="width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:7px solid #FAF9F6;margin-top:-2px;filter:drop-shadow(0 2px 2px rgba(20,20,19,0.16));"></div>'
+          + '<div class="shg-teardrop-shadow"></div>'
+          + '</div>';
+        return el;
+      }
+
+      function createClusterMarkerElement(count, allVisited) {
+        var el = document.createElement('div');
+        el.style.cursor = 'pointer';
+        el.style.zIndex = '24';
+        var bg = allVisited ? '#047857' : '#B93815';
+        var size = count >= 15 ? 40 : (count >= 6 ? 36 : 32);
+        el.innerHTML = '<div class="shg-pin-badge" style="display:inline-flex;align-items:center;justify-content:center;width:' + size + 'px;height:' + size + 'px;border-radius:999px;background:' + bg + ';color:#FAF9F6;border:2.5px solid #FAF9F6;box-shadow:0 6px 16px rgba(20,20,19,0.22),0 0 0 4px rgba(185,56,21,0.14);font-size:12px;font-weight:800;letter-spacing:-0.02em;user-select:none;">'
+          + String(count)
+          + '</div>';
+        return el;
+      }
+
+      function createRestaurantMarkerElement(res, asDot) {
+        var el = document.createElement('div');
+        el.style.cursor = 'pointer';
+        el.style.zIndex = '9';
+        var isOverture = res.source === 'overture';
+        var starColor = isOverture ? '#B45309' : '#B93815';
+        if (asDot) {
+          el.innerHTML = '<div class="shg-pin-badge" style="width:11px;height:11px;border-radius:999px;background:' + starColor + ';border:2px solid #FAF9F6;box-shadow:0 2px 6px rgba(20,20,19,0.22);"></div>';
+          return el;
+        }
+        // Unified Warm-Ivory Glass Pill for eateries (matches #FAF9F6 & #141413)
+        el.innerHTML = '<div class="shg-pin-badge" style="display:inline-flex;align-items:center;gap:3px;padding:2.5px 7px;border-radius:999px;background:rgba(250,249,246,0.94);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);color:#141413;border:1px solid rgba(20,20,19,0.10);box-shadow:0 3px 9px rgba(20,20,19,0.13),0 1px 2px rgba(20,20,19,0.06);font-size:9.5px;font-weight:700;letter-spacing:-0.01em;white-space:nowrap;">'
+          + '<span style="color:' + starColor + ';font-size:9px;line-height:1;">★</span>'
+          + '<span>' + Number(res.rating).toFixed(1) + '</span>'
+          + '</div>';
+        return el;
+      }
+
+      function createUserMarkerElement() {
+        var el = document.createElement('div');
+        el.style.position = 'relative';
+        el.style.display = 'flex';
+        el.style.alignItems = 'center';
+        el.style.justifyContent = 'center';
+        el.style.width = '56px';
+        el.style.height = '56px';
+        el.style.cursor = 'grab';
+        el.innerHTML = '<span class="shg-heading-cone" style="position:absolute;top:-2px;left:50%;width:40px;height:36px;margin-left:-20px;background:radial-gradient(ellipse at 50% 100%, rgba(26,115,232,0.52) 0%, rgba(26,115,232,0.16) 52%, rgba(26,115,232,0) 80%);clip-path:polygon(50% 96%, 6% 4%, 94% 4%);opacity:0;transition:opacity 0.25s ease;pointer-events:none;"></span>'
+          + '<span class="shg-gps-ring"></span>'
+          + '<span class="shg-gps-core" style="position:relative;display:flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:9999px;background:#1A73E8;border:3px solid #FFFFFF;box-shadow:0 3px 12px rgba(26,115,232,0.6);">'
+          + '<svg class="shg-nav-arrow" viewBox="0 0 24 24" width="11" height="11" style="opacity:0;transition:opacity 0.2s ease;"><path d="M12 2L19 20L12 16.5L5 20L12 2Z" fill="#FFFFFF"/></svg>'
+          + '</span>';
+        return el;
+      }
+
+      function createDestMarkerElement() {
+        var el = document.createElement('div');
+        el.style.position = 'relative';
+        el.style.display = 'flex';
+        el.style.alignItems = 'center';
+        el.style.justifyContent = 'center';
+        el.style.width = '28px';
+        el.style.height = '28px';
+        el.innerHTML = '<span class="shg-dest-pulse"></span>'
+          + '<span style="position:relative;width:16px;height:16px;border-radius:9999px;background:#B93815;border:3px solid #FFFFFF;box-shadow:0 3px 10px rgba(185,56,21,0.55);"></span>';
+        return el;
+      }
+
+      function recolorAllRoadsAndBridges(map) {
+        var style = map.getStyle();
+        if (!style || !Array.isArray(style.layers)) return;
+        for (var i = 0; i < style.layers.length; i++) {
+          var lyr = style.layers[i];
+          var id = lyr.id || '';
+          if (!id || id.indexOf('shg-') === 0) continue;
+          var lower = id.toLowerCase();
+          if (
+            lower.indexOf('rail') !== -1 ||
+            lower.indexOf('ferry') !== -1 ||
+            lower.indexOf('aerial') !== -1 ||
+            lower.indexOf('water') !== -1 ||
+            lower.indexOf('boundary') !== -1 ||
+            lower.indexOf('contour') !== -1
+          ) {
+            continue;
+          }
+          if (lyr.type === 'fill' && lower.indexOf('bridge') !== -1) {
+            try { map.setPaintProperty(id, 'fill-color', '#E7E2D8'); } catch (e) {}
+            continue;
+          }
+          if (lyr.type !== 'line') continue;
+          var isTransport =
+            lower.indexOf('road') !== -1 ||
+            lower.indexOf('bridge') !== -1 ||
+            lower.indexOf('tunnel') !== -1 ||
+            lower.indexOf('highway') !== -1 ||
+            lower.indexOf('motorway') !== -1 ||
+            lower.indexOf('trunk') !== -1 ||
+            lower.indexOf('primary') !== -1 ||
+            lower.indexOf('secondary') !== -1 ||
+            lower.indexOf('tertiary') !== -1 ||
+            lower.indexOf('street') !== -1;
+          if (!isTransport) continue;
+
+          var isCasing =
+            lower.indexOf('case') !== -1 ||
+            lower.indexOf('casing') !== -1 ||
+            lower.indexOf('outline') !== -1;
+          var isMajor =
+            lower.indexOf('motorway') !== -1 ||
+            lower.indexOf('trunk') !== -1 ||
+            lower.indexOf('primary') !== -1 ||
+            lower.indexOf('expressway') !== -1;
+          var isPath =
+            lower.indexOf('path') !== -1 ||
+            lower.indexOf('pedestrian') !== -1 ||
+            lower.indexOf('footway') !== -1 ||
+            lower.indexOf('cycle') !== -1 ||
+            lower.indexOf('steps') !== -1;
+
+          try {
+            if (isCasing) {
+              map.setPaintProperty(id, 'line-color', isMajor ? '#D6D0C4' : '#E5E0D7');
+            } else if (isPath) {
+              map.setPaintProperty(id, 'line-color', '#EAE5DB');
+            } else if (isMajor) {
+              // Đồng màu kem đá trung tính cho cả đường lớn lẫn cầu vượt / cầu sông — không còn vệt vàng!
+              map.setPaintProperty(id, 'line-color', '#F1EEE7');
+            } else {
+              map.setPaintProperty(id, 'line-color', '#FFFFFF');
+            }
+          } catch (e) {}
+        }
+      }
+
+      function applyMapboxOrOsmEnhancements(map, tileCfg, is3D, lightPreset) {
+        // 1. Mapbox Standard 3D (v3): bảng màu Faded hiện đại + ép đường cao tốc/quốc lộ/cầu đồng màu trung tính (không bị vàng)
+        if (USE_MAPBOX && tileCfg.id === 'mapbox_standard') {
+          var isNight = lightPreset === 'night';
+          var isDusk = lightPreset === 'dusk';
+          var setBasemapCfg = function(prop, val) {
+            try { map.setConfigProperty('basemap', prop, val); } catch (e) {}
+          };
+          setBasemapCfg('theme', 'faded');
+          setBasemapCfg('lightPreset', lightPreset || 'day');
+          setBasemapCfg('colorMotorways', isNight ? '#333B4C' : (isDusk ? '#D8CEC0' : '#E8E3D9'));
+          setBasemapCfg('colorTrunks', isNight ? '#2B3242' : (isDusk ? '#E2D9CC' : '#EFECE4'));
+          setBasemapCfg('colorRoads', isNight ? '#222836' : (isDusk ? '#F2ECE2' : '#FFFFFF'));
+          setBasemapCfg('showPointOfInterestLabels', true);
+          setBasemapCfg('showRoadLabels', true);
+          setBasemapCfg('showTransitLabels', true);
+          setBasemapCfg('show3dObjects', is3D);
+          try {
+            if (typeof map.setFog === 'function') {
+              map.setFog(is3D ? {
+                color: isNight ? '#0E121B' : (isDusk ? '#ECE1D4' : '#F4F2EC'),
+                'high-color': isNight ? '#05070D' : (isDusk ? '#D8C3AD' : '#E3E9EE'),
+                'space-color': isNight ? '#05070D' : '#DAE3EB',
+                'horizon-blend': 0.10,
+                range: [1.8, 12]
+              } : null);
+            }
+          } catch (e) {}
+          return;
+        }
+
+        // 2. Mapbox Streets / Outdoors / Satellite v12: đồng màu toàn bộ đường + cầu + khối kiến trúc 3D
+        if (USE_MAPBOX && tileCfg.renderMode === 'mapbox') {
+          if (tileCfg.id !== 'mapbox_satellite') {
+            recolorAllRoadsAndBridges(map);
+          }
+          try {
+            if (is3D && map.getSource('composite') && !map.getLayer('shg-mapbox-3d-buildings')) {
+              var layers = (map.getStyle() && map.getStyle().layers) || [];
+              var labelLayerId = undefined;
+              for (var i = 0; i < layers.length; i++) {
+                if (layers[i].type === 'symbol' && layers[i].layout && layers[i].layout['text-field']) {
+                  labelLayerId = layers[i].id;
+                  break;
+                }
+              }
+              map.addLayer({
+                id: 'shg-mapbox-3d-buildings',
+                source: 'composite',
+                'source-layer': 'building',
+                filter: ['==', 'extrude', 'true'],
+                type: 'fill-extrusion',
+                minzoom: 14.3,
+                paint: {
+                  'fill-extrusion-color': [
+                    'interpolate', ['linear'],
+                    ['coalesce', ['get', 'height'], 10],
+                    0, '#F5F2EC',
+                    25, '#EAE5DC',
+                    75, '#DDD7CC',
+                    160, '#CFC8BC'
+                  ],
+                  'fill-extrusion-height': ['get', 'height'],
+                  'fill-extrusion-base': ['get', 'min_height'],
+                  'fill-extrusion-opacity': 0.86,
+                  'fill-extrusion-vertical-gradient': true
+                }
+              }, labelLayerId);
+            } else if (map.getLayer('shg-mapbox-3d-buildings')) {
+              map.setLayoutProperty('shg-mapbox-3d-buildings', 'visibility', is3D ? 'visible' : 'none');
+            }
+          } catch (e) {}
+          return;
+        }
+
+        // 3. OpenStreetMap Vector 3D (OpenFreeMap) — Đồng màu 100% đất, nước, đường & MỌI CÂY CẦU (bridge_*)
+        if (tileCfg.renderMode !== 'vector') return;
+        var style = map.getStyle();
+        if (!style || !Array.isArray(style.layers)) return;
+
+        var setPaint = function(id, prop, val) {
+          try { if (map.getLayer(id)) map.setPaintProperty(id, prop, val); } catch (e) {}
+        };
+        var setLayout = function(id, prop, val) {
+          try { if (map.getLayer(id)) map.setLayoutProperty(id, prop, val); } catch (e) {}
+        };
+
+        if (tileCfg.googleLikePalette) {
+          setPaint('background', 'background-color', '#F6F4EF');
+          setPaint('water', 'fill-color', '#D2E2EE');
+          setPaint('waterway_river', 'line-color', '#C3D9E8');
+          setPaint('waterway_other', 'line-color', '#D2E2EE');
+          setPaint('park', 'fill-color', '#DCE7D4');
+          setPaint('park_outline', 'line-color', '#CEDCC4');
+          setPaint('landcover_wood', 'fill-color', '#D4E2CB');
+          setPaint('landcover_grass', 'fill-color', '#E2ECD9');
+          setPaint('landuse_residential', 'fill-color', '#F2EFE9');
+          setPaint('landuse_commercial_area', 'fill-color', '#F4EEE4');
+          setPaint('landuse_hospital', 'fill-color', '#F5EAE8');
+          setPaint('landuse_school', 'fill-color', '#F4EFE3');
+          setPaint('building', 'fill-color', '#EBE7DF');
+          setPaint('building', 'fill-outline-color', '#DED9CF');
+          // Tô đồng màu toàn bộ road_*, bridge_*, tunnel_*, highway_* (xóa triệt để màu vàng trên mọi cây cầu!)
+          recolorAllRoadsAndBridges(map);
+        }
+
+        if (map.getLayer('building-3d')) {
+          setLayout('building-3d', 'visibility', is3D ? 'visible' : 'none');
+          setPaint('building-3d', 'fill-extrusion-color', [
+            'interpolate', ['linear'],
+            ['coalesce', ['get', 'render_height'], 10],
+            0, '#F5F2EC',
+            18, '#EAE5DC',
+            50, '#DDD7CC',
+            130, '#CFC8BC'
+          ]);
+          setPaint('building-3d', 'fill-extrusion-opacity', 0.88);
+          setPaint('building-3d', 'fill-extrusion-vertical-gradient', true);
+        }
+      }
+
+      function initGlMap() {
+        var gl = USE_MAPBOX ? window.mapboxgl : window.maplibregl;
+        if (USE_MAPBOX) {
+          gl.accessToken = MAPBOX_TOKEN;
+        }
+
+        var currentTile = INITIAL_TILE;
+        var currentStyleId = INITIAL_TILE.id;
+        var is3DEnabled = true;
+        var currentLightPreset = 'day';
         var prevUserCenter = INITIAL_CENTER;
         var lastSitesSignature = '';
         var lastRouteKey = '';
         var lastKnownSites = [];
         var lastKnownUser = INITIAL_CENTER;
+        var lastRadiusMeters = 0;
+        var lastRouteData = null;
+        var styleReady = false;
 
-        function setTileConfig(cfg) {
-          if (!cfg || currentTileId === cfg.id) return;
-          currentTileId = cfg.id;
-          if (tileLayer) {
-            map.removeLayer(tileLayer);
+        var userMarker = null;
+        var userMarkerEl = null;
+        var destMarker = null;
+        var selectedSiteMarker = null;
+        var isFollowingNav = false;
+        var lastKnownHeading = null;
+        var wasInNavMode = false;
+        var isFocusHcmcOnly = Boolean(INITIAL_FOCUS_HCMC);
+        var loadedPhotoSprites = {};
+        var loadingPhotoSprites = {};
+        var spriteRefreshTimer = null;
+
+        var mapInitOpts = {
+          container: 'map',
+          style: resolveGlStyle(INITIAL_TILE),
+          center: [INITIAL_CENTER[1], INITIAL_CENTER[0]],
+          zoom: 15.6,
+          minZoom: isFocusHcmcOnly ? HCMC_MIN_ZOOM : VIETNAM_MIN_ZOOM,
+          maxBounds: isFocusHcmcOnly ? HCMC_MAX_BOUNDS : VIETNAM_MAX_BOUNDS,
+          renderWorldCopies: false,
+          pitch: 50,
+          bearing: -15,
+          maxPitch: 70,
+          antialias: true,
+          fadeDuration: 90,
+          maxTileCacheSize: 120,
+          attributionControl: true
+        };
+        if (USE_MAPBOX && INITIAL_TILE.id === 'mapbox_standard') {
+          mapInitOpts.config = {
+            basemap: {
+              theme: 'faded',
+              lightPreset: 'day',
+              colorMotorways: '#E8E3D9',
+              colorTrunks: '#EFECE4',
+              colorRoads: '#FFFFFF',
+              showPointOfInterestLabels: true,
+              showRoadLabels: true,
+              showTransitLabels: true,
+              show3dObjects: true
+            }
+          };
+        }
+        var map = new gl.Map(mapInitOpts);
+
+        // Tối ưu độ nhạy & độ mượt khi lăn chuột / phóng to thu nhỏ
+        try {
+          if (map.scrollZoom) {
+            if (typeof map.scrollZoom.setWheelZoomRate === 'function') {
+              map.scrollZoom.setWheelZoomRate(1 / 220);
+            }
+            if (typeof map.scrollZoom.setZoomRate === 'function') {
+              map.scrollZoom.setZoomRate(1 / 85);
+            }
           }
-          tileLayer = L.tileLayer(cfg.url, {
-            subdomains: cfg.subdomains || 'abc',
-            attribution: cfg.attribution || '',
-            maxZoom: cfg.maxZoom || 19
-          }).addTo(map);
+        } catch (e) {}
+
+        map.addControl(new gl.ScaleControl({ maxWidth: 90, unit: 'metric' }), 'bottom-left');
+
+        // =========================================================================
+        // 100% GPU WebGL HiDPI Canvas Sprites — zero DOM lag during 60-120fps zoom!
+        // =========================================================================
+        function drawPinCanvas(img, accent, badgeText) {
+          var w = 88;
+          var h = 98;
+          var canvas = document.createElement('canvas');
+          canvas.width = w;
+          canvas.height = h;
+          var ctx = canvas.getContext('2d');
+          var cx = w / 2;
+          var cy = 40;
+          var r = 32;
+
+          // Subtle ground ellipse shadow
+          ctx.save();
+          ctx.fillStyle = 'rgba(20, 20, 19, 0.22)';
+          ctx.beginPath();
+          ctx.ellipse(cx, h - 6, 13, 3.5, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+
+          // Teardrop pointer tip
+          ctx.save();
+          ctx.shadowColor = 'rgba(20, 20, 19, 0.22)';
+          ctx.shadowBlur = 10;
+          ctx.shadowOffsetY = 4;
+          ctx.fillStyle = '#FAF9F6';
+          ctx.beginPath();
+          ctx.moveTo(cx - 10, cy + r - 5);
+          ctx.lineTo(cx, h - 8);
+          ctx.lineTo(cx + 10, cy + r - 5);
+          ctx.closePath();
+          ctx.fill();
+
+          // Outer warm-ivory medallion frame
+          ctx.beginPath();
+          ctx.arc(cx, cy, r, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+
+          // Hairline rim
+          ctx.strokeStyle = 'rgba(20, 20, 19, 0.12)';
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.arc(cx, cy, r - 0.75, 0, Math.PI * 2);
+          ctx.stroke();
+
+          // Inner circular photo or warm fallback icon
+          var ir = r - 5;
+          ctx.save();
+          ctx.beginPath();
+          ctx.arc(cx, cy, ir, 0, Math.PI * 2);
+          ctx.clip();
+          if (img) {
+            var iw = img.naturalWidth || img.width || 1;
+            var ih = img.naturalHeight || img.height || 1;
+            var scale = Math.max((ir * 2) / iw, (ir * 2) / ih);
+            var dw = iw * scale;
+            var dh = ih * scale;
+            ctx.drawImage(img, cx - dw / 2, cy - dh / 2, dw, dh);
+          } else {
+            ctx.fillStyle = '#F3F1EC';
+            ctx.fillRect(cx - ir, cy - ir, ir * 2, ir * 2);
+            ctx.fillStyle = accent;
+            ctx.beginPath();
+            ctx.arc(cx, cy, 10, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          ctx.restore();
+
+          // Corner index / visited badge
+          if (badgeText) {
+            var bx = cx + 22;
+            var by = cy + 21;
+            ctx.fillStyle = accent;
+            ctx.beginPath();
+            ctx.arc(bx, by, 13, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#FAF9F6';
+            ctx.lineWidth = 2.6;
+            ctx.stroke();
+            ctx.fillStyle = '#FAF9F6';
+            ctx.font = '700 13px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(badgeText, bx, by + 0.5);
+          }
+          return ctx.getImageData(0, 0, w, h);
         }
 
-        setTileConfig(INITIAL_TILE);
+        function drawRestaurantPillCanvas(starColor) {
+          var w = 104;
+          var h = 44;
+          var canvas = document.createElement('canvas');
+          canvas.width = w;
+          canvas.height = h;
+          var ctx = canvas.getContext('2d');
+          var x = 8;
+          var y = 6;
+          var pw = w - 16;
+          var ph = h - 14;
+          var rad = ph / 2;
 
-        map.on('click', function(e) {
-          postToHost({ type: 'MAP_CLICK', lat: e.latlng.lat, lng: e.latlng.lng });
-        });
+          ctx.save();
+          ctx.shadowColor = 'rgba(20, 20, 19, 0.16)';
+          ctx.shadowBlur = 7;
+          ctx.shadowOffsetY = 2;
+          ctx.fillStyle = 'rgba(250, 249, 246, 0.96)';
+          ctx.beginPath();
+          ctx.moveTo(x + rad, y);
+          ctx.lineTo(x + pw - rad, y);
+          ctx.arcTo(x + pw, y, x + pw, y + rad, rad);
+          ctx.arcTo(x + pw, y + ph, x + pw - rad, y + ph, rad);
+          ctx.lineTo(x + rad, y + ph);
+          ctx.arcTo(x, y + ph, x, y + ph - rad, rad);
+          ctx.arcTo(x, y, x + rad, y, rad);
+          ctx.closePath();
+          ctx.fill();
+          ctx.restore();
 
-        function ensureUserMarker(coords) {
-          if (!userMarker) {
-            var userIcon = L.divIcon({
-              className: 'custom-user-marker',
-              html: '<div style="position:relative;display:flex;align-items:center;justify-content:center;width:28px;height:28px;">'
-                + '<span class="shg-gps-ring"></span>'
-                + '<span style="position:relative;width:16px;height:16px;border-radius:9999px;background:#2563EB;border:3px solid #FFFFFF;box-shadow:0 3px 10px rgba(37,99,235,0.48);"></span>'
-                + '</div>',
-              iconSize: [28, 28],
-              iconAnchor: [14, 14]
+          ctx.strokeStyle = 'rgba(20, 20, 19, 0.12)';
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+
+          // Tiny accent star dot on the left of the pill
+          ctx.fillStyle = starColor;
+          ctx.font = '700 15px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText('★', x + 17, y + ph / 2 + 0.5);
+          return ctx.getImageData(0, 0, w, h);
+        }
+
+        function ensureMarkerSprites() {
+          try {
+            if (!map.hasImage('shg-pin-default')) {
+              map.addImage('shg-pin-default', drawPinCanvas(null, '#B93815', ''), { pixelRatio: 2 });
+            }
+            if (!map.hasImage('shg-pin-visited')) {
+              map.addImage('shg-pin-visited', drawPinCanvas(null, '#047857', '✓'), { pixelRatio: 2 });
+            }
+            if (!map.hasImage('shg-res-pill-curated')) {
+              map.addImage('shg-res-pill-curated', drawRestaurantPillCanvas('#B93815'), { pixelRatio: 2 });
+            }
+            if (!map.hasImage('shg-res-pill-overture')) {
+              map.addImage('shg-res-pill-overture', drawRestaurantPillCanvas('#B45309'), { pixelRatio: 2 });
+            }
+          } catch (e) {}
+        }
+
+        var pinImageCache = {};
+        var photoLoadQueue = [];
+        var activePhotoLoads = 0;
+        var MAX_CONCURRENT_PHOTO_LOADS = 5;
+        var directWikimediaErrors = 0;
+
+        function scheduleSpriteSourceRefresh() {
+          if (spriteRefreshTimer) return;
+          spriteRefreshTimer = setTimeout(function() {
+            spriteRefreshTimer = null;
+            if (styleReady && lastKnownSites.length) {
+              syncGpuMarkers(lastKnownSites, lastShowRestaurants);
+            }
+          }, 90);
+        }
+
+        function buildPinPhotoCandidates(rawUrl) {
+          if (!rawUrl) return [];
+          var clean = String(rawUrl).split('?')[0];
+          if (clean.indexOf('https://thumb.wikimedia.org/') === 0) {
+            clean = 'https://upload.wikimedia.org/' + clean.slice('https://thumb.wikimedia.org/'.length);
+          }
+
+          var thumbUrl = '';
+          var thumbPrefix = 'https://upload.wikimedia.org/wikipedia/commons/thumb/';
+          var directPrefix = 'https://upload.wikimedia.org/wikipedia/commons/';
+          if (clean.indexOf(thumbPrefix) === 0) {
+            var lastSlash = clean.lastIndexOf('/');
+            var basePart = clean.slice(0, lastSlash + 1);
+            var leaf = clean.slice(lastSlash + 1);
+            var pxIdx = leaf.indexOf('px-');
+            if (pxIdx > 0 && pxIdx <= 5) {
+              thumbUrl = basePart + '250px-' + leaf.slice(pxIdx + 3);
+            }
+          } else if (clean.indexOf(directPrefix) === 0) {
+            var rel = clean.slice(directPrefix.length);
+            var segs = rel.split('/');
+            if (segs.length === 3 && segs[0].length === 1 && segs[1].length === 2) {
+              var fname = segs[2];
+              var ext = fname.toLowerCase();
+              var isStandardExt = ext.indexOf('.jpg') === ext.length - 4 || ext.indexOf('.jpeg') === ext.length - 5 || ext.indexOf('.png') === ext.length - 4;
+              var thumbName = isStandardExt ? ('250px-' + fname) : ('250px-' + fname + '.jpg');
+              thumbUrl = thumbPrefix + segs[0] + '/' + segs[1] + '/' + fname + '/' + thumbName;
+            }
+          }
+
+          var wsrvUrl = 'https://wsrv.nl/?url=' + encodeURIComponent(clean) + '&w=128&h=128&fit=cover&output=webp';
+          var list = [];
+          if (directWikimediaErrors >= 2) {
+            list.push({ url: wsrvUrl, isDirectWm: false });
+            if (thumbUrl && thumbUrl !== clean) list.push({ url: thumbUrl, isDirectWm: true });
+            list.push({ url: clean, isDirectWm: true });
+          } else {
+            if (thumbUrl && thumbUrl !== clean) list.push({ url: thumbUrl, isDirectWm: true });
+            list.push({ url: wsrvUrl, isDirectWm: false });
+            list.push({ url: clean, isDirectWm: true });
+          }
+          return list;
+        }
+
+        function registerSiteSpriteFromImg(site, spriteId, imgObj) {
+          var accent = site.isVisited ? '#047857' : '#B93815';
+          var badge = site.isVisited ? '✓' : String(site.index);
+          try {
+            if (styleReady && !map.hasImage(spriteId)) {
+              map.addImage(spriteId, drawPinCanvas(imgObj, accent, badge), { pixelRatio: 2 });
+            }
+            loadedPhotoSprites[spriteId] = true;
+            scheduleSpriteSourceRefresh();
+            return true;
+          } catch (err) {
+            return false;
+          }
+        }
+
+        function prioritizePhotoQueueByViewport() {
+          if (photoLoadQueue.length < 2 || !map || typeof map.getBounds !== 'function') return;
+          try {
+            var b = map.getBounds();
+            var c = map.getCenter();
+            photoLoadQueue.sort(function(a, bb) {
+              var sa = a.site;
+              var sb = bb.site;
+              var aIn = b.contains([sa.lng, sa.lat]) ? 0 : 1;
+              var bIn = b.contains([sb.lng, sb.lat]) ? 0 : 1;
+              if (aIn !== bIn) return aIn - bIn;
+              var da = Math.pow(sa.lat - c.lat, 2) + Math.pow(sa.lng - c.lng, 2);
+              var db = Math.pow(sb.lat - c.lat, 2) + Math.pow(sb.lng - c.lng, 2);
+              return da - db;
             });
-            userMarker = L.marker(coords, {
-              icon: userIcon,
+          } catch (e) {}
+        }
+
+        function pumpPhotoLoadQueue() {
+          if (!styleReady) return;
+          prioritizePhotoQueueByViewport();
+          while (activePhotoLoads < MAX_CONCURRENT_PHOTO_LOADS && photoLoadQueue.length > 0) {
+            var job = photoLoadQueue.shift();
+            if (!job) break;
+            if (map.hasImage(job.spriteId)) {
+              loadedPhotoSprites[job.spriteId] = true;
+              delete loadingPhotoSprites[job.spriteId];
+              continue;
+            }
+            activePhotoLoads++;
+            (function(task) {
+              var candidates = buildPinPhotoCandidates(task.site.coverImage);
+              var candIdx = 0;
+
+              function finishJob(imgObj) {
+                activePhotoLoads = Math.max(0, activePhotoLoads - 1);
+                delete loadingPhotoSprites[task.spriteId];
+                if (imgObj) {
+                  pinImageCache[task.site.coverImage] = imgObj;
+                  if (!registerSiteSpriteFromImg(task.site, task.spriteId, imgObj)) {
+                    registerSiteSpriteFromImg(task.site, task.spriteId, null);
+                  }
+                } else {
+                  registerSiteSpriteFromImg(task.site, task.spriteId, null);
+                }
+                setTimeout(pumpPhotoLoadQueue, 35);
+              }
+
+              function tryNextCandidate() {
+                if (candIdx >= candidates.length) {
+                  finishJob(null);
+                  return;
+                }
+                var cand = candidates[candIdx++];
+                var img = new Image();
+                img.crossOrigin = 'anonymous';
+                var settled = false;
+                var timeoutId = setTimeout(function() {
+                  if (settled) return;
+                  settled = true;
+                  if (cand.isDirectWm) directWikimediaErrors++;
+                  tryNextCandidate();
+                }, 7500);
+                img.onload = function() {
+                  if (settled) return;
+                  settled = true;
+                  clearTimeout(timeoutId);
+                  if (cand.isDirectWm) directWikimediaErrors = 0;
+                  finishJob(img);
+                };
+                img.onerror = function() {
+                  if (settled) return;
+                  settled = true;
+                  clearTimeout(timeoutId);
+                  if (cand.isDirectWm) directWikimediaErrors++;
+                  tryNextCandidate();
+                };
+                img.src = cand.url;
+              }
+
+              tryNextCandidate();
+            })(job);
+          }
+        }
+
+        function ensureSitePhotoSprite(site) {
+          var spriteId = 'shg-site-' + site.id + (site.isVisited ? '-v' : '-i' + site.index);
+          if (map.hasImage(spriteId)) {
+            loadedPhotoSprites[spriteId] = true;
+            return spriteId;
+          }
+          if (!site.coverImage) {
+            registerSiteSpriteFromImg(site, spriteId, null);
+            return map.hasImage(spriteId) ? spriteId : (site.isVisited ? 'shg-pin-visited' : 'shg-pin-default');
+          }
+          // Instant RAM redraw after style switches (0 network requests!)
+          if (pinImageCache[site.coverImage]) {
+            if (registerSiteSpriteFromImg(site, spriteId, pinImageCache[site.coverImage])) {
+              return spriteId;
+            }
+          }
+          if (!loadingPhotoSprites[spriteId]) {
+            loadingPhotoSprites[spriteId] = true;
+            photoLoadQueue.push({ site: site, spriteId: spriteId });
+            pumpPhotoLoadQueue();
+          }
+          return site.isVisited ? 'shg-pin-visited' : 'shg-pin-default';
+        }
+
+        function getSpotlightTheme() {
+          var isDark = currentTile.id === 'mapbox_satellite' || currentTile.id === 'satellite' || currentLightPreset === 'night';
+          var isDusk = !isDark && currentLightPreset === 'dusk';
+          if (isDark) {
+            return {
+              maskColor: '#0B0F17',
+              maskOpacity: 0.64,
+              featherColor: '#000000',
+              featherOpacity: 0.24,
+              casingColor: 'rgba(250, 249, 246, 0.30)',
+              lineColor: '#E07A5F',
+              lineOpacity: 0.88
+            };
+          }
+          if (isDusk) {
+            return {
+              maskColor: '#EBE3D7',
+              maskOpacity: 0.76,
+              featherColor: '#8C7A68',
+              featherOpacity: 0.16,
+              casingColor: '#FAF9F6',
+              lineColor: '#B93815',
+              lineOpacity: 0.84
+            };
+          }
+          // Warm Alabaster Frosted Veil — harmonized 1:1 with app parchment #FAF9F6 & terracotta #B93815
+          return {
+            maskColor: '#F4F2EC',
+            maskOpacity: 0.78,
+            featherColor: '#8A877F',
+            featherOpacity: 0.14,
+            casingColor: '#FAF9F6',
+            lineColor: '#B93815',
+            lineOpacity: 0.82
+          };
+        }
+
+        function ensureCustomOverlayLayers() {
+          var slotProps = (USE_MAPBOX && currentTile.id === 'mapbox_standard') ? { slot: 'middle' } : {};
+          var topSlotProps = (USE_MAPBOX && currentTile.id === 'mapbox_standard') ? { slot: 'top' } : {};
+          var theme = getSpotlightTheme();
+
+          // Lớp sương mờ tông kem ấm đồng bộ app (Frosted Alabaster Veil)
+          if (!map.getSource('shg-hcmc-mask')) {
+            map.addSource('shg-hcmc-mask', {
+              type: 'geojson',
+              data: { type: 'FeatureCollection', features: [] }
+            });
+            map.addLayer(Object.assign({
+              id: 'shg-hcmc-mask-fill',
+              type: 'fill',
+              source: 'shg-hcmc-mask',
+              paint: {
+                'fill-color': theme.maskColor,
+                'fill-opacity': theme.maskOpacity
+              }
+            }, topSlotProps));
+          }
+
+          if (!map.getSource('shg-hcmc-border')) {
+            map.addSource('shg-hcmc-border', {
+              type: 'geojson',
+              data: { type: 'FeatureCollection', features: [] }
+            });
+            // 1. Subtle architectural drop shadow along the border (clean, never muddy)
+            map.addLayer(Object.assign({
+              id: 'shg-hcmc-border-glow',
+              type: 'line',
+              source: 'shg-hcmc-border',
+              layout: { 'line-join': 'round', 'line-cap': 'round' },
+              paint: {
+                'line-color': theme.featherColor,
+                'line-width': 9,
+                'line-blur': 6,
+                'line-opacity': theme.featherOpacity
+              }
+            }, topSlotProps));
+            // 2. Crisp warm-ivory rim separating land/sea from border hairline
+            map.addLayer(Object.assign({
+              id: 'shg-hcmc-border-casing',
+              type: 'line',
+              source: 'shg-hcmc-border',
+              layout: { 'line-join': 'round', 'line-cap': 'round' },
+              paint: {
+                'line-color': theme.casingColor,
+                'line-width': 3.4,
+                'line-opacity': 0.92
+              }
+            }, topSlotProps));
+            // 3. Refined Heritage Terracotta border hairline
+            map.addLayer(Object.assign({
+              id: 'shg-hcmc-border-line',
+              type: 'line',
+              source: 'shg-hcmc-border',
+              layout: { 'line-join': 'round', 'line-cap': 'round' },
+              paint: {
+                'line-color': theme.lineColor,
+                'line-width': 1.6,
+                'line-opacity': theme.lineOpacity
+              }
+            }, topSlotProps));
+          }
+
+          if (!map.getSource('shg-radius')) {
+            map.addSource('shg-radius', {
+              type: 'geojson',
+              data: { type: 'FeatureCollection', features: [] }
+            });
+            map.addLayer(Object.assign({
+              id: 'shg-radius-fill',
+              type: 'fill',
+              source: 'shg-radius',
+              paint: {
+                'fill-color': '#B93815',
+                'fill-opacity': 0.045
+              }
+            }, slotProps));
+            map.addLayer(Object.assign({
+              id: 'shg-radius-line',
+              type: 'line',
+              source: 'shg-radius',
+              paint: {
+                'line-color': '#B93815',
+                'line-width': 1.25,
+                'line-dasharray': [4, 4],
+                'line-opacity': 0.48
+              }
+            }, slotProps));
+          }
+
+          if (!map.getSource('shg-route')) {
+            map.addSource('shg-route', {
+              type: 'geojson',
+              data: { type: 'FeatureCollection', features: [] }
+            });
+            map.addLayer(Object.assign({
+              id: 'shg-route-casing',
+              type: 'line',
+              source: 'shg-route',
+              layout: { 'line-join': 'round', 'line-cap': 'round' },
+              paint: {
+                'line-color': '#FAF9F6',
+                'line-width': 9,
+                'line-opacity': 0.96
+              }
+            }, slotProps));
+            map.addLayer(Object.assign({
+              id: 'shg-route-core',
+              type: 'line',
+              source: 'shg-route',
+              layout: { 'line-join': 'round', 'line-cap': 'round' },
+              paint: {
+                'line-color': '#B93815',
+                'line-width': 5,
+                'line-opacity': 0.96
+              }
+            }, slotProps));
+            map.addLayer(Object.assign({
+              id: 'shg-route-dashes',
+              type: 'line',
+              source: 'shg-route',
+              layout: { 'line-join': 'round', 'line-cap': 'round' },
+              paint: {
+                'line-color': '#FDE8DF',
+                'line-width': 2,
+                'line-dasharray': [0.5, 2.8],
+                'line-opacity': 0.95
+              }
+            }, slotProps));
+          }
+
+          // =========================================================================
+          // GPU-Accelerated Native WebGL Layers for Restaurants (250+) & Heritage Sites
+          // =========================================================================
+          ensureMarkerSprites();
+          var gpuTextFontProps = (USE_MAPBOX && currentTile.renderMode === 'mapbox')
+            ? (currentTile.id === 'mapbox_standard' ? {} : { 'text-font': ['DIN Pro Bold', 'Arial Unicode MS Bold'] })
+            : { 'text-font': ['Noto Sans Bold'] };
+
+          if (!map.getSource('shg-restaurants-src')) {
+            map.addSource('shg-restaurants-src', {
+              type: 'geojson',
+              data: { type: 'FeatureCollection', features: [] }
+            });
+            // District zoom (12.8 - 14.8): ultra-fast GPU dots smoothly fading & scaling in real time during zoom
+            map.addLayer(Object.assign({
+              id: 'shg-res-dots',
+              type: 'circle',
+              source: 'shg-restaurants-src',
+              minzoom: 12.8,
+              maxzoom: 14.9,
+              filter: ['!=', ['get', 'isSelectedSite'], 1],
+              paint: {
+                'circle-radius': ['interpolate', ['linear'], ['zoom'], 12.8, 3.2, 14.5, 5.2],
+                'circle-color': ['case', ['==', ['get', 'isOverture'], 1], '#B45309', '#B93815'],
+                'circle-stroke-width': 1.8,
+                'circle-stroke-color': '#FAF9F6',
+                'circle-opacity': ['interpolate', ['linear'], ['zoom'], 12.8, 0, 13.3, 0.92, 14.5, 0.92, 14.9, 0],
+                'circle-stroke-opacity': ['interpolate', ['linear'], ['zoom'], 12.8, 0, 13.3, 0.95, 14.5, 0.95, 14.9, 0]
+              }
+            }, topSlotProps));
+            // Street zoom (>= 14.5): crisp GPU Warm-Ivory Rating Pills with automatic WebGL collision detection!
+            map.addLayer(Object.assign({
+              id: 'shg-res-pills',
+              type: 'symbol',
+              source: 'shg-restaurants-src',
+              minzoom: 14.5,
+              filter: ['!=', ['get', 'isSelectedSite'], 1],
+              layout: Object.assign({
+                'icon-image': ['case', ['==', ['get', 'isOverture'], 1], 'shg-res-pill-overture', 'shg-res-pill-curated'],
+                'icon-allow-overlap': false,
+                'icon-padding': 4,
+                'text-field': ['get', 'ratingText'],
+                'text-size': 10,
+                'text-offset': [0.62, -0.05],
+                'text-anchor': 'center',
+                'text-allow-overlap': false,
+                'symbol-sort-key': ['*', -1, ['get', 'rating']]
+              }, gpuTextFontProps),
+              paint: {
+                'text-color': '#141413'
+              }
+            }, topSlotProps));
+            // Selected site's nearby restaurants ALWAYS appear immediately at any zoom
+            map.addLayer(Object.assign({
+              id: 'shg-res-selected-pills',
+              type: 'symbol',
+              source: 'shg-restaurants-src',
+              minzoom: 9,
+              filter: ['==', ['get', 'isSelectedSite'], 1],
+              layout: Object.assign({
+                'icon-image': ['case', ['==', ['get', 'isOverture'], 1], 'shg-res-pill-overture', 'shg-res-pill-curated'],
+                'icon-allow-overlap': false,
+                'icon-padding': 3,
+                'text-field': ['get', 'ratingText'],
+                'text-size': 10,
+                'text-offset': [0.62, -0.05],
+                'text-anchor': 'center',
+                'text-allow-overlap': false
+              }, gpuTextFontProps),
+              paint: {
+                'text-color': '#141413'
+              }
+            }, topSlotProps));
+          }
+
+          if (!map.getSource('shg-sites-src')) {
+            map.addSource('shg-sites-src', {
+              type: 'geojson',
+              data: { type: 'FeatureCollection', features: [] },
+              cluster: true,
+              clusterMaxZoom: 13,
+              clusterRadius: 42,
+              clusterProperties: {
+                visitedCount: ['+', ['get', 'isVisited']]
+              }
+            });
+            map.addLayer(Object.assign({
+              id: 'shg-sites-cluster-halo',
+              type: 'circle',
+              source: 'shg-sites-src',
+              filter: ['has', 'point_count'],
+              paint: {
+                'circle-color': ['case', ['==', ['get', 'visitedCount'], ['get', 'point_count']], 'rgba(4, 120, 87, 0.16)', 'rgba(185, 56, 21, 0.16)'],
+                'circle-radius': ['step', ['get', 'point_count'], 21, 8, 24, 18, 27]
+              }
+            }, topSlotProps));
+            map.addLayer(Object.assign({
+              id: 'shg-sites-cluster-circle',
+              type: 'circle',
+              source: 'shg-sites-src',
+              filter: ['has', 'point_count'],
+              paint: {
+                'circle-color': ['case', ['==', ['get', 'visitedCount'], ['get', 'point_count']], '#047857', '#B93815'],
+                'circle-radius': ['step', ['get', 'point_count'], 15, 8, 17.5, 18, 20],
+                'circle-stroke-width': 2.4,
+                'circle-stroke-color': '#FAF9F6'
+              }
+            }, topSlotProps));
+            map.addLayer(Object.assign({
+              id: 'shg-sites-cluster-count',
+              type: 'symbol',
+              source: 'shg-sites-src',
+              filter: ['has', 'point_count'],
+              layout: Object.assign({
+                'text-field': ['get', 'point_count_abbreviated'],
+                'text-size': 12,
+                'text-allow-overlap': true
+              }, gpuTextFontProps),
+              paint: {
+                'text-color': '#FAF9F6'
+              }
+            }, topSlotProps));
+            map.addLayer(Object.assign({
+              id: 'shg-sites-unclustered',
+              type: 'symbol',
+              source: 'shg-sites-src',
+              filter: ['!', ['has', 'point_count']],
+              layout: {
+                'icon-image': ['get', 'iconName'],
+                'icon-size': ['interpolate', ['linear'], ['zoom'], 8.5, 0.72, 13, 0.88, 15.5, 1.0],
+                'icon-anchor': 'bottom',
+                'icon-allow-overlap': true,
+                'icon-ignore-placement': true,
+                'symbol-sort-key': ['get', 'index']
+              }
+            }, topSlotProps));
+          }
+        }
+
+        function syncHcmcFocusLayer(enabled, shouldAdjustCamera) {
+          isFocusHcmcOnly = Boolean(enabled);
+          try {
+            map.setMaxBounds(isFocusHcmcOnly ? HCMC_MAX_BOUNDS : VIETNAM_MAX_BOUNDS);
+            map.setMinZoom(isFocusHcmcOnly ? HCMC_MIN_ZOOM : VIETNAM_MIN_ZOOM);
+          } catch (e) {}
+
+          if (styleReady && map.getSource('shg-hcmc-mask') && map.getSource('shg-hcmc-border')) {
+            var theme = getSpotlightTheme();
+            try {
+              if (map.getLayer('shg-hcmc-mask-fill')) {
+                map.setPaintProperty('shg-hcmc-mask-fill', 'fill-color', theme.maskColor);
+                map.setPaintProperty('shg-hcmc-mask-fill', 'fill-opacity', theme.maskOpacity);
+              }
+              if (map.getLayer('shg-hcmc-border-glow')) {
+                map.setPaintProperty('shg-hcmc-border-glow', 'line-color', theme.featherColor);
+                map.setPaintProperty('shg-hcmc-border-glow', 'line-opacity', theme.featherOpacity);
+              }
+              if (map.getLayer('shg-hcmc-border-casing')) {
+                map.setPaintProperty('shg-hcmc-border-casing', 'line-color', theme.casingColor);
+              }
+              if (map.getLayer('shg-hcmc-border-line')) {
+                map.setPaintProperty('shg-hcmc-border-line', 'line-color', theme.lineColor);
+                map.setPaintProperty('shg-hcmc-border-line', 'line-opacity', theme.lineOpacity);
+                map.setPaintProperty('shg-hcmc-border-line', 'line-width', isFocusHcmcOnly ? 1.8 : 1.4);
+              }
+            } catch (e) {}
+
+            // Chỉ TP.HCM: làm mờ các tỉnh xung quanh; Toàn Việt Nam: làm mờ các quốc gia ngoài lãnh thổ Việt Nam
+            var activeRings = isFocusHcmcOnly ? HCMC_BOUNDARY_RINGS : VIETNAM_BOUNDARY_RINGS;
+            map.getSource('shg-hcmc-mask').setData(buildInverseMaskGeoJson(activeRings));
+            map.getSource('shg-hcmc-border').setData(buildBorderGeoJson(activeRings));
+          }
+
+          if (shouldAdjustCamera && !isFollowingNav) {
+            try {
+              if (isFocusHcmcOnly) {
+                map.fitBounds(HCMC_FOCUS_BOUNDS, {
+                  padding: { top: 72, bottom: 108, left: 28, right: 56 },
+                  pitch: 0,
+                  bearing: 0,
+                  duration: 850
+                });
+              } else {
+                map.fitBounds(VIETNAM_FOCUS_BOUNDS, {
+                  padding: { top: 64, bottom: 90, left: 24, right: 48 },
+                  pitch: 0,
+                  bearing: 0,
+                  duration: 900
+                });
+              }
+            } catch (e) {}
+          }
+        }
+
+        function syncRadiusLayer(coords, radiusMeters) {
+          lastRadiusMeters = radiusMeters || 0;
+          if (!styleReady || !map.getSource('shg-radius')) return;
+          if (lastRadiusMeters > 0 && lastRadiusMeters <= 25000) {
+            map.getSource('shg-radius').setData(
+              createCircleGeoJson([coords[1], coords[0]], lastRadiusMeters, 64)
+            );
+          } else {
+            map.getSource('shg-radius').setData({ type: 'FeatureCollection', features: [] });
+          }
+        }
+
+        function syncRouteLayer(route, shouldFit) {
+          lastRouteData = route || null;
+          if (!styleReady || !map.getSource('shg-route')) return;
+
+          if (destMarker) {
+            destMarker.remove();
+            destMarker = null;
+          }
+
+          if (!route || !Array.isArray(route.coordinates) || route.coordinates.length < 2) {
+            map.getSource('shg-route').setData({ type: 'FeatureCollection', features: [] });
+            return;
+          }
+
+          var lngLatCoords = route.coordinates.map(function(pt) {
+            return [pt[1], pt[0]];
+          });
+
+          map.getSource('shg-route').setData({
+            type: 'FeatureCollection',
+            features: [{
+              type: 'Feature',
+              geometry: { type: 'LineString', coordinates: lngLatCoords },
+              properties: {}
+            }]
+          });
+
+          if (route.destination) {
+            destMarker = new gl.Marker({
+              element: createDestMarkerElement(),
+              anchor: 'center'
+            })
+              .setLngLat([route.destination[1], route.destination[0]])
+              .addTo(map);
+          }
+
+          if (shouldFit && !isFollowingNav) {
+            try {
+              var bounds = new gl.LngLatBounds(lngLatCoords[0], lngLatCoords[0]);
+              lngLatCoords.forEach(function(c) { bounds.extend(c); });
+              map.fitBounds(bounds, {
+                padding: { top: 76, bottom: 220, left: 44, right: 56 },
+                maxZoom: 16.5,
+                duration: 700
+              });
+            } catch (e) {}
+          }
+        }
+
+        function updateUserHeadingVisual(heading, isNavigating) {
+          if (!userMarker || !userMarkerEl) return;
+          var cone = userMarkerEl.querySelector('.shg-heading-cone');
+          var arrow = userMarkerEl.querySelector('.shg-nav-arrow');
+          var showDir = typeof heading === 'number' && !isNaN(heading);
+          if (cone) cone.style.opacity = showDir ? '1' : '0';
+          if (arrow) arrow.style.opacity = (showDir && isNavigating) ? '1' : '0';
+          if (showDir && typeof userMarker.setRotation === 'function') {
+            userMarker.setRotation(heading);
+          }
+        }
+
+        function engageNavCamera(coords, heading, durationMs, linear) {
+          var targetBearing = (typeof heading === 'number' && !isNaN(heading))
+            ? heading
+            : map.getBearing();
+          var opts = {
+            center: [coords[1], coords[0]],
+            zoom: 18.0,
+            pitch: is3DEnabled ? 62 : 0,
+            bearing: targetBearing,
+            padding: { top: 230, bottom: 185, left: 0, right: 0 },
+            duration: durationMs
+          };
+          if (linear) {
+            opts.easing = function(t) { return t; };
+          }
+          map.easeTo(opts);
+        }
+
+        function ensureUserMarker(coords, heading, isNavigating) {
+          if (!userMarker) {
+            userMarkerEl = createUserMarkerElement();
+            userMarker = new gl.Marker({
+              element: userMarkerEl,
               draggable: true,
-              zIndexOffset: 2000
-            }).addTo(userLayer);
+              anchor: 'center',
+              rotationAlignment: 'map',
+              pitchAlignment: 'map'
+            })
+              .setLngLat([coords[1], coords[0]])
+              .addTo(map);
 
             userMarker.on('dragend', function() {
-              var pos = userMarker.getLatLng();
-              postToHost({ type: 'USER_DRAG', lat: pos.lat, lng: pos.lng });
+              var ll = userMarker.getLngLat();
+              postToHost({ type: 'USER_DRAG', lat: ll.lat, lng: ll.lng });
             });
           } else {
-            userMarker.setLatLng(coords);
+            userMarker.setLngLat([coords[1], coords[0]]);
           }
+          updateUserHeadingVisual(heading, isNavigating);
         }
 
-        function updateRadius(coords, radiusMeters) {
-          if (radiusMeters > 0 && radiusMeters <= 25000) {
-            if (!radiusCircle) {
-              radiusCircle = L.circle(coords, {
-                radius: radiusMeters,
-                color: '#2563EB',
-                weight: 1.5,
-                dashArray: '6 6',
-                fillColor: '#2563EB',
-                fillOpacity: 0.05
-              }).addTo(radiusLayer);
-            } else {
-              radiusCircle.setLatLng(coords);
-              radiusCircle.setRadius(radiusMeters);
-            }
-          } else if (radiusCircle) {
-            radiusLayer.removeLayer(radiusCircle);
-            radiusCircle = null;
-          }
-        }
+        var lastShowRestaurants = true;
 
-        function renderSites(sites, showRestaurants) {
-          var sig = JSON.stringify({
-            showRestaurants: showRestaurants,
-            sites: sites.map(function(s) {
-              return [s.id, s.label, s.index, s.isVisited, s.isSelected];
-            })
-          });
-          if (sig === lastSitesSignature) return;
-          lastSitesSignature = sig;
+        function syncGpuMarkers(sites, showRestaurants) {
+          if (!styleReady) return;
+          ensureMarkerSprites();
 
-          sitesLayer.clearLayers();
+          var siteFeatures = [];
+          var resFeatures = [];
+          var selectedSiteObj = null;
 
           sites.forEach(function(site) {
-            var borderColor = site.isSelected
-              ? '#B93815'
-              : site.isVisited
-                ? '#047857'
-                : '#141413';
-            var badgeBg = borderColor;
-            var shortLabel = site.label.length > 18 ? site.label.slice(0, 16) + '…' : site.label;
-            var badgeText = site.isVisited ? '✓' : String(site.index);
-
-            var iconHtml = '<div class="shg-pin-badge" style="display:inline-flex;flex-direction:column;align-items:center;user-select:none;cursor:pointer;">'
-              + '<div style="display:inline-flex;align-items:center;gap:5px;padding:3px 8px 3px 3px;border-radius:999px;background:#FFFFFF;border:2px solid ' + borderColor + ';box-shadow:0 6px 16px rgba(20,20,19,0.22);">'
-              + '<div style="width:22px;height:22px;border-radius:999px;overflow:hidden;flex-shrink:0;background:#F3F1EC;">'
-              + '<img src="' + escapeHtml(site.coverImage) + '" alt="" style="width:22px;height:22px;object-fit:cover;display:block;" />'
-              + '</div>'
-              + '<span style="font-size:11px;font-weight:700;color:#141413;white-space:nowrap;letter-spacing:-0.01em;">'
-              + escapeHtml(shortLabel)
-              + '</span>'
-              + '<span style="display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 4px;border-radius:999px;background:' + badgeBg + ';color:#FFFFFF;font-size:9.5px;font-weight:700;">'
-              + badgeText
-              + '</span>'
-              + '</div>'
-              + '<div style="width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:6px solid ' + borderColor + ';margin-top:-1px;"></div>'
-              + '</div>';
-
-            var siteIcon = L.divIcon({
-              className: 'custom-heritage-marker',
-              html: iconHtml,
-              iconSize: [184, 36],
-              iconAnchor: [92, 36]
-            });
-
-            var marker = L.marker([site.lat, site.lng], {
-              icon: siteIcon,
-              zIndexOffset: site.isSelected ? 1200 : 200
-            }).addTo(sitesLayer);
-
-            marker.on('click', function(ev) {
-              L.DomEvent.stopPropagation(ev);
-              postToHost({ type: 'SITE_CLICK', siteId: site.id });
-              map.flyTo([site.lat, site.lng], Math.max(map.getZoom(), 15), { duration: 0.55 });
+            if (site.isSelected) {
+              selectedSiteObj = site;
+            }
+            var iconName = ensureSitePhotoSprite(site);
+            siteFeatures.push({
+              type: 'Feature',
+              geometry: { type: 'Point', coordinates: [site.lng, site.lat] },
+              properties: {
+                id: site.id,
+                index: site.index,
+                isVisited: site.isVisited ? 1 : 0,
+                isSelected: site.isSelected ? 1 : 0,
+                iconName: iconName
+              }
             });
 
             if (showRestaurants && Array.isArray(site.restaurants)) {
               site.restaurants.forEach(function(res) {
-                var resIcon = L.divIcon({
-                  className: 'custom-restaurant-marker',
-                  html: '<div class="shg-pin-badge" style="display:inline-flex;align-items:center;gap:3px;padding:3px 7px;border-radius:999px;background:#141413;color:#FFFFFF;border:1.5px solid #FFFFFF;box-shadow:0 4px 10px rgba(0,0,0,0.24);font-size:10px;font-weight:700;white-space:nowrap;cursor:pointer;">'
-                    + '<span style="color:#FBBF24;">★</span>'
-                    + '<span>' + Number(res.rating).toFixed(1) + '</span>'
-                    + '</div>',
-                  iconSize: [48, 22],
-                  iconAnchor: [24, 11]
-                });
-                var resMarker = L.marker([res.lat, res.lng], {
-                  icon: resIcon,
-                  zIndexOffset: 150
-                }).addTo(sitesLayer);
-
-                resMarker.on('click', function(ev) {
-                  L.DomEvent.stopPropagation(ev);
-                  postToHost({
-                    type: 'RESTAURANT_CLICK',
-                    restaurantId: res.id,
-                    siteId: site.id
-                  });
-                  map.flyTo([res.lat, res.lng], Math.max(map.getZoom(), 16), { duration: 0.55 });
+                var ratingNum = Number(res.rating) || 4.5;
+                resFeatures.push({
+                  type: 'Feature',
+                  geometry: { type: 'Point', coordinates: [res.lng, res.lat] },
+                  properties: {
+                    id: res.id,
+                    siteId: site.id,
+                    rating: ratingNum,
+                    ratingText: ratingNum.toFixed(1),
+                    isOverture: res.source === 'overture' ? 1 : 0,
+                    isSelectedSite: site.isSelected ? 1 : 0
+                  }
                 });
               });
             }
           });
-        }
-
-        function renderRoute(route) {
-          var nextKey = route ? route.key : '';
-          if (nextKey === lastRouteKey) return;
-          lastRouteKey = nextKey;
-
-          routeLayer.clearLayers();
-          if (!route || !Array.isArray(route.coordinates) || route.coordinates.length === 0) {
-            return;
-          }
-
-          L.polyline(route.coordinates, {
-            color: '#FFFFFF',
-            weight: 9,
-            opacity: 0.94,
-            lineCap: 'round',
-            lineJoin: 'round'
-          }).addTo(routeLayer);
-
-          var routeLine = L.polyline(route.coordinates, {
-            color: '#B93815',
-            weight: 5,
-            dashArray: '10 6',
-            opacity: 0.98,
-            lineCap: 'round',
-            lineJoin: 'round'
-          }).addTo(routeLayer);
-
-          if (route.destination) {
-            var destIcon = L.divIcon({
-              className: 'custom-dest-marker',
-              html: '<div style="width:16px;height:16px;border-radius:999px;background:#B93815;border:3px solid #FFFFFF;box-shadow:0 2px 8px rgba(185,56,21,0.5);"></div>',
-              iconSize: [16, 16],
-              iconAnchor: [8, 8]
-            });
-            L.marker(route.destination, { icon: destIcon, zIndexOffset: 1500 }).addTo(routeLayer);
-          }
 
           try {
-            map.fitBounds(routeLine.getBounds(), {
-              paddingTopLeft: [40, 88],
-              paddingBottomRight: [40, 210],
-              maxZoom: 16
+            if (map.getSource('shg-sites-src')) {
+              map.getSource('shg-sites-src').setData({
+                type: 'FeatureCollection',
+                features: siteFeatures
+              });
+            }
+            if (map.getSource('shg-restaurants-src')) {
+              map.getSource('shg-restaurants-src').setData({
+                type: 'FeatureCollection',
+                features: resFeatures
+              });
+            }
+          } catch (e) {}
+
+          // Chỉ dùng đúng 1 DOM marker nổi duy nhất cho địa điểm đang chọn
+          if (selectedSiteMarker) {
+            selectedSiteMarker.remove();
+            selectedSiteMarker = null;
+          }
+          if (selectedSiteObj) {
+            var selEl = createSiteMarkerElement(selectedSiteObj, false);
+            selEl.addEventListener('click', function(ev) {
+              ev.stopPropagation();
+              postToHost({ type: 'SITE_CLICK', siteId: selectedSiteObj.id });
             });
-          } catch (err) {}
+            selectedSiteMarker = new gl.Marker({
+              element: selEl,
+              anchor: 'bottom'
+            })
+              .setLngLat([selectedSiteObj.lng, selectedSiteObj.lat])
+              .addTo(map);
+          }
         }
+
+        function renderSites(sites, showRestaurants, forceRedraw) {
+          lastShowRestaurants = !!showRestaurants;
+          var sig = JSON.stringify({
+            showRestaurants: lastShowRestaurants,
+            sites: sites.map(function(s) {
+              return [s.id, s.label, s.index, s.isVisited, s.isSelected];
+            })
+          });
+          if (!forceRedraw && sig === lastSitesSignature) return;
+          lastSitesSignature = sig;
+          syncGpuMarkers(sites, lastShowRestaurants);
+        }
+
+        function setTileConfig(cfg) {
+          if (!cfg || currentStyleId === cfg.id) return;
+          currentStyleId = cfg.id;
+          currentTile = cfg;
+          styleReady = false;
+          loadedPhotoSprites = {};
+          loadingPhotoSprites = {};
+          photoLoadQueue = [];
+
+          var is3DCapable = cfg.renderMode === 'mapbox' || cfg.renderMode === 'vector';
+          if (!is3DCapable) {
+            map.easeTo({ pitch: 0, bearing: 0, duration: 350 });
+          } else if (is3DEnabled) {
+            map.easeTo({ pitch: 45, duration: 400 });
+          }
+
+          map.setStyle(resolveGlStyle(cfg));
+        }
+
+        map.on('style.load', function() {
+          styleReady = true;
+          loadedPhotoSprites = {};
+          loadingPhotoSprites = {};
+          photoLoadQueue = [];
+          applyMapboxOrOsmEnhancements(map, currentTile, is3DEnabled, currentLightPreset);
+          ensureCustomOverlayLayers();
+          syncHcmcFocusLayer(isFocusHcmcOnly, false);
+          syncRadiusLayer(lastKnownUser, lastRadiusMeters);
+          syncRouteLayer(lastRouteData, false);
+          if (lastKnownSites.length) {
+            syncGpuMarkers(lastKnownSites, lastShowRestaurants);
+          }
+        });
+
+        map.on('moveend', function() {
+          if (styleReady && photoLoadQueue.length > 0) {
+            pumpPhotoLoadQueue();
+          }
+        });
+
+        var fallbackTriggered = false;
+        map.on('error', function(e) {
+          var status = e && e.error && e.error.status;
+          var msg = (e && e.error && e.error.message) ? String(e.error.message) : '';
+          if (USE_MAPBOX && (status === 401 || status === 403 || msg.indexOf('Unauthorized') !== -1 || msg.indexOf('access token') !== -1)) {
+            if (!fallbackTriggered) {
+              fallbackTriggered = true;
+              postToHost({
+                type: 'MAPBOX_AUTH_ERROR',
+                message: 'Mapbox Access Token không hợp lệ hoặc đã hết hạn. Đã tự động chuyển sang bản đồ OSM 3D.'
+              });
+              currentTile = Object.assign({}, currentTile, { renderMode: 'raster' });
+              map.setStyle(buildRasterStyleJson(currentTile));
+            }
+            return;
+          }
+          if (!fallbackTriggered && currentTile.renderMode === 'vector' && (msg.indexOf('openfreemap') !== -1 || msg.indexOf('Failed to fetch') !== -1)) {
+            fallbackTriggered = true;
+            currentTile = Object.assign({}, currentTile, { renderMode: 'raster' });
+            map.setStyle(buildRasterStyleJson(currentTile));
+          }
+        });
+
+        var interactiveGpuLayers = [
+          'shg-sites-unclustered',
+          'shg-sites-cluster-circle',
+          'shg-res-selected-pills',
+          'shg-res-pills',
+          'shg-res-dots'
+        ];
+
+        map.on('mousemove', function(e) {
+          if (!styleReady || (typeof map.isMoving === 'function' && map.isMoving())) return;
+          try {
+            var activeLayers = interactiveGpuLayers.filter(function(id) { return !!map.getLayer(id); });
+            if (!activeLayers.length) return;
+            var hit = map.queryRenderedFeatures(e.point, { layers: activeLayers });
+            map.getCanvas().style.cursor = hit.length ? 'pointer' : '';
+          } catch (err) {}
+        });
+
+        map.on('click', function(e) {
+          // 1. Ưu tiên xử lý chạm vào điểm di tích, cụm di tích hoặc quán ăn trên lớp GPU WebGL
+          if (styleReady) {
+            try {
+              var activeLayers = interactiveGpuLayers.filter(function(id) { return !!map.getLayer(id); });
+              if (activeLayers.length) {
+                var hits = map.queryRenderedFeatures(e.point, { layers: activeLayers });
+                if (hits && hits.length > 0) {
+                  var top = hits[0];
+                  var lid = top.layer && top.layer.id;
+                  var props = top.properties || {};
+                  if (lid === 'shg-sites-unclustered' && props.id) {
+                    var coords = top.geometry && top.geometry.coordinates;
+                    postToHost({ type: 'SITE_CLICK', siteId: String(props.id) });
+                    if (coords && coords.length >= 2) {
+                      map.easeTo({
+                        center: [coords[0], coords[1]],
+                        zoom: Math.max(map.getZoom(), 15.8),
+                        duration: 420
+                      });
+                    }
+                    return;
+                  }
+                  if (lid === 'shg-sites-cluster-circle' && typeof props.cluster_id !== 'undefined') {
+                    var cCoords = top.geometry && top.geometry.coordinates;
+                    var src = map.getSource('shg-sites-src');
+                    if (src && typeof src.getClusterExpansionZoom === 'function') {
+                      src.getClusterExpansionZoom(props.cluster_id, function(err, zoom) {
+                        if (err) return;
+                        map.easeTo({
+                          center: cCoords,
+                          zoom: Math.min(Math.max(zoom + 0.6, 13.8), 16.2),
+                          duration: 380
+                        });
+                      });
+                    } else if (cCoords) {
+                      map.easeTo({
+                        center: cCoords,
+                        zoom: Math.min(map.getZoom() + 2.4, 15.5),
+                        duration: 380
+                      });
+                    }
+                    return;
+                  }
+                  if (
+                    (lid === 'shg-res-selected-pills' || lid === 'shg-res-pills' || lid === 'shg-res-dots') &&
+                    props.id &&
+                    props.siteId
+                  ) {
+                    var rCoords = top.geometry && top.geometry.coordinates;
+                    postToHost({
+                      type: 'RESTAURANT_CLICK',
+                      restaurantId: String(props.id),
+                      siteId: String(props.siteId)
+                    });
+                    if (rCoords && rCoords.length >= 2) {
+                      map.easeTo({
+                        center: [rCoords[0], rCoords[1]],
+                        zoom: Math.max(map.getZoom(), 16.2),
+                        duration: 380
+                      });
+                    }
+                    return;
+                  }
+                }
+              }
+            } catch (err) {}
+          }
+
+          var placeName = '';
+          var placeCategory = '';
+          try {
+            var feats = map.queryRenderedFeatures(e.point);
+            for (var i = 0; i < feats.length; i++) {
+              var fprops = feats[i].properties || {};
+              var candidate = fprops['name_vi'] || fprops['name:vi'] || fprops.name || fprops['name_en'] || '';
+              if (candidate) {
+                placeName = String(candidate);
+                placeCategory = String(fprops.category_en || fprops.subclass || fprops.class || '');
+                break;
+              }
+            }
+          } catch (err) {}
+
+          postToHost({
+            type: 'MAP_CLICK',
+            lat: e.lngLat.lat,
+            lng: e.lngLat.lng,
+            placeName: placeName,
+            placeCategory: placeCategory
+          });
+        });
+
+        map.on('dragstart', function() {
+          if (isFollowingNav) {
+            isFollowingNav = false;
+            postToHost({ type: 'NAV_FOLLOW_CHANGED', following: false });
+          }
+        });
 
         window.__SHG_UPDATE__ = function(state) {
           if (!state) return;
+          var hasRoute = Boolean(state.route && Array.isArray(state.route.coordinates) && state.route.coordinates.length >= 2);
+          if (typeof state.followNav === 'boolean') {
+            isFollowingNav = hasRoute && state.followNav;
+          }
+          if (typeof state.userHeading === 'number') {
+            lastKnownHeading = state.userHeading;
+          } else if (!hasRoute) {
+            lastKnownHeading = null;
+          }
+
+          if (state.lightPreset && state.lightPreset !== currentLightPreset) {
+            currentLightPreset = state.lightPreset;
+            if (styleReady) {
+              applyMapboxOrOsmEnhancements(map, currentTile, is3DEnabled, currentLightPreset);
+            }
+            syncHcmcFocusLayer(isFocusHcmcOnly, false);
+          }
+          if (typeof state.focusHcmcOnly === 'boolean' && state.focusHcmcOnly !== isFocusHcmcOnly) {
+            syncHcmcFocusLayer(state.focusHcmcOnly, true);
+          }
+          if (typeof state.is3D === 'boolean' && state.is3D !== is3DEnabled) {
+            is3DEnabled = state.is3D;
+            if (styleReady) {
+              applyMapboxOrOsmEnhancements(map, currentTile, is3DEnabled, currentLightPreset);
+              map.easeTo({
+                pitch: is3DEnabled ? (isFollowingNav ? 62 : 48) : 0,
+                bearing: is3DEnabled ? (isFollowingNav && typeof lastKnownHeading === 'number' ? lastKnownHeading : -14) : 0,
+                duration: 500
+              });
+            }
+          }
           if (state.tileConfig) {
             setTileConfig(state.tileConfig);
           }
+
+          var nextKey = state.route ? state.route.key : '';
+          var routeJustStarted = nextKey && nextKey !== lastRouteKey;
+          if (nextKey !== lastRouteKey) {
+            lastRouteKey = nextKey;
+            syncRouteLayer(state.route || null, !isFollowingNav);
+          }
+
           if (Array.isArray(state.userLocation) && state.userLocation.length === 2) {
             lastKnownUser = state.userLocation;
-            ensureUserMarker(state.userLocation);
-            updateRadius(state.userLocation, state.searchRadiusMeters || 0);
+            ensureUserMarker(state.userLocation, lastKnownHeading, hasRoute);
+            syncRadiusLayer(state.userLocation, hasRoute ? 0 : (state.searchRadiusMeters || 0));
 
-            var latDiff = Math.abs(prevUserCenter[0] - state.userLocation[0]);
-            var lngDiff = Math.abs(prevUserCenter[1] - state.userLocation[1]);
-            if (latDiff > 0.012 || lngDiff > 0.012) {
-              map.flyTo(state.userLocation, 15, { duration: 0.85 });
+            if (hasRoute && isFollowingNav) {
+              // Góc nhìn 3D Heading-Up Chase-Cam mượt mà theo hướng điện thoại / OSRM
+              if (routeJustStarted || !wasInNavMode) {
+                engageNavCamera(state.userLocation, lastKnownHeading, 850, false);
+              } else {
+                engageNavCamera(
+                  state.userLocation,
+                  lastKnownHeading,
+                  state.isSimulatingWalk ? 260 : 420,
+                  Boolean(state.isSimulatingWalk)
+                );
+              }
+            } else {
+              if (wasInNavMode && !hasRoute) {
+                map.easeTo({
+                  center: [state.userLocation[1], state.userLocation[0]],
+                  zoom: 15.8,
+                  pitch: is3DEnabled ? 45 : 0,
+                  bearing: is3DEnabled ? -12 : 0,
+                  padding: { top: 0, bottom: 0, left: 0, right: 0 },
+                  duration: 650
+                });
+              } else {
+                var latDiff = Math.abs(prevUserCenter[0] - state.userLocation[0]);
+                var lngDiff = Math.abs(prevUserCenter[1] - state.userLocation[1]);
+                if (latDiff > 0.012 || lngDiff > 0.012) {
+                  map.flyTo({
+                    center: [state.userLocation[1], state.userLocation[0]],
+                    zoom: 15.6,
+                    duration: 850
+                  });
+                }
+              }
             }
             prevUserCenter = state.userLocation;
           }
+          wasInNavMode = hasRoute;
+
           if (Array.isArray(state.sites)) {
             lastKnownSites = state.sites;
             renderSites(state.sites, !!state.showRestaurants);
           }
-          renderRoute(state.route || null);
         };
 
         window.__SHG_CMD__ = function(cmd) {
           if (!cmd || !cmd.type) return;
           if (cmd.type === 'FIT_ALL') {
-            var pts = [lastKnownUser];
-            lastKnownSites.forEach(function(s) {
-              pts.push([s.lat, s.lng]);
-            });
+            isFollowingNav = false;
+            postToHost({ type: 'NAV_FOLLOW_CHANGED', following: false });
+            var pts = [[lastKnownUser[1], lastKnownUser[0]]];
+            if (lastRouteData && Array.isArray(lastRouteData.coordinates) && lastRouteData.coordinates.length > 1) {
+              lastRouteData.coordinates.forEach(function(pt) { pts.push([pt[1], pt[0]]); });
+            } else {
+              lastKnownSites.forEach(function(s) { pts.push([s.lng, s.lat]); });
+            }
             if (pts.length > 1) {
-              map.fitBounds(L.latLngBounds(pts), {
-                paddingTopLeft: [36, 92],
-                paddingBottomRight: [36, 120],
-                maxZoom: 15
+              var b = new gl.LngLatBounds(pts[0], pts[0]);
+              pts.forEach(function(p) { b.extend(p); });
+              map.fitBounds(b, {
+                padding: { top: 72, bottom: lastRouteData ? 225 : 110, left: 40, right: 56 },
+                maxZoom: 16,
+                pitch: 0,
+                bearing: 0,
+                duration: 650
               });
             } else {
-              map.flyTo(lastKnownUser, 15, { duration: 0.6 });
+              map.flyTo({ center: [lastKnownUser[1], lastKnownUser[0]], zoom: 15.5, duration: 600 });
             }
+          } else if (cmd.type === 'RECENTER_NAV') {
+            isFollowingNav = true;
+            engageNavCamera(lastKnownUser, lastKnownHeading, 750, false);
           } else if (cmd.type === 'CENTER_USER') {
-            map.flyTo(lastKnownUser, 16, { duration: 0.65 });
+            if (lastRouteData) {
+              isFollowingNav = true;
+              engageNavCamera(lastKnownUser, lastKnownHeading, 750, false);
+            } else {
+              map.flyTo({
+                center: [lastKnownUser[1], lastKnownUser[0]],
+                zoom: 16.5,
+                pitch: is3DEnabled ? 48 : 0,
+                duration: 650
+              });
+            }
+          } else if (cmd.type === 'ZOOM_IN') {
+            map.zoomIn({ duration: 260 });
+          } else if (cmd.type === 'ZOOM_OUT') {
+            map.zoomOut({ duration: 260 });
+          } else if (cmd.type === 'SET_3D') {
+            is3DEnabled = !!cmd.enabled;
+            if (styleReady) {
+              applyMapboxOrOsmEnhancements(map, currentTile, is3DEnabled, currentLightPreset);
+            }
+            map.easeTo({
+              pitch: is3DEnabled ? 50 : 0,
+              bearing: is3DEnabled ? -14 : 0,
+              duration: 500
+            });
+          } else if (cmd.type === 'SET_LIGHT' && cmd.preset) {
+            currentLightPreset = cmd.preset;
+            if (styleReady) {
+              applyMapboxOrOsmEnhancements(map, currentTile, is3DEnabled, currentLightPreset);
+            }
+            syncHcmcFocusLayer(isFocusHcmcOnly, false);
+          } else if (cmd.type === 'FIT_SCOPE') {
+            isFollowingNav = false;
+            syncHcmcFocusLayer(Boolean(cmd.focusHcmcOnly), true);
           } else if (cmd.type === 'FLY_TO' && typeof cmd.lat === 'number' && typeof cmd.lng === 'number') {
-            map.flyTo([cmd.lat, cmd.lng], cmd.zoom || 16, { duration: 0.65 });
+            map.flyTo({ center: [cmd.lng, cmd.lat], zoom: cmd.zoom || 16, duration: 650 });
+          } else if (cmd.type === 'RESIZE') {
+            try { map.resize(); } catch (e) {}
           }
         };
 
@@ -508,13 +2127,219 @@ function buildExplorerLeafletHtml(
           } catch (err) {}
         });
 
-        setTimeout(function() {
-          map.invalidateSize();
-          postToHost({ type: 'MAP_READY' });
-        }, 80);
+        map.on('load', function() {
+          map.resize();
+          postToHost({ type: 'MAP_READY', engine: USE_MAPBOX ? 'mapbox-gl-v3' : 'maplibre-osm-3d' });
+        });
       }
 
-      bootLeaflet();
+      function initLeafletFallback() {
+        var css = document.createElement('link');
+        css.rel = 'stylesheet';
+        css.href = 'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css';
+        document.head.appendChild(css);
+
+        var sc = document.createElement('script');
+        sc.src = 'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js';
+        sc.onload = function() {
+          var vnLeafletBounds = L.latLngBounds(
+            [VIETNAM_MAX_BOUNDS[0][1], VIETNAM_MAX_BOUNDS[0][0]],
+            [VIETNAM_MAX_BOUNDS[1][1], VIETNAM_MAX_BOUNDS[1][0]]
+          );
+          var hcmcLeafletBounds = L.latLngBounds(
+            [HCMC_MAX_BOUNDS[0][1], HCMC_MAX_BOUNDS[0][0]],
+            [HCMC_MAX_BOUNDS[1][1], HCMC_MAX_BOUNDS[1][0]]
+          );
+          var leafletFocusHcmc = Boolean(INITIAL_FOCUS_HCMC);
+          var map = L.map('map', {
+            center: INITIAL_CENTER,
+            zoom: 15,
+            minZoom: leafletFocusHcmc ? 9 : 5,
+            maxBounds: leafletFocusHcmc ? hcmcLeafletBounds : vnLeafletBounds,
+            maxBoundsViscosity: 1.0,
+            zoomControl: false
+          });
+          var tileLayer = L.tileLayer(INITIAL_TILE.url, {
+            subdomains: INITIAL_TILE.subdomains || 'abc',
+            attribution: INITIAL_TILE.attribution || '',
+            maxZoom: 19
+          }).addTo(map);
+          var maskLayer = L.layerGroup().addTo(map);
+          var sitesLayer = L.layerGroup().addTo(map);
+          var routeLayer = L.layerGroup().addTo(map);
+          var userLayer = L.layerGroup().addTo(map);
+          var userMarker = null;
+          var lastKnownUser = INITIAL_CENTER;
+          var lastKnownSites = [];
+
+          function renderLeafletHcmcMask(enabled, shouldAdjustCamera) {
+            maskLayer.clearLayers();
+            map.setMaxBounds(enabled ? hcmcLeafletBounds : vnLeafletBounds);
+            map.setMinZoom(enabled ? 8 : 5);
+            var activeRings = enabled ? HCMC_BOUNDARY_RINGS : VIETNAM_BOUNDARY_RINGS;
+            var outer = [[-8, 82], [36, 82], [36, 136], [-8, 136]];
+            var holes = activeRings.map(function(ring) {
+              return ring.map(function(pt) { return [pt[1], pt[0]]; });
+            });
+            L.polygon([outer].concat(holes), {
+              color: '#FFFFFF',
+              weight: 4,
+              opacity: 0.9,
+              fillColor: '#F3F0E9',
+              fillOpacity: 0.78,
+              interactive: false
+            }).addTo(maskLayer);
+            holes.forEach(function(hole) {
+              L.polyline(hole, {
+                color: '#B93815',
+                weight: 1.8,
+                opacity: 0.85,
+                interactive: false
+              }).addTo(maskLayer);
+            });
+            if (shouldAdjustCamera) {
+              var target = enabled ? HCMC_FOCUS_BOUNDS : VIETNAM_FOCUS_BOUNDS;
+              map.fitBounds([
+                [target[0][1], target[0][0]],
+                [target[1][1], target[1][0]]
+              ], { padding: [36, 56] });
+            }
+          }
+
+          renderLeafletHcmcMask(leafletFocusHcmc, false);
+
+          map.on('click', function(e) {
+            postToHost({ type: 'MAP_CLICK', lat: e.latlng.lat, lng: e.latlng.lng });
+          });
+
+          window.__SHG_UPDATE__ = function(state) {
+            if (!state) return;
+            if (typeof state.focusHcmcOnly === 'boolean' && state.focusHcmcOnly !== leafletFocusHcmc) {
+              leafletFocusHcmc = state.focusHcmcOnly;
+              renderLeafletHcmcMask(leafletFocusHcmc, true);
+            }
+            if (state.tileConfig && state.tileConfig.url) {
+              map.removeLayer(tileLayer);
+              tileLayer = L.tileLayer(state.tileConfig.url, {
+                subdomains: state.tileConfig.subdomains || 'abc',
+                maxZoom: 19
+              }).addTo(map);
+            }
+            if (Array.isArray(state.userLocation)) {
+              lastKnownUser = state.userLocation;
+              if (!userMarker) {
+                userMarker = L.marker(state.userLocation, {
+                  draggable: true,
+                  icon: L.divIcon({
+                    className: 'custom-user-marker',
+                    html: createUserMarkerElement().outerHTML,
+                    iconSize: [30, 30],
+                    iconAnchor: [15, 15]
+                  })
+                }).addTo(userLayer);
+                userMarker.on('dragend', function() {
+                  var p = userMarker.getLatLng();
+                  postToHost({ type: 'USER_DRAG', lat: p.lat, lng: p.lng });
+                });
+              } else {
+                userMarker.setLatLng(state.userLocation);
+              }
+            }
+            if (Array.isArray(state.sites)) {
+              lastKnownSites = state.sites;
+              sitesLayer.clearLayers();
+              state.sites.forEach(function(site) {
+                var m = L.marker([site.lat, site.lng], {
+                  icon: L.divIcon({
+                    className: 'custom-heritage-marker',
+                    html: createSiteMarkerElement(site).outerHTML,
+                    iconSize: site.isSelected ? [188, 40] : [36, 36],
+                    iconAnchor: site.isSelected ? [94, 40] : [18, 18]
+                  })
+                }).addTo(sitesLayer);
+                m.on('click', function(ev) {
+                  L.DomEvent.stopPropagation(ev);
+                  postToHost({ type: 'SITE_CLICK', siteId: site.id });
+                });
+              });
+            }
+            routeLayer.clearLayers();
+            if (state.route && Array.isArray(state.route.coordinates) && state.route.coordinates.length > 1) {
+              L.polyline(state.route.coordinates, { color: '#FAF9F6', weight: 9 }).addTo(routeLayer);
+              L.polyline(state.route.coordinates, { color: '#B93815', weight: 5 }).addTo(routeLayer);
+            }
+          };
+
+          window.__SHG_CMD__ = function(cmd) {
+            if (!cmd) return;
+            if (cmd.type === 'CENTER_USER') map.flyTo(lastKnownUser, 16);
+            if (cmd.type === 'ZOOM_IN') map.zoomIn();
+            if (cmd.type === 'ZOOM_OUT') map.zoomOut();
+            if (cmd.type === 'FIT_SCOPE') {
+              leafletFocusHcmc = Boolean(cmd.focusHcmcOnly);
+              renderLeafletHcmcMask(leafletFocusHcmc, true);
+            }
+            if (cmd.type === 'FIT_ALL') {
+              var pts = [lastKnownUser].concat(lastKnownSites.map(function(s) { return [s.lat, s.lng]; }));
+              if (pts.length > 1) map.fitBounds(L.latLngBounds(pts), { padding: [36, 60] });
+            }
+          };
+
+          window.addEventListener('message', function(event) {
+            try {
+              var data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+              if (!data || data.target !== 'shg-map' || data.mapId !== MAP_ID) return;
+              if (data.type === 'UPDATE_STATE') window.__SHG_UPDATE__(data.payload);
+              if (data.type === 'CMD') window.__SHG_CMD__(data.command);
+            } catch (err) {}
+          });
+
+          setTimeout(function() {
+            map.invalidateSize();
+            postToHost({ type: 'MAP_READY', engine: 'leaflet-osm-fallback' });
+          }, 80);
+        };
+        document.head.appendChild(sc);
+      }
+
+      function hasWebGL() {
+        try {
+          var c = document.createElement('canvas');
+          return !!(window.WebGLRenderingContext && (c.getContext('webgl') || c.getContext('experimental-webgl') || c.getContext('webgl2')));
+        } catch (e) {
+          return false;
+        }
+      }
+
+      function boot() {
+        if (!hasWebGL()) {
+          initLeafletFallback();
+          return;
+        }
+        var targetGlobal = USE_MAPBOX ? window.mapboxgl : window.maplibregl;
+        if (typeof targetGlobal === 'undefined') {
+          if (!USE_MAPBOX) {
+            var fallback = document.createElement('script');
+            fallback.src = 'https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js';
+            fallback.onload = function() {
+              if (typeof window.maplibregl !== 'undefined') initGlMap();
+              else initLeafletFallback();
+            };
+            fallback.onerror = initLeafletFallback;
+            document.head.appendChild(fallback);
+          } else {
+            initLeafletFallback();
+          }
+          return;
+        }
+        try {
+          initGlMap();
+        } catch (err) {
+          initLeafletFallback();
+        }
+      }
+
+      boot();
     })();
   </script>
 </body>
@@ -524,20 +2349,21 @@ function buildExplorerLeafletHtml(
 function renderStepIcon(maneuverType: RouteStep['maneuverType']) {
   switch (maneuverType) {
     case 'turn-left':
-      return <CornerUpLeft size={14} color={COLORS.accent} />;
+      return <CornerUpLeft size={14} color={COLORS.gpsBlue} />;
     case 'turn-right':
-      return <CornerUpRight size={14} color={COLORS.accent} />;
+      return <CornerUpRight size={14} color={COLORS.gpsBlue} />;
     case 'arrive':
       return <Flag size={14} color={COLORS.visited} />;
     case 'depart':
-      return <Navigation size={14} color={COLORS.accent} />;
+      return <Navigation size={14} color={COLORS.gpsBlue} />;
     default:
-      return <ArrowUp size={14} color={COLORS.accent} />;
+      return <ArrowUp size={14} color={COLORS.gpsBlue} />;
   }
 }
 
-export const MapExplorer: React.FC<MapExplorerProps> = ({
+export const MapExplorer: React.FC<MapExplorerProps> = React.memo(({
   userLocation,
+  userHeading = null,
   sites,
   selectedSiteId,
   visitedRecords,
@@ -547,6 +2373,9 @@ export const MapExplorer: React.FC<MapExplorerProps> = ({
   activeWalkSeconds,
   isSimulatingWalk,
   searchRadiusMeters,
+  focusHcmcOnly = true,
+  isVisible = true,
+  onToggleFocusHcmcOnly,
   onSelectSite,
   onStartRouteToSite,
   onStartRouteToRestaurant,
@@ -556,23 +2385,75 @@ export const MapExplorer: React.FC<MapExplorerProps> = ({
   onMoveUserLocation,
   onDetectRealGps,
 }) => {
-  const mapId = useMemo(
-    () => `explorer-${Math.random().toString(36).slice(2, 10)}`,
-    []
+  const [runtimeMapboxToken, setRuntimeMapboxToken] = useState<string>('');
+  const [tokenLoaded, setTokenLoaded] = useState<boolean>(false);
+  const [showTokenModal, setShowTokenModal] = useState<boolean>(false);
+  const [tokenDraft, setTokenDraft] = useState<string>('');
+  const [tokenError, setTokenError] = useState<string | null>(null);
+
+  const activeMapboxToken = useMemo(
+    () => resolveMapboxAccessToken(runtimeMapboxToken),
+    [runtimeMapboxToken]
   );
-  const availableStyles = useMemo(() => getAvailableMapStyles(), []);
+  const isMapboxActive = Boolean(activeMapboxToken);
+
+  const availableStyles = useMemo(
+    () => getAvailableMapStyles(activeMapboxToken),
+    [activeMapboxToken]
+  );
+
   const [mapStyle, setMapStyle] = useState<BaseMapStyle>(() =>
     getDefaultMapStyle()
   );
+  const [is3DView, setIs3DView] = useState<boolean>(true);
+  const [lightPreset, setLightPreset] = useState<MapboxLightPreset>('day');
   const [showRestaurantsOnMap, setShowRestaurantsOnMap] =
-    useState<boolean>(false);
+    useState<boolean>(true);
+  const [showStyleMenu, setShowStyleMenu] = useState<boolean>(false);
+  const [tappedPlace, setTappedPlace] = useState<{
+    name: string;
+    lat: number;
+    lng: number;
+  } | null>(null);
   const [focusedSite, setFocusedSite] = useState<HeritageSite | null>(null);
   const [focusedRestaurant, setFocusedRestaurant] = useState<{
     restaurant: NearbyRestaurant;
     parentSite: HeritageSite;
   } | null>(null);
   const [stepsExpanded, setStepsExpanded] = useState<boolean>(false);
+  const [isFollowingNav, setIsFollowingNav] = useState<boolean>(true);
   const [isMapReady, setIsMapReady] = useState<boolean>(false);
+
+  // Load saved Mapbox token from AsyncStorage (if user entered it in-app)
+  useEffect(() => {
+    let mounted = true;
+    AsyncStorage.getItem(MAPBOX_TOKEN_STORAGE_KEY)
+      .then((saved) => {
+        if (!mounted) return;
+        if (saved && isValidMapboxPublicToken(saved)) {
+          setRuntimeMapboxToken(saved.trim());
+          setMapStyle('mapbox_standard');
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (mounted) setTokenLoaded(true);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  // Unique mapId per engine mode so iframe/WebView cleanly reboots when switching between OSM & Mapbox GL JS
+  const mapId = useMemo(
+    () =>
+      `explorer-${isMapboxActive ? 'mbx' : 'osm'}-${Math.random().toString(36).slice(2, 8)}`,
+    [isMapboxActive, activeMapboxToken]
+  );
+
+  useEffect(() => {
+    setIsMapReady(false);
+  }, [mapId]);
 
   const webViewRef = useRef<WebView<{}> | null>(null);
   const iframeRef = useRef<{
@@ -582,21 +2463,25 @@ export const MapExplorer: React.FC<MapExplorerProps> = ({
 
   const initialHtml = useMemo(
     () =>
-      buildExplorerLeafletHtml(
+      buildExplorerMapHtml(
         mapId,
         userLocation,
-        getTileConfig(getDefaultMapStyle())
+        getTileConfig(getDefaultMapStyle(activeMapboxToken)),
+        activeMapboxToken,
+        focusHcmcOnly
       ),
-    // Keep static HTML shell so map never reloads on prop updates
+    // Keep static HTML shell per mapId so map never reloads on minor prop updates
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [mapId]
   );
 
-  // Clear quick preview cards when an active route begins
   useEffect(() => {
     if (activeRoute) {
       setFocusedSite(null);
       setFocusedRestaurant(null);
+      setTappedPlace(null);
+      setIsFollowingNav(true);
+      setIs3DView(true);
     } else {
       setStepsExpanded(false);
     }
@@ -635,6 +2520,14 @@ export const MapExplorer: React.FC<MapExplorerProps> = ({
     [mapId]
   );
 
+  const currentTileConfig = useMemo(() => {
+    const cfg = getTileConfig(mapStyle);
+    if (cfg.requiresMapboxToken && !isMapboxActive) {
+      return getTileConfig('osm_3d');
+    }
+    return cfg;
+  }, [mapStyle, isMapboxActive]);
+
   const mapStatePayload = useMemo<MapStatePayload>(() => {
     const visitedIdSet = new Set(visitedRecords.map((r) => r.siteId));
     const serializedSites: SerializedSiteMarker[] = sites.map((site, idx) => {
@@ -656,14 +2549,22 @@ export const MapExplorer: React.FC<MapExplorerProps> = ({
           lng: res.lng,
           rating: res.rating,
           name: res.name,
+          source: res.source,
         })),
       };
     });
 
     return {
-      tileConfig: getTileConfig(mapStyle),
+      tileConfig: currentTileConfig,
+      is3D: is3DView,
+      lightPreset,
+      selectedLanguage,
       userLocation,
+      userHeading: userHeading ?? null,
+      followNav: isFollowingNav,
+      isSimulatingWalk,
       searchRadiusMeters,
+      focusHcmcOnly,
       sites: serializedSites,
       showRestaurants: showRestaurantsOnMap,
       route:
@@ -677,23 +2578,44 @@ export const MapExplorer: React.FC<MapExplorerProps> = ({
           : null,
     };
   }, [
-    mapStyle,
+    currentTileConfig,
+    is3DView,
+    lightPreset,
+    selectedLanguage,
     userLocation,
+    userHeading,
+    isFollowingNav,
+    isSimulatingWalk,
     searchRadiusMeters,
+    focusHcmcOnly,
     sites,
     visitedRecords,
-    selectedLanguage,
     selectedSiteId,
     focusedSite,
     showRestaurantsOnMap,
     activeRoute,
   ]);
 
+  const hasFlushedInitialRef = useRef<boolean>(false);
+
   useEffect(() => {
     latestPayloadRef.current = mapStatePayload;
     if (!isMapReady) return;
+    // Cho phép flush 1 lần đầu tiên khi pre-warm ngầm, sau đó chỉ gửi khi tab Bản đồ đang hiển thị để tiết kiệm CPU
+    if (!isVisible && hasFlushedInitialRef.current) return;
+    hasFlushedInitialRef.current = true;
     sendToMap({ type: 'UPDATE_STATE', payload: mapStatePayload });
-  }, [isMapReady, mapStatePayload, sendToMap]);
+  }, [isMapReady, isVisible, mapStatePayload, sendToMap]);
+
+  // Ngay khi người dùng chuyển sang tab Bản đồ -> resize tức thì + đẩy dữ liệu mới nhất (0ms reload!)
+  useEffect(() => {
+    if (!isVisible || !isMapReady) return;
+    sendToMap({ type: 'CMD', command: { type: 'RESIZE' } });
+    if (latestPayloadRef.current) {
+      hasFlushedInitialRef.current = true;
+      sendToMap({ type: 'UPDATE_STATE', payload: latestPayloadRef.current });
+    }
+  }, [isVisible, isMapReady, sendToMap]);
 
   const handleIframeLoad = useCallback(() => {
     setIsMapReady(true);
@@ -719,9 +2641,20 @@ export const MapExplorer: React.FC<MapExplorerProps> = ({
         case 'MAP_READY':
           setIsMapReady(true);
           break;
+        case 'NAV_FOLLOW_CHANGED':
+          setIsFollowingNav(Boolean(msg.following));
+          break;
+        case 'MAPBOX_AUTH_ERROR':
+          setTokenError(
+            msg.message ||
+              'Mapbox Token không hợp lệ. Vui lòng kiểm tra lại token bắt đầu bằng pk.'
+          );
+          break;
         case 'SITE_CLICK': {
           const matched = sites.find((s) => s.id === msg.siteId);
           if (matched) {
+            setShowStyleMenu(false);
+            setTappedPlace(null);
             setFocusedRestaurant(null);
             setFocusedSite(matched);
           }
@@ -733,17 +2666,30 @@ export const MapExplorer: React.FC<MapExplorerProps> = ({
             (r) => r.id === msg.restaurantId
           );
           if (parentSite && restaurant) {
+            setShowStyleMenu(false);
+            setTappedPlace(null);
             setFocusedSite(null);
             setFocusedRestaurant({ restaurant, parentSite });
           }
           break;
         }
         case 'MAP_CLICK':
+          setShowStyleMenu(false);
           setFocusedSite(null);
           setFocusedRestaurant(null);
+          if (msg.placeName) {
+            setTappedPlace({
+              name: msg.placeName,
+              lat: msg.lat,
+              lng: msg.lng,
+            });
+          } else {
+            setTappedPlace(null);
+          }
           onMoveUserLocation(msg.lat, msg.lng);
           break;
         case 'USER_DRAG':
+          setTappedPlace(null);
           onMoveUserLocation(msg.lat, msg.lng);
           break;
       }
@@ -751,7 +2697,6 @@ export const MapExplorer: React.FC<MapExplorerProps> = ({
     [mapId, sites, onMoveUserLocation]
   );
 
-  // Listen for iframe postMessage events on Expo Web
   useEffect(() => {
     if (Platform.OS !== 'web') return;
     const globalWin = globalThis as unknown as {
@@ -783,17 +2728,81 @@ export const MapExplorer: React.FC<MapExplorerProps> = ({
   );
 
   const handleFitAllMarkers = useCallback(() => {
+    setIsFollowingNav(false);
     sendToMap({ type: 'CMD', command: { type: 'FIT_ALL' } });
   }, [sendToMap]);
 
+  const handleRecenterNav3D = useCallback(() => {
+    setIsFollowingNav(true);
+    setIs3DView(true);
+    sendToMap({ type: 'CMD', command: { type: 'RECENTER_NAV' } });
+  }, [sendToMap]);
+
   const handleCenterOnGps = useCallback(() => {
+    if (activeRoute) {
+      handleRecenterNav3D();
+      return;
+    }
     onDetectRealGps?.();
     sendToMap({ type: 'CMD', command: { type: 'CENTER_USER' } });
-  }, [onDetectRealGps, sendToMap]);
+  }, [activeRoute, handleRecenterNav3D, onDetectRealGps, sendToMap]);
 
-  const handleOpenExternalGoogleMaps = useCallback(() => {
+  const handleZoomIn = useCallback(() => {
+    sendToMap({ type: 'CMD', command: { type: 'ZOOM_IN' } });
+  }, [sendToMap]);
+
+  const handleZoomOut = useCallback(() => {
+    sendToMap({ type: 'CMD', command: { type: 'ZOOM_OUT' } });
+  }, [sendToMap]);
+
+  const handleToggle3D = useCallback(() => {
+    setIs3DView((prev) => {
+      const next = !prev;
+      sendToMap({ type: 'CMD', command: { type: 'SET_3D', enabled: next } });
+      return next;
+    });
+  }, [sendToMap]);
+
+  const handleCycleLightPreset = useCallback(() => {
+    const order: MapboxLightPreset[] = ['day', 'dusk', 'night'];
+    setLightPreset((prev) => {
+      const next = order[(order.indexOf(prev) + 1) % order.length];
+      sendToMap({ type: 'CMD', command: { type: 'SET_LIGHT', preset: next } });
+      return next;
+    });
+  }, [sendToMap]);
+
+  const handleOpenTokenModal = useCallback(() => {
+    setShowStyleMenu(false);
+    setTokenDraft(runtimeMapboxToken);
+    setTokenError(null);
+    setShowTokenModal(true);
+  }, [runtimeMapboxToken]);
+
+  const handleSaveMapboxToken = useCallback(async () => {
+    const clean = tokenDraft.trim();
+    if (!clean) {
+      await AsyncStorage.removeItem(MAPBOX_TOKEN_STORAGE_KEY).catch(() => {});
+      setRuntimeMapboxToken('');
+      setMapStyle(getDefaultMapStyle(''));
+      setTokenError(null);
+      setShowTokenModal(false);
+      return;
+    }
+    if (!isValidMapboxPublicToken(clean)) {
+      setTokenError('Token Mapbox công khai phải bắt đầu bằng "pk." (Public Token).');
+      return;
+    }
+    await AsyncStorage.setItem(MAPBOX_TOKEN_STORAGE_KEY, clean).catch(() => {});
+    setRuntimeMapboxToken(clean);
+    setMapStyle('mapbox_standard');
+    setTokenError(null);
+    setShowTokenModal(false);
+  }, [tokenDraft]);
+
+  const handleOpenExternalOsmMaps = useCallback(() => {
     if (!activeRoute) return;
-    const url = buildGoogleMapsWalkingUrl(userLocation, activeRoute.destination);
+    const url = buildOsmWalkingUrl(userLocation, activeRoute.destination);
     Linking.openURL(url).catch(() => {});
   }, [activeRoute, userLocation]);
 
@@ -822,124 +2831,263 @@ export const MapExplorer: React.FC<MapExplorerProps> = ({
     );
   }, [focusedRestaurant, userLocation]);
 
+  const is3DCapable =
+    currentTileConfig.renderMode === 'mapbox' ||
+    currentTileConfig.renderMode === 'vector';
+  const showLightButton =
+    isMapboxActive && currentTileConfig.supportsLightPreset;
+
   return (
     <View style={styles.root}>
-      {/* Interactive Leaflet Map Surface */}
+      {/* Interactive Mapbox GL JS v3 / OpenStreetMap 3D Surface */}
       <View style={styles.mapSurface}>
-        {Platform.OS === 'web' ? (
-          React.createElement('iframe', {
-            ref: iframeRef,
-            srcDoc: initialHtml,
-            onLoad: handleIframeLoad,
-            title: 'Smart Heritage Guide Map Explorer',
-            sandbox: 'allow-scripts allow-same-origin',
-            style: {
-              width: '100%',
-              height: '100%',
-              border: 'none',
-              display: 'block',
-            },
-          })
+        {tokenLoaded ? (
+          Platform.OS === 'web' ? (
+            React.createElement('iframe', {
+              key: mapId,
+              ref: iframeRef,
+              srcDoc: initialHtml,
+              onLoad: handleIframeLoad,
+              title: isMapboxActive
+                ? 'Smart Heritage Guide Mapbox GL JS v3'
+                : 'Smart Heritage Guide OpenStreetMap 3D',
+              sandbox: 'allow-scripts allow-same-origin',
+              style: {
+                width: '100%',
+                height: '100%',
+                border: 'none',
+                display: 'block',
+              },
+            })
+          ) : (
+            <WebView<{}>
+              key={mapId}
+              ref={webViewRef}
+              originWhitelist={['*']}
+              source={{ html: initialHtml }}
+              onMessage={handleWebViewMessage}
+              javaScriptEnabled
+              domStorageEnabled
+              scrollEnabled={false}
+              bounces={false}
+              overScrollMode="never"
+              showsHorizontalScrollIndicator={false}
+              showsVerticalScrollIndicator={false}
+              style={styles.webView}
+            />
+          )
         ) : (
-          <WebView<{}>
-            ref={webViewRef}
-            originWhitelist={['*']}
-            source={{ html: initialHtml }}
-            onMessage={handleWebViewMessage}
-            javaScriptEnabled
-            domStorageEnabled
-            scrollEnabled={false}
-            bounces={false}
-            overScrollMode="never"
-            showsHorizontalScrollIndicator={false}
-            showsVerticalScrollIndicator={false}
-            style={styles.webView}
-          />
+          <View style={styles.bootCenter}>
+            <ActivityIndicator size="small" color={COLORS.accent} />
+          </View>
         )}
       </View>
 
-      {/* Top Controls Overlay */}
-      <View style={styles.topOverlay} pointerEvents="box-none">
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.topBarContent}
-          style={styles.topBarScroll}
-        >
-          {/* Map Style Switcher */}
-          <View style={styles.styleSwitcherGroup}>
-            <View style={styles.layersIconWrap}>
-              <Layers size={13} color={COLORS.inkMuted} />
+      {/* Top-Left Region Scope Switcher (TP.HCM · sương mờ tỉnh lân cận vs Việt Nam) + Tapped Place Pill */}
+      <View style={styles.topLeftPlaceWrap} pointerEvents="box-none">
+        {!activeRoute && (
+          <View style={styles.scopeSegmentedPill}>
+            <TouchableOpacity
+              activeOpacity={0.82}
+              onPress={() => {
+                onToggleFocusHcmcOnly?.(true);
+                sendToMap({ type: 'CMD', command: { type: 'FIT_SCOPE', focusHcmcOnly: true } });
+              }}
+              style={[
+                styles.scopeSegBtn,
+                focusHcmcOnly && styles.scopeSegBtnActive,
+              ]}
+              accessibilityLabel="Chỉ hiển thị TP.HCM và làm mờ các tỉnh xung quanh"
+            >
+              <MapPin
+                size={12}
+                color={focusHcmcOnly ? COLORS.white : COLORS.inkMuted}
+                strokeWidth={2.4}
+              />
+              <Text
+                style={[
+                  styles.scopeSegText,
+                  focusHcmcOnly && styles.scopeSegTextActive,
+                ]}
+              >
+                TP.HCM
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              activeOpacity={0.82}
+              onPress={() => {
+                onToggleFocusHcmcOnly?.(false);
+                sendToMap({ type: 'CMD', command: { type: 'FIT_SCOPE', focusHcmcOnly: false } });
+              }}
+              style={[
+                styles.scopeSegBtn,
+                !focusHcmcOnly && styles.scopeSegBtnActive,
+              ]}
+              accessibilityLabel="Mở bản đồ toàn lãnh thổ Việt Nam"
+            >
+              <Globe
+                size={12}
+                color={!focusHcmcOnly ? COLORS.white : COLORS.inkMuted}
+                strokeWidth={2.2}
+              />
+              <Text
+                style={[
+                  styles.scopeSegText,
+                  !focusHcmcOnly && styles.scopeSegTextActive,
+                ]}
+              >
+                Việt Nam
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {tappedPlace && !activeRoute && !focusedSite && !focusedRestaurant && (
+          <View style={styles.tappedPlacePill}>
+            <MapPin size={13} color={COLORS.gpsBlue} />
+            <Text style={styles.tappedPlaceText} numberOfLines={1}>
+              {tappedPlace.name}
+            </Text>
+            <TouchableOpacity
+              onPress={() => setTappedPlace(null)}
+              hitSlop={{ top: 6, right: 6, bottom: 6, left: 6 }}
+            >
+              <X size={13} color={COLORS.inkMuted} />
+            </TouchableOpacity>
+          </View>
+        )}
+      </View>
+
+      {/* Minimalist Unified Top-Right Frosted Glass Dock (Layers · 3D · Light · Food) */}
+      <View style={styles.topRightControls} pointerEvents="box-none">
+        <View style={styles.controlDock}>
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={() => setShowStyleMenu((prev) => !prev)}
+            style={[
+              styles.dockBtn,
+              showStyleMenu && styles.dockBtnActive,
+            ]}
+            accessibilityLabel="Chọn lớp bản đồ"
+          >
+            <Layers
+              size={16}
+              color={showStyleMenu ? COLORS.white : COLORS.ink}
+            />
+          </TouchableOpacity>
+
+          {is3DCapable && (
+            <>
+              <View style={styles.dockDivider} />
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={handleToggle3D}
+                style={[
+                  styles.dockBtn,
+                  is3DView && styles.dockBtn3DActive,
+                ]}
+                accessibilityLabel="Chuyển góc nhìn 2D và 3D"
+              >
+                <Text
+                  style={[
+                    styles.toggle3DText,
+                    is3DView && styles.toggle3DTextActive,
+                  ]}
+                >
+                  {is3DView ? '3D' : '2D'}
+                </Text>
+              </TouchableOpacity>
+            </>
+          )}
+
+          {showLightButton && (
+            <>
+              <View style={styles.dockDivider} />
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={handleCycleLightPreset}
+                style={styles.dockBtn}
+                accessibilityLabel="Đổi ánh sáng Mapbox Standard 3D"
+              >
+                {lightPreset === 'day' ? (
+                  <Sun size={16} color={COLORS.accent} />
+                ) : lightPreset === 'dusk' ? (
+                  <Sunset size={16} color={COLORS.inkSecondary} />
+                ) : (
+                  <Moon size={15} color={COLORS.ink} />
+                )}
+              </TouchableOpacity>
+            </>
+          )}
+
+          <View style={styles.dockDivider} />
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={() => setShowRestaurantsOnMap((prev) => !prev)}
+            style={[
+              styles.dockBtn,
+              showRestaurantsOnMap && styles.dockBtnActive,
+            ]}
+            accessibilityLabel="Hiện hoặc ẩn quán ăn quanh di tích"
+          >
+            <Utensils
+              size={15}
+              color={showRestaurantsOnMap ? COLORS.white : COLORS.ink}
+            />
+          </TouchableOpacity>
+        </View>
+
+        {showStyleMenu && (
+          <View style={styles.stylePopover}>
+            <View style={styles.stylePopoverHeader}>
+              <Box size={12} color={COLORS.inkMuted} />
+              <Text style={styles.stylePopoverTitle}>
+                {isMapboxActive ? 'Mapbox GL JS v3' : 'OpenStreetMap 3D'}
+              </Text>
             </View>
             {availableStyles.map((tile) => {
-              const active = mapStyle === tile.id;
+              const active = currentTileConfig.id === tile.id;
               return (
                 <TouchableOpacity
                   key={tile.id}
                   activeOpacity={0.8}
-                  onPress={() => setMapStyle(tile.id)}
+                  onPress={() => {
+                    setMapStyle(tile.id);
+                    setShowStyleMenu(false);
+                  }}
                   style={[
-                    styles.styleChip,
-                    active && styles.styleChipActive,
+                    styles.styleOptionRow,
+                    active && styles.styleOptionRowActive,
                   ]}
                 >
                   <Text
                     style={[
-                      styles.styleChipText,
-                      active && styles.styleChipTextActive,
+                      styles.styleOptionText,
+                      active && styles.styleOptionTextActive,
                     ]}
                   >
                     {tile.label}
                   </Text>
+                  {active && <Check size={14} color={COLORS.accent} />}
                 </TouchableOpacity>
               );
             })}
-          </View>
-
-          {/* Toggle Nearby Food on Map */}
-          <TouchableOpacity
-            activeOpacity={0.85}
-            onPress={() => setShowRestaurantsOnMap((prev) => !prev)}
-            style={[
-              styles.foodToggleBtn,
-              showRestaurantsOnMap && styles.foodToggleBtnActive,
-            ]}
-          >
-            <Utensils
-              size={13}
-              color={showRestaurantsOnMap ? COLORS.white : COLORS.inkSecondary}
-            />
-            <Text
-              style={[
-                styles.foodToggleText,
-                showRestaurantsOnMap && styles.foodToggleTextActive,
-              ]}
+            <View style={styles.popoverDivider} />
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={handleOpenTokenModal}
+              style={styles.tokenActionRow}
             >
-              Hiện quán ăn
-            </Text>
-          </TouchableOpacity>
-        </ScrollView>
-
-        {/* Compact Legend Row */}
-        <View style={styles.legendRow} pointerEvents="box-none">
-          <View style={styles.legendPill}>
-            <View style={styles.legendItem}>
-              <View style={[styles.legendDot, { backgroundColor: COLORS.gpsBlue }]} />
-              <Text style={styles.legendText}>Bạn</Text>
-            </View>
-            <View style={styles.legendItem}>
-              <View style={[styles.legendDot, { backgroundColor: COLORS.ink }]} />
-              <Text style={styles.legendText}>Di tích</Text>
-            </View>
-            <View style={styles.legendItem}>
-              <View style={[styles.legendDot, { backgroundColor: COLORS.visited }]} />
-              <Text style={styles.legendText}>Đã đi</Text>
-            </View>
+              <KeyRound size={13} color={COLORS.gpsBlue} />
+              <Text style={styles.tokenActionText}>
+                {isMapboxActive ? 'Đổi Mapbox Token' : 'Nhập Mapbox Token'}
+              </Text>
+            </TouchableOpacity>
           </View>
-        </View>
+        )}
       </View>
 
-      {/* Floating Right Controls (Fit All + My GPS) */}
+      {/* Minimalist Bottom-Right Controls (Unified Zoom/Fit Dock + GPS Anchor) */}
       <View
         style={[
           styles.rightControls,
@@ -949,36 +3097,80 @@ export const MapExplorer: React.FC<MapExplorerProps> = ({
         ]}
         pointerEvents="box-none"
       >
-        <TouchableOpacity
-          activeOpacity={0.85}
-          onPress={handleFitAllMarkers}
-          style={styles.fabButton}
-          accessibilityLabel="Toàn cảnh"
-        >
-          <Maximize2 size={17} color={COLORS.ink} />
-          <Text style={styles.fabLabel}>Toàn cảnh</Text>
-        </TouchableOpacity>
+        <View style={styles.controlDock}>
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={handleZoomIn}
+            style={styles.dockBtn}
+            accessibilityLabel="Phóng to bản đồ"
+          >
+            <Plus size={16} color={COLORS.ink} />
+          </TouchableOpacity>
+          <View style={styles.dockDivider} />
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={handleZoomOut}
+            style={styles.dockBtn}
+            accessibilityLabel="Thu nhỏ bản đồ"
+          >
+            <Minus size={16} color={COLORS.ink} />
+          </TouchableOpacity>
+          <View style={styles.dockDivider} />
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={handleFitAllMarkers}
+            style={styles.dockBtn}
+            accessibilityLabel="Xem toàn cảnh các di tích"
+          >
+            <Maximize2 size={15} color={COLORS.ink} />
+          </TouchableOpacity>
+        </View>
 
         <TouchableOpacity
           activeOpacity={0.85}
           onPress={handleCenterOnGps}
-          style={styles.fabButton}
-          accessibilityLabel="GPS của tôi"
+          style={[
+            styles.roundControlBtn,
+            activeRoute && isFollowingNav && styles.roundControlBtn3DActive,
+          ]}
+          accessibilityLabel={
+            activeRoute
+              ? 'Bám theo hướng đi 3D'
+              : 'Về vị trí GPS của tôi'
+          }
         >
-          <LocateFixed size={17} color={COLORS.gpsBlue} />
-          <Text style={[styles.fabLabel, { color: COLORS.gpsBlue }]}>
-            GPS
-          </Text>
+          {activeRoute ? (
+            <Compass
+              size={19}
+              color={isFollowingNav ? COLORS.white : COLORS.accent}
+            />
+          ) : (
+            <LocateFixed size={19} color={COLORS.ink} />
+          )}
         </TouchableOpacity>
       </View>
+
+      {/* Re-center 3D Heading-Up Pill when user manually panned away during OSRM navigation */}
+      {activeRoute && !isFollowingNav && !isRoutingLoading && (
+        <View style={styles.recenterNavWrap} pointerEvents="box-none">
+          <TouchableOpacity
+            activeOpacity={0.88}
+            onPress={handleRecenterNav3D}
+            style={styles.recenterNavBtn}
+          >
+            <Compass size={15} color={COLORS.white} />
+            <Text style={styles.recenterNavText}>Bám theo hướng đi 3D</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* Routing Loading Indicator */}
       {isRoutingLoading && (
         <View style={styles.loadingWrap} pointerEvents="none">
           <View style={styles.loadingPill}>
-            <ActivityIndicator size="small" color={COLORS.accent} />
+            <ActivityIndicator size="small" color={COLORS.gpsBlue} />
             <Text style={styles.loadingText}>
-              Đang vẽ lộ trình dẫn đường đi bộ trên bản đồ…
+              Đang tính lộ trình đi bộ trên bản đồ…
             </Text>
           </View>
         </View>
@@ -1061,9 +3253,16 @@ export const MapExplorer: React.FC<MapExplorerProps> = ({
           <View style={styles.previewCard}>
             <View style={styles.previewTopMeta}>
               <View style={{ flex: 1 }}>
-                <Text style={styles.restaurantCuisine} numberOfLines={1}>
-                  {focusedRestaurant.restaurant.cuisine}
-                </Text>
+                <View style={styles.previewTagRow}>
+                  <Text style={styles.restaurantCuisine} numberOfLines={1}>
+                    {focusedRestaurant.restaurant.cuisine}
+                  </Text>
+                  {focusedRestaurant.restaurant.source === 'overture' && (
+                    <View style={styles.overtureBadge}>
+                      <Text style={styles.overtureBadgeText}>Overture Maps</Text>
+                    </View>
+                  )}
+                </View>
                 <Text style={styles.restaurantName} numberOfLines={1}>
                   {focusedRestaurant.restaurant.name}
                 </Text>
@@ -1097,7 +3296,8 @@ export const MapExplorer: React.FC<MapExplorerProps> = ({
             </View>
 
             <Text style={styles.restaurantDishes} numberOfLines={1}>
-              {focusedRestaurant.restaurant.specialtyDishes.join(' · ')}
+              {focusedRestaurant.restaurant.address ||
+                focusedRestaurant.restaurant.specialtyDishes.join(' · ')}
             </Text>
 
             <TouchableOpacity
@@ -1121,7 +3321,6 @@ export const MapExplorer: React.FC<MapExplorerProps> = ({
       {activeRoute && !isRoutingLoading && (
         <View style={styles.bottomCardWrap} pointerEvents="box-none">
           <View style={styles.navHudCard}>
-            {/* Header: Active Route Info + Live Timer + Cancel */}
             <View style={styles.navHeaderRow}>
               <View style={styles.navIconBadge}>
                 <Navigation size={16} color={COLORS.white} />
@@ -1158,7 +3357,6 @@ export const MapExplorer: React.FC<MapExplorerProps> = ({
               </TouchableOpacity>
             </View>
 
-            {/* Primary Navigation Action Buttons */}
             <View style={styles.navActionsRow}>
               <TouchableOpacity
                 activeOpacity={0.82}
@@ -1190,15 +3388,14 @@ export const MapExplorer: React.FC<MapExplorerProps> = ({
 
               <TouchableOpacity
                 activeOpacity={0.82}
-                onPress={handleOpenExternalGoogleMaps}
-                style={styles.navGmapsBtn}
-                accessibilityLabel="Mở Google Maps"
+                onPress={handleOpenExternalOsmMaps}
+                style={styles.navExternalBtn}
+                accessibilityLabel="Mở tuyến trên OpenStreetMap"
               >
                 <ExternalLink size={14} color={COLORS.gpsBlue} />
               </TouchableOpacity>
             </View>
 
-            {/* Expandable Turn-by-Turn Steps Sheet */}
             {activeRoute.steps.length > 0 && (
               <View style={styles.stepsSection}>
                 <TouchableOpacity
@@ -1256,15 +3453,93 @@ export const MapExplorer: React.FC<MapExplorerProps> = ({
           </View>
         </View>
       )}
+
+      {/* Mapbox Public Token Modal (cho phép dán pk. token và trải nghiệm Mapbox GL JS v3 ngay lập tức) */}
+      <Modal
+        visible={showTokenModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowTokenModal(false)}
+      >
+        <View style={styles.tokenBackdrop}>
+          <View style={styles.tokenModalCard}>
+            <View style={styles.tokenModalHeader}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.tokenModalTitle}>
+                  Kích hoạt Mapbox GL JS v3
+                </Text>
+                <Text style={styles.tokenModalSub}>
+                  Dán Public Token (bắt đầu bằng pk.) để mở Mapbox Standard 3D, ánh sáng Ngày/Hoàng hôn/Đêm và Vệ tinh 3D.
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => setShowTokenModal(false)}
+                style={styles.closeIconBtn}
+              >
+                <X size={18} color={COLORS.inkMuted} />
+              </TouchableOpacity>
+            </View>
+
+            <TextInput
+              value={tokenDraft}
+              onChangeText={(txt) => {
+                setTokenDraft(txt);
+                setTokenError(null);
+              }}
+              placeholder="pk.eyJ1Ijoi..."
+              placeholderTextColor={COLORS.inkMuted}
+              autoCapitalize="none"
+              autoCorrect={false}
+              style={styles.tokenInput}
+            />
+
+            {tokenError && (
+              <Text style={styles.tokenErrorText}>{tokenError}</Text>
+            )}
+
+            <Text style={styles.tokenHintText}>
+              Bạn cũng có thể đặt EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN trong mobile/.env. Để trống để dùng OpenStreetMap 3D miễn phí.
+            </Text>
+
+            <View style={styles.tokenModalActions}>
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={() =>
+                  Linking.openURL(
+                    'https://account.mapbox.com/access-tokens/'
+                  ).catch(() => {})
+                }
+                style={styles.tokenSecondaryBtn}
+              >
+                <ExternalLink size={13} color={COLORS.ink} />
+                <Text style={styles.tokenSecondaryBtnText}>Lấy token</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                activeOpacity={0.85}
+                onPress={handleSaveMapboxToken}
+                style={styles.tokenPrimaryBtn}
+              >
+                <Check size={14} color={COLORS.white} />
+                <Text style={styles.tokenPrimaryBtnText}>
+                  {tokenDraft.trim() ? 'Áp dụng Mapbox' : 'Dùng OSM 3D'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
-};
+});
+
+MapExplorer.displayName = 'MapExplorer';
 
 const styles = StyleSheet.create({
   root: {
     flex: 1,
     minHeight: 440,
-    backgroundColor: '#EFEDE6',
+    backgroundColor: '#F2F0EA',
     position: 'relative',
     overflow: 'hidden',
   },
@@ -1277,110 +3552,222 @@ const styles = StyleSheet.create({
   },
   webView: {
     flex: 1,
-    backgroundColor: '#EFEDE6',
+    backgroundColor: '#F2F0EA',
   },
-  topOverlay: {
-    position: 'absolute',
-    top: SPACING.sm,
-    left: 0,
-    right: 0,
-    zIndex: 10,
-  },
-  topBarScroll: {
-    flexGrow: 0,
-  },
-  topBarContent: {
-    paddingHorizontal: SPACING.md,
-    gap: SPACING.sm,
+  bootCenter: {
+    flex: 1,
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  styleSwitcherGroup: {
+  topLeftPlaceWrap: {
+    position: 'absolute',
+    top: SPACING.md,
+    left: SPACING.md,
+    right: 70,
+    zIndex: 14,
+    alignItems: 'flex-start',
+    gap: 6,
+  },
+  scopeSegmentedPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.96)',
-    borderRadius: RADII.lg,
+    backgroundColor: 'rgba(250, 249, 246, 0.92)',
+    borderRadius: RADII.pill,
     borderWidth: 1,
-    borderColor: COLORS.border,
-    padding: 3,
-    ...SHADOWS.card,
+    borderColor: 'rgba(20, 20, 19, 0.08)',
+    padding: 3.5,
+    gap: 3,
+    ...(Platform.OS === 'web'
+      ? ({ backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)' } as object)
+      : {}),
+    ...SHADOWS.floating,
   },
-  layersIconWrap: {
-    paddingHorizontal: 6,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  styleChip: {
-    paddingHorizontal: 9,
-    paddingVertical: 5,
-    borderRadius: RADII.md - 2,
-  },
-  styleChipActive: {
-    backgroundColor: COLORS.ink,
-  },
-  styleChipText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: COLORS.inkSecondary,
-  },
-  styleChipTextActive: {
-    color: COLORS.white,
-  },
-  foodToggleBtn: {
+  scopeSegBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    backgroundColor: 'rgba(255, 255, 255, 0.96)',
-    borderRadius: RADII.lg,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-    ...SHADOWS.card,
+    paddingHorizontal: 12,
+    paddingVertical: 6.5,
+    borderRadius: RADII.pill,
   },
-  foodToggleBtnActive: {
+  scopeSegBtnActive: {
     backgroundColor: COLORS.ink,
-    borderColor: COLORS.ink,
   },
-  foodToggleText: {
-    fontSize: 11,
-    fontWeight: '600',
+  scopeSegText: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    letterSpacing: 0.1,
     color: COLORS.inkSecondary,
   },
-  foodToggleTextActive: {
+  scopeSegTextActive: {
     color: COLORS.white,
   },
-  legendRow: {
-    marginTop: 6,
-    paddingHorizontal: SPACING.md,
+  tappedPlacePill: {
     flexDirection: 'row',
     alignItems: 'center',
-  },
-  legendPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    backgroundColor: 'rgba(255, 255, 255, 0.92)',
+    gap: 6,
+    maxWidth: '100%',
+    backgroundColor: 'rgba(255, 255, 255, 0.96)',
     borderRadius: RADII.pill,
     borderWidth: 1,
     borderColor: COLORS.border,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    ...SHADOWS.card,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    ...SHADOWS.floating,
   },
-  legendItem: {
+  tappedPlaceText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.ink,
+    flexShrink: 1,
+  },
+  mapboxPromptPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.96)',
+    borderRadius: RADII.pill,
+    borderWidth: 1,
+    borderColor: COLORS.accentBorder,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    ...SHADOWS.card,
   },
-  legendDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+  mapboxPromptText: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: COLORS.accent,
   },
-  legendText: {
+  topRightControls: {
+    position: 'absolute',
+    top: SPACING.md,
+    right: SPACING.md,
+    zIndex: 15,
+    alignItems: 'flex-end',
+    gap: SPACING.sm,
+  },
+  controlDock: {
+    width: 42,
+    borderRadius: 21,
+    backgroundColor: 'rgba(250, 249, 246, 0.92)',
+    borderWidth: 1,
+    borderColor: 'rgba(20, 20, 19, 0.08)',
+    overflow: 'hidden',
+    ...(Platform.OS === 'web'
+      ? ({ backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)' } as object)
+      : {}),
+    ...SHADOWS.floating,
+  },
+  dockBtn: {
+    width: 40,
+    height: 38,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dockBtnActive: {
+    backgroundColor: COLORS.ink,
+  },
+  dockBtn3DActive: {
+    backgroundColor: COLORS.accent,
+  },
+  dockDivider: {
+    height: 1,
+    backgroundColor: 'rgba(20, 20, 19, 0.08)',
+    marginHorizontal: 9,
+  },
+  roundControlBtn: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: 'rgba(250, 249, 246, 0.92)',
+    borderWidth: 1,
+    borderColor: 'rgba(20, 20, 19, 0.08)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...(Platform.OS === 'web'
+      ? ({ backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)' } as object)
+      : {}),
+    ...SHADOWS.floating,
+  },
+  roundControlBtnActive: {
+    backgroundColor: COLORS.ink,
+    borderColor: COLORS.ink,
+  },
+  roundControlBtn3DActive: {
+    backgroundColor: COLORS.accent,
+    borderColor: COLORS.accent,
+  },
+  toggle3DText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.ink,
+    letterSpacing: 0.3,
+  },
+  toggle3DTextActive: {
+    color: COLORS.white,
+  },
+  stylePopover: {
+    width: 186,
+    backgroundColor: 'rgba(255, 255, 255, 0.98)',
+    borderRadius: RADII.lg,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    padding: SPACING.xs + 2,
+    gap: 2,
+    ...SHADOWS.floating,
+  },
+  stylePopoverHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: 5,
+  },
+  stylePopoverTitle: {
     fontSize: 10.5,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    color: COLORS.inkMuted,
+  },
+  styleOptionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: 8,
+    borderRadius: RADII.md,
+  },
+  styleOptionRowActive: {
+    backgroundColor: COLORS.accentSoft,
+  },
+  styleOptionText: {
+    fontSize: 12.5,
     fontWeight: '600',
     color: COLORS.inkSecondary,
+  },
+  styleOptionTextActive: {
+    color: COLORS.accent,
+    fontWeight: '700',
+  },
+  popoverDivider: {
+    height: 1,
+    backgroundColor: COLORS.border,
+    marginVertical: 4,
+    marginHorizontal: SPACING.xs,
+  },
+  tokenActionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: 8,
+    borderRadius: RADII.md,
+  },
+  tokenActionText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.gpsBlue,
   },
   rightControls: {
     position: 'absolute',
@@ -1391,24 +3778,48 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   rightControlsRaised: {
-    bottom: 215,
+    bottom: 220,
   },
-  fabButton: {
+  recenterNavWrap: {
+    position: 'absolute',
+    left: SPACING.md,
+    bottom: 228,
+    zIndex: 18,
+  },
+  recenterNavBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
-    backgroundColor: 'rgba(255, 255, 255, 0.96)',
-    borderRadius: RADII.lg,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    paddingHorizontal: 10,
+    gap: 6,
+    backgroundColor: COLORS.gpsBlue,
+    borderRadius: RADII.pill,
+    paddingHorizontal: 14,
     paddingVertical: 9,
     ...SHADOWS.floating,
   },
-  fabLabel: {
-    fontSize: 11,
+  recenterNavText: {
+    fontSize: 12,
     fontWeight: '700',
-    color: COLORS.ink,
+    color: COLORS.white,
+  },
+  zoomGroup: {
+    width: 42,
+    borderRadius: 21,
+    backgroundColor: 'rgba(255, 255, 255, 0.96)',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    overflow: 'hidden',
+    ...SHADOWS.floating,
+  },
+  zoomBtn: {
+    width: 40,
+    height: 38,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  zoomDivider: {
+    height: 1,
+    backgroundColor: COLORS.border,
+    marginHorizontal: 8,
   },
   loadingWrap: {
     position: 'absolute',
@@ -1443,11 +3854,14 @@ const styles = StyleSheet.create({
     zIndex: 20,
   },
   previewCard: {
-    backgroundColor: COLORS.surface,
-    borderRadius: RADII.xl,
+    backgroundColor: 'rgba(250, 249, 246, 0.96)',
+    borderRadius: 24,
     borderWidth: 1,
-    borderColor: COLORS.border,
-    padding: SPACING.md,
+    borderColor: 'rgba(20, 20, 19, 0.08)',
+    padding: SPACING.md + 2,
+    ...(Platform.OS === 'web'
+      ? ({ backdropFilter: 'blur(18px)', WebkitBackdropFilter: 'blur(18px)' } as object)
+      : {}),
     ...SHADOWS.floating,
   },
   previewCardRow: {
@@ -1455,12 +3869,12 @@ const styles = StyleSheet.create({
     gap: SPACING.md,
   },
   previewThumb: {
-    width: 78,
-    height: 84,
-    borderRadius: RADII.lg,
+    width: 84,
+    height: 90,
+    borderRadius: 16,
     backgroundColor: COLORS.surfaceMuted,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: 'rgba(15, 23, 42, 0.06)',
   },
   previewInfo: {
     flex: 1,
@@ -1543,9 +3957,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 5,
     backgroundColor: COLORS.ink,
-    borderRadius: RADII.md,
-    paddingVertical: 8,
-    paddingHorizontal: 10,
+    borderRadius: RADII.pill,
+    paddingVertical: 9,
+    paddingHorizontal: 12,
   },
   btnDarkText: {
     fontSize: 12,
@@ -1559,9 +3973,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 5,
     backgroundColor: COLORS.accent,
-    borderRadius: RADII.md,
-    paddingVertical: 8,
-    paddingHorizontal: 10,
+    borderRadius: RADII.pill,
+    paddingVertical: 9,
+    paddingHorizontal: 12,
   },
   btnAccentText: {
     fontSize: 12,
@@ -1574,6 +3988,19 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     color: COLORS.accent,
+  },
+  overtureBadge: {
+    backgroundColor: '#FFF7ED',
+    borderColor: '#FDBA74',
+    borderWidth: 1,
+    borderRadius: RADII.pill,
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+  },
+  overtureBadgeText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#C2410C',
   },
   restaurantName: {
     fontSize: 15,
@@ -1609,7 +4036,7 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: RADII.md,
-    backgroundColor: COLORS.accent,
+    backgroundColor: COLORS.gpsBlue,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 2,
@@ -1627,7 +4054,7 @@ const styles = StyleSheet.create({
   navStatusLabel: {
     fontSize: 11,
     fontWeight: '700',
-    color: COLORS.accent,
+    color: COLORS.gpsBlue,
   },
   timerBadge: {
     flexDirection: 'row',
@@ -1705,7 +4132,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: COLORS.white,
   },
-  navGmapsBtn: {
+  navExternalBtn: {
     width: 38,
     height: 36,
     borderRadius: RADII.md,
@@ -1800,6 +4227,94 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: COLORS.inkMuted,
     marginTop: 1,
+  },
+  tokenBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(20, 20, 19, 0.48)',
+    justifyContent: 'center',
+    padding: SPACING.lg,
+  },
+  tokenModalCard: {
+    backgroundColor: COLORS.surface,
+    borderRadius: RADII.xl,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    padding: SPACING.lg,
+    gap: SPACING.md,
+    ...SHADOWS.floating,
+  },
+  tokenModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: SPACING.sm,
+  },
+  tokenModalTitle: {
+    fontFamily: SERIF_FONT,
+    fontSize: 18,
+    fontWeight: '700',
+    color: COLORS.ink,
+  },
+  tokenModalSub: {
+    fontSize: 12.5,
+    color: COLORS.inkSecondary,
+    lineHeight: 18,
+    marginTop: 4,
+  },
+  tokenInput: {
+    backgroundColor: COLORS.bg,
+    borderWidth: 1,
+    borderColor: COLORS.borderStrong,
+    borderRadius: RADII.md,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 13,
+    color: COLORS.ink,
+  },
+  tokenErrorText: {
+    fontSize: 12,
+    color: COLORS.accent,
+    fontWeight: '600',
+  },
+  tokenHintText: {
+    fontSize: 11.5,
+    color: COLORS.inkMuted,
+    lineHeight: 16,
+  },
+  tokenModalActions: {
+    flexDirection: 'row',
+    gap: SPACING.sm,
+  },
+  tokenSecondaryBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: COLORS.bg,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: RADII.md,
+    paddingVertical: 10,
+  },
+  tokenSecondaryBtnText: {
+    fontSize: 12.5,
+    fontWeight: '600',
+    color: COLORS.ink,
+  },
+  tokenPrimaryBtn: {
+    flex: 1.4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: COLORS.ink,
+    borderRadius: RADII.md,
+    paddingVertical: 10,
+  },
+  tokenPrimaryBtnText: {
+    fontSize: 12.5,
+    fontWeight: '700',
+    color: COLORS.white,
   },
 });
 

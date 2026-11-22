@@ -5,10 +5,12 @@ from __future__ import annotations
 from functools import lru_cache
 from pathlib import Path
 from typing import List
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 BACKEND_ROOT = Path(__file__).resolve().parents[2]
+_PRISMA_ONLY_QUERY_PARAMS = {"pgbouncer", "schema", "connection_limit", "pool_timeout"}
 
 
 class Settings(BaseSettings):
@@ -27,8 +29,9 @@ class Settings(BaseSettings):
     DEBUG: bool = True
     API_V1_PREFIX: str = "/api/v1"
 
-    # Database: Supabase PostgreSQL or local SQLite fallback
+    # Database: Supabase PostgreSQL (dùng chung cho cả Prisma ORM và FastAPI SQLAlchemy) hoặc SQLite fallback
     DATABASE_URL: str = f"sqlite+aiosqlite:///{(BACKEND_ROOT / 'local_dev.db').as_posix()}"
+    DIRECT_URL: str = ""
 
     # Supabase Cloud (optional in local dev)
     SUPABASE_URL: str = ""
@@ -66,13 +69,30 @@ class Settings(BaseSettings):
 
     @property
     def async_database_url(self) -> str:
+        fallback_sqlite = f"sqlite+aiosqlite:///{(BACKEND_ROOT / 'local_dev.db').as_posix()}"
         url = (self.DATABASE_URL or "").strip()
-        if not url:
-            return f"sqlite+aiosqlite:///{(BACKEND_ROOT / 'local_dev.db').as_posix()}"
+        if not url or "[YOUR-PASSWORD]" in url or "<password>" in url:
+            return fallback_sqlite
         if url.startswith("postgres://"):
-            return "postgresql+asyncpg://" + url[len("postgres://") :]
-        if url.startswith("postgresql://") and "+asyncpg" not in url:
-            return "postgresql+asyncpg://" + url[len("postgresql://") :]
+            url = "postgresql+asyncpg://" + url[len("postgres://") :]
+        elif url.startswith("postgresql://") and "+asyncpg" not in url:
+            url = "postgresql+asyncpg://" + url[len("postgresql://") :]
+
+        # Loại bỏ các query params chỉ dành riêng cho Prisma/PgBouncer (?pgbouncer=true, ?schema=public...)
+        # để asyncpg không báo lỗi unexpected keyword argument khi dùng chung backend/.env với Prisma.
+        if url.startswith("postgresql") and "?" in url:
+            try:
+                parts = urlsplit(url)
+                filtered = [
+                    (k, v)
+                    for k, v in parse_qsl(parts.query, keep_blank_values=True)
+                    if k.lower() not in _PRISMA_ONLY_QUERY_PARAMS
+                ]
+                url = urlunsplit(
+                    (parts.scheme, parts.netloc, parts.path, urlencode(filtered), parts.fragment)
+                )
+            except ValueError:
+                return fallback_sqlite
         return url
 
     @property
