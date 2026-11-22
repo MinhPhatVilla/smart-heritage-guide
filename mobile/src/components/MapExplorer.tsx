@@ -1032,18 +1032,30 @@ function buildExplorerMapHtml(
         function buildPinPhotoCandidates(rawUrl) {
           if (!rawUrl) return [];
           var clean = String(rawUrl).split('?')[0];
-          clean = clean.replace(/^https:\/\/thumb\.wikimedia\.org\//, 'https://upload.wikimedia.org/');
+          if (clean.indexOf('https://thumb.wikimedia.org/') === 0) {
+            clean = 'https://upload.wikimedia.org/' + clean.slice('https://thumb.wikimedia.org/'.length);
+          }
 
           var thumbUrl = '';
-          if (clean.indexOf('https://upload.wikimedia.org/wikipedia/commons/thumb/') === 0) {
-            thumbUrl = clean.replace(/\/\d+px-([^/]+)$/, '/250px-$1');
-          } else {
-            var m = clean.match(/^https:\/\/upload\.wikimedia\.org\/wikipedia\/commons\/([0-9a-f]\/[0-9a-f]{2})\/([^/]+)$/i);
-            if (m) {
-              var fname = m[2];
+          var thumbPrefix = 'https://upload.wikimedia.org/wikipedia/commons/thumb/';
+          var directPrefix = 'https://upload.wikimedia.org/wikipedia/commons/';
+          if (clean.indexOf(thumbPrefix) === 0) {
+            var lastSlash = clean.lastIndexOf('/');
+            var basePart = clean.slice(0, lastSlash + 1);
+            var leaf = clean.slice(lastSlash + 1);
+            var pxIdx = leaf.indexOf('px-');
+            if (pxIdx > 0 && pxIdx <= 5) {
+              thumbUrl = basePart + '250px-' + leaf.slice(pxIdx + 3);
+            }
+          } else if (clean.indexOf(directPrefix) === 0) {
+            var rel = clean.slice(directPrefix.length);
+            var segs = rel.split('/');
+            if (segs.length === 3 && segs[0].length === 1 && segs[1].length === 2) {
+              var fname = segs[2];
               var ext = fname.toLowerCase();
-              var thumbName = (ext.endsWith('.png') || ext.endsWith('.jpg') || ext.endsWith('.jpeg')) ? ('250px-' + fname) : ('250px-' + fname + '.jpg');
-              thumbUrl = 'https://upload.wikimedia.org/wikipedia/commons/thumb/' + m[1] + '/' + fname + '/' + thumbName;
+              var isStandardExt = ext.indexOf('.jpg') === ext.length - 4 || ext.indexOf('.jpeg') === ext.length - 5 || ext.indexOf('.png') === ext.length - 4;
+              var thumbName = isStandardExt ? ('250px-' + fname) : ('250px-' + fname + '.jpg');
+              thumbUrl = thumbPrefix + segs[0] + '/' + segs[1] + '/' + fname + '/' + thumbName;
             }
           }
 
