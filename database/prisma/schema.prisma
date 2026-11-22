@@ -1,0 +1,207 @@
+// =============================================================================
+// Smart Heritage Guide — Prisma ORM Schema (PostgreSQL / Supabase / Neon)
+// Khớp 100% tên bảng và tên cột với Backend FastAPI (SQLAlchemy) & SQL Migration.
+// Chỉ cần dán DATABASE_URL vào database/.env và chạy `npm run db:setup`.
+// =============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  // Bỏ comment dòng dưới nếu dùng Supabase Transaction Pooler (6543) + Direct URL (5432) cho migrate:
+  // directUrl = env("DIRECT_URL")
+}
+
+/// Hồ sơ người dùng (đồng bộ với Supabase Auth hoặc JWT cục bộ)
+model Profile {
+  id                          String   @id @default(uuid()) @db.Uuid
+  email                       String?  @unique @db.VarChar(255)
+  passwordHash                String?  @map("password_hash") @db.VarChar(255)
+  displayName                 String   @default("Khách Du Lịch") @map("display_name") @db.VarChar(128)
+  avatarUrl                   String?  @map("avatar_url") @db.Text
+  role                        String   @default("user") @db.VarChar(32)
+  preferredLanguage           String   @default("vi") @map("preferred_language") @db.VarChar(8)
+  preferredCategories         Json     @default("[]") @map("preferred_categories") @db.JsonB
+  totalVerifiedWalkingSeconds Int      @default(0) @map("total_verified_walking_seconds")
+  totalVerifiedWalkingMeters  Int      @default(0) @map("total_verified_walking_meters")
+  verifiedSitesCount          Int      @default(0) @map("verified_sites_count")
+  createdAt                   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  journeys   VisitedJourney[]
+  photos     JourneyPhoto[]
+  userBadges UserBadge[]
+
+  @@index([role], map: "idx_profiles_role")
+  @@index([totalVerifiedWalkingSeconds(sort: Desc)], map: "idx_profiles_leaderboard_time")
+  @@index([totalVerifiedWalkingMeters(sort: Desc)], map: "idx_profiles_leaderboard_dist")
+  @@index([verifiedSitesCount(sort: Desc)], map: "idx_profiles_leaderboard_sites")
+  @@map("profiles")
+}
+
+/// Danh mục Di tích & Di sản TP. Hồ Chí Minh (20 địa điểm, 5 ngôn ngữ)
+model HeritageSite {
+  id                      String   @id @db.VarChar(128)
+  city                    String   @db.VarChar(128)
+  district                String?  @db.VarChar(128)
+  lat                     Float
+  lng                     Float
+  category                String   @db.VarChar(32)
+  unescoRecognized        Boolean  @default(false) @map("unesco_recognized")
+  nationalSpecialMonument Boolean  @default(false) @map("national_special_monument")
+  rating                  Float    @default(4.5)
+  reviewCount             Int      @default(0) @map("review_count")
+  ticketPrice             String   @default("Miễn phí tham quan") @map("ticket_price") @db.VarChar(255)
+  address                 String?  @db.VarChar(500)
+  coverImage              String   @default("") @map("cover_image") @db.Text
+  recommendedVisitMinutes Int      @default(45) @map("recommended_visit_minutes")
+  translations            Json     @default("{}") @db.JsonB
+  mediaGallery            Json     @default("[]") @map("media_gallery") @db.JsonB
+  updatedAt               DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  restaurants     Restaurant[]
+  knowledgeChunks HeritageKnowledgeChunk[]
+  journeys        VisitedJourney[]
+  photos          JourneyPhoto[]
+
+  @@index([category], map: "idx_heritage_sites_category")
+  @@index([district], map: "idx_heritage_sites_district")
+  @@map("heritage_sites")
+}
+
+/// Địa điểm ẩm thực lân cận từng di tích
+model Restaurant {
+  id              String @id @db.VarChar(128)
+  siteId          String @map("site_id") @db.VarChar(128)
+  name            String @db.VarChar(255)
+  cuisine         String @default("") @db.VarChar(255)
+  specialtyDishes Json   @default("[]") @map("specialty_dishes") @db.JsonB
+  rating          Float  @default(4.5)
+  reviewCount     Int    @default(0) @map("review_count")
+  priceRange      String @default("") @map("price_range") @db.VarChar(128)
+  lat             Float
+  lng             Float
+  address         String @default("") @db.VarChar(500)
+  openHours       String @default("07:00 – 21:00") @map("open_hours") @db.VarChar(128)
+  mealSlots       Json   @default("[\"lunch\", \"dinner\"]") @map("meal_slots") @db.JsonB
+  imageUrl        String @default("") @map("image_url") @db.Text
+
+  site HeritageSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@index([siteId], map: "idx_restaurants_site_id")
+  @@index([rating(sort: Desc)], map: "idx_restaurants_rating")
+  @@map("restaurants")
+}
+
+/// Cơ sở tri thức phân mảnh đa ngôn ngữ cho RAG AI Chatbot
+model HeritageKnowledgeChunk {
+  id            String @id @default(uuid()) @db.Uuid
+  siteId        String @map("site_id") @db.VarChar(128)
+  language      String @default("vi") @db.VarChar(8)
+  sourceType    String @default("summary") @map("source_type") @db.VarChar(32)
+  content       String @db.Text
+  embeddingJson Json?  @map("embedding_json") @db.JsonB
+
+  site HeritageSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@index([siteId, language], map: "idx_knowledge_chunks_site_lang")
+  @@index([sourceType], map: "idx_knowledge_chunks_source_type")
+  @@map("heritage_knowledge_chunks")
+}
+
+/// Nhật ký hành trình đi bộ & check-in có điểm xác thực chống gian lận GPS
+model VisitedJourney {
+  id                     String   @id @default(uuid()) @db.Uuid
+  userId                 String   @map("user_id") @db.Uuid
+  siteId                 String   @map("site_id") @db.VarChar(128)
+  visitedAt              DateTime @default(now()) @map("visited_at") @db.Timestamptz(6)
+  walkingDurationSeconds Int      @default(0) @map("walking_duration_seconds")
+  walkingDistanceMeters  Int      @default(0) @map("walking_distance_meters")
+  routeCoordinates       Json     @default("[]") @map("route_coordinates") @db.JsonB
+  userNote               String   @default("") @map("user_note") @db.Text
+  userRating             Int      @default(5) @map("user_rating")
+  verificationStatus     String   @default("verified") @map("verification_status") @db.VarChar(32)
+  verificationScore      Float    @default(100.0) @map("verification_score")
+  verificationDetails    Json     @default("{}") @map("verification_details") @db.JsonB
+
+  user   Profile        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  site   HeritageSite   @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  photos JourneyPhoto[]
+
+  @@index([userId, visitedAt(sort: Desc)], map: "idx_visited_journeys_user_id")
+  @@index([siteId], map: "idx_visited_journeys_site_id")
+  @@index([verificationStatus], map: "idx_visited_journeys_status")
+  @@map("visited_journeys")
+}
+
+/// Ảnh kỷ niệm check-in gắn với hành trình và kết quả Vision AI
+model JourneyPhoto {
+  id                              String   @id @default(uuid()) @db.Uuid
+  journeyId                       String   @map("journey_id") @db.Uuid
+  userId                          String   @map("user_id") @db.Uuid
+  siteId                          String   @map("site_id") @db.VarChar(128)
+  storagePath                     String   @default("") @map("storage_path") @db.VarChar(512)
+  publicUrl                       String   @default("") @map("public_url") @db.Text
+  caption                         String   @default("") @db.Text
+  lat                             Float    @default(0.0)
+  lng                             Float    @default(0.0)
+  walkingDurationSecondsAtCapture Int      @default(0) @map("walking_duration_seconds_at_capture")
+  visionDetectedSiteId            String?  @map("vision_detected_site_id") @db.VarChar(128)
+  visionConfidence                Float?   @map("vision_confidence")
+  takenAt                         DateTime @default(now()) @map("taken_at") @db.Timestamptz(6)
+
+  journey VisitedJourney @relation(fields: [journeyId], references: [id], onDelete: Cascade)
+  user    Profile        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  site    HeritageSite   @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@index([journeyId], map: "idx_journey_photos_journey_id")
+  @@index([userId], map: "idx_journey_photos_user_id")
+  @@index([siteId], map: "idx_journey_photos_site_id")
+  @@map("journey_photos")
+}
+
+/// Danh mục 6 Huy hiệu thành tựu
+model Badge {
+  code          String @id @db.VarChar(64)
+  titleVi       String @map("title_vi") @db.VarChar(128)
+  titleEn       String @map("title_en") @db.VarChar(128)
+  descriptionVi String @map("description_vi") @db.Text
+  iconName      String @default("award") @map("icon_name") @db.VarChar(64)
+  ruleConfig    Json   @default("{}") @map("rule_config") @db.JsonB
+
+  userBadges UserBadge[]
+
+  @@map("badges")
+}
+
+/// Huy hiệu người dùng đã mở khóa
+model UserBadge {
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String   @map("user_id") @db.Uuid
+  badgeCode  String   @map("badge_code") @db.VarChar(64)
+  unlockedAt DateTime @default(now()) @map("unlocked_at") @db.Timestamptz(6)
+
+  user  Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badge Badge   @relation(fields: [badgeCode], references: [code], onDelete: Cascade)
+
+  @@unique([userId, badgeCode], map: "uq_user_badge")
+  @@index([userId], map: "idx_user_badges_user_id")
+  @@map("user_badges")
+}
+
+/// Bộ nhớ đệm lộ trình đi bộ (Routing Proxy Cache)
+model RouteCache {
+  cacheKey     String   @id @map("cache_key") @db.VarChar(128)
+  originLat    Float    @map("origin_lat")
+  originLng    Float    @map("origin_lng")
+  destLat      Float    @map("dest_lat")
+  destLng      Float    @map("dest_lng")
+  provider     String   @default("osrm") @db.VarChar(32)
+  routePayload Json     @map("route_payload") @db.JsonB
+  expiresAt    DateTime @map("expires_at") @db.Timestamptz(6)
+
+  @@index([expiresAt], map: "idx_route_cache_expires_at")
+  @@map("route_cache")
+}

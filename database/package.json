@@ -1,0 +1,30 @@
+{
+  "name": "smart-heritage-guide-db",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Prisma ORM schema, PostgreSQL migrations, and idempotent seeder for Smart Heritage Guide (100% compatible with Supabase & FastAPI Backend).",
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  },
+  "scripts": {
+    "db:generate": "prisma generate",
+    "db:validate": "prisma validate",
+    "db:push": "prisma db push",
+    "db:migrate": "prisma migrate dev",
+    "db:migrate:deploy": "prisma migrate deploy",
+    "db:seed": "tsx prisma/seed.ts",
+    "db:studio": "prisma studio",
+    "db:setup": "prisma generate && prisma db push && tsx prisma/seed.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.6.0",
+    "dotenv": "^16.4.7"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "prisma": "^6.6.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.8.3"
+  }
+}
