@@ -262,7 +262,19 @@ function buildExplorerMapHtml(
       height: 100%;
       background: ${initialCanvasBg};
       overflow: hidden;
+      touch-action: none;
+      overscroll-behavior: none;
+      -webkit-user-select: none;
+      user-select: none;
       font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+    }
+    #map, .mapboxgl-canvas, .maplibregl-canvas {
+      transform: translate3d(0, 0, 0);
+      will-change: transform;
+    }
+    .mapboxgl-marker, .maplibregl-marker {
+      will-change: transform;
+      contain: layout style;
     }
     .mapboxgl-map, .maplibregl-map, .leaflet-container {
       background: ${initialCanvasBg};
@@ -945,6 +957,9 @@ function buildExplorerMapHtml(
         var lastRestaurantsSig = '';
 
         var dpr = typeof window.devicePixelRatio === 'number' ? window.devicePixelRatio : 1;
+        function easeOutQuint(t) {
+          return 1 - Math.pow(1 - t, 5);
+        }
         var mapInitOpts = {
           container: 'map',
           style: resolveGlStyle(INITIAL_TILE),
@@ -956,11 +971,20 @@ function buildExplorerMapHtml(
           pitch: 50,
           bearing: -15,
           maxPitch: 70,
-          // Trên màn hình HiDPI/Retina (>=1.5x), tắt MSAA antialias giúp tăng 30-50% FPS khi phóng to thu nhỏ mà vẫn sắc nét
-          antialias: dpr < 1.5,
+          // Quán tính kéo mượt kiểu game 120fps (lướt nhẹ có đà, giảm tốc êm không khựng)
+          dragPan: {
+            linearity: 0.12,
+            easing: easeOutQuint,
+            maxSpeed: 2600,
+            deceleration: 1850
+          },
+          // Tắt MSAA trên màn hình HiDPI & cross-source collision để giữ ổn định 60-120fps khi zoom 3D
+          antialias: dpr < 1.25,
+          crossSourceCollisions: false,
           fadeDuration: 0,
-          maxTileCacheSize: 160,
+          maxTileCacheSize: 320,
           collectResourceTiming: false,
+          performanceMetricsCollection: false,
           preserveDrawingBuffer: false,
           refreshExpiredTiles: false,
           attributionControl: true
@@ -985,21 +1009,21 @@ function buildExplorerMapHtml(
         }
         var map = new gl.Map(mapInitOpts);
 
-        // Giới hạn pixelRatio tối đa 2x (màn hình 3x iPhone/Android giảm 56% tải GPU fragment shader khi zoom!)
+        // Giới hạn pixelRatio tối đa 1.75x (giảm ~40-65% tải GPU fragment shader trên Retina/3x để khóa 90-120fps mượt mà!)
         try {
-          if (typeof map.setPixelRatio === 'function' && dpr > 2) {
-            map.setPixelRatio(2);
+          if (typeof map.setPixelRatio === 'function' && dpr > 1.75) {
+            map.setPixelRatio(1.75);
           }
         } catch (e) {}
 
-        // Tối ưu độ nhạy & độ mượt khi lăn chuột / phóng to thu nhỏ
+        // Tối ưu độ nhạy & độ mượt khi lăn chuột / chụm tay phóng to thu nhỏ
         try {
           if (map.scrollZoom) {
             if (typeof map.scrollZoom.setWheelZoomRate === 'function') {
-              map.scrollZoom.setWheelZoomRate(1 / 250);
+              map.scrollZoom.setWheelZoomRate(1 / 340);
             }
             if (typeof map.scrollZoom.setZoomRate === 'function') {
-              map.scrollZoom.setZoomRate(1 / 90);
+              map.scrollZoom.setZoomRate(1 / 115);
             }
           }
         } catch (e) {}
@@ -2001,25 +2025,174 @@ function buildExplorerMapHtml(
           }
         }
 
+        // =========================================================================
+        // 120 FPS VSync requestAnimationFrame Critically-Damped Game Camera Engine
+        // =========================================================================
+        var springCam = {
+          rafId: null,
+          lastTs: 0,
+          followCam: false,
+          isSim: false,
+          initialized: false,
+          curLat: INITIAL_CENTER[0],
+          curLng: INITIAL_CENTER[1],
+          tgtLat: INITIAL_CENTER[0],
+          tgtLng: INITIAL_CENTER[1],
+          curBearing: 0,
+          tgtBearing: 0,
+          hasBearing: false,
+          curZoom: 18.0,
+          tgtZoom: 18.0,
+          curPitch: 60,
+          tgtPitch: 60
+        };
+
+        function shortestAngleDelta(fromDeg, toDeg) {
+          var d = ((toDeg - fromDeg + 540) % 360) - 180;
+          return d;
+        }
+
+        function stopSpringCameraFollow() {
+          springCam.followCam = false;
+        }
+
+        function tickSpringCamera(now) {
+          springCam.rafId = null;
+          var dt = springCam.lastTs ? Math.min(0.05, Math.max(0.002, (now - springCam.lastTs) / 1000)) : 0.016;
+          springCam.lastTs = now;
+
+          // Nội suy hàm mũ bất biến theo FPS (chạy chuẩn tốc độ trên 60Hz, 90Hz, 120Hz ProMotion & 144Hz)
+          var posLambda = springCam.isSim ? 9.5 : 7.5;
+          var rotLambda = springCam.isSim ? 7.5 : 6.0;
+          var camLambda = 5.5;
+          var posAlpha = 1 - Math.exp(-posLambda * dt);
+          var rotAlpha = 1 - Math.exp(-rotLambda * dt);
+          var camAlpha = 1 - Math.exp(-camLambda * dt);
+
+          var dLat = springCam.tgtLat - springCam.curLat;
+          var dLng = springCam.tgtLng - springCam.curLng;
+          springCam.curLat += dLat * posAlpha;
+          springCam.curLng += dLng * posAlpha;
+
+          var dAng = 0;
+          if (springCam.hasBearing) {
+            dAng = shortestAngleDelta(springCam.curBearing, springCam.tgtBearing);
+            springCam.curBearing = (springCam.curBearing + dAng * rotAlpha + 360) % 360;
+          }
+
+          var dZoom = springCam.tgtZoom - springCam.curZoom;
+          var dPitch = springCam.tgtPitch - springCam.curPitch;
+          springCam.curZoom += dZoom * camAlpha;
+          springCam.curPitch += dPitch * camAlpha;
+
+          // Cập nhật vị trí & hướng mũi tên người dùng đồng bộ 1:1 với VSync GPU
+          if (userMarker) {
+            userMarker.setLngLat([springCam.curLng, springCam.curLat]);
+            if (springCam.hasBearing && typeof userMarker.setRotation === 'function') {
+              userMarker.setRotation(springCam.curBearing);
+            }
+          }
+
+          // Nếu đang theo sát dẫn đường -> jumpTo trực tiếp trong cùng frame VSync (0ms giật easeTo!)
+          if (springCam.followCam && isFollowingNav && !isInteracting) {
+            try {
+              var jumpOpts = {
+                center: [springCam.curLng, springCam.curLat],
+                zoom: springCam.curZoom,
+                pitch: springCam.curPitch,
+                padding: { top: 230, bottom: 185, left: 0, right: 0 }
+              };
+              if (springCam.hasBearing) {
+                jumpOpts.bearing = springCam.curBearing;
+              }
+              map.jumpTo(jumpOpts);
+            } catch (e) {}
+          }
+
+          var settledPos = Math.abs(dLat) < 1e-7 && Math.abs(dLng) < 1e-7;
+          var settledRot = !springCam.hasBearing || Math.abs(dAng) < 0.08;
+          var settledCam = !springCam.followCam || (Math.abs(dZoom) < 0.005 && Math.abs(dPitch) < 0.08);
+
+          if (!settledPos || !settledRot || !settledCam) {
+            springCam.rafId = window.requestAnimationFrame(tickSpringCamera);
+          } else {
+            // Chốt vị trí chính xác & tự ngủ để tiết kiệm 100% GPU khi đứng yên
+            springCam.curLat = springCam.tgtLat;
+            springCam.curLng = springCam.tgtLng;
+            if (userMarker) {
+              userMarker.setLngLat([springCam.curLng, springCam.curLat]);
+            }
+            springCam.lastTs = 0;
+          }
+        }
+
+        function feedSpringCamera(coords, heading, followCam, isSim) {
+          var lat = coords[0];
+          var lng = coords[1];
+          var jumpDist = Math.abs(lat - springCam.curLat) + Math.abs(lng - springCam.curLng);
+
+          if (!springCam.initialized || jumpDist > 0.04) {
+            springCam.initialized = true;
+            springCam.curLat = lat;
+            springCam.curLng = lng;
+            if (typeof heading === 'number' && !isNaN(heading)) {
+              springCam.curBearing = heading;
+              springCam.tgtBearing = heading;
+              springCam.hasBearing = true;
+            }
+            springCam.curZoom = map.getZoom();
+            springCam.curPitch = map.getPitch();
+          }
+
+          springCam.tgtLat = lat;
+          springCam.tgtLng = lng;
+          springCam.followCam = Boolean(followCam);
+          springCam.isSim = Boolean(isSim);
+          if (typeof heading === 'number' && !isNaN(heading)) {
+            if (!springCam.hasBearing) {
+              springCam.curBearing = heading;
+            }
+            springCam.tgtBearing = heading;
+            springCam.hasBearing = true;
+          }
+          if (followCam) {
+            springCam.curZoom = map.getZoom();
+            springCam.curPitch = map.getPitch();
+            var mode = (lastRouteData && lastRouteData.travelMode) || 'walking';
+            springCam.tgtZoom = mode === 'car' ? 16.4 : (mode === 'motorbike' ? 17.1 : 17.9);
+            springCam.tgtPitch = is3DEnabled ? 60 : 0;
+          }
+
+          if (!springCam.rafId) {
+            springCam.lastTs = 0;
+            springCam.rafId = window.requestAnimationFrame(tickSpringCamera);
+          }
+        }
+
         function engageNavCamera(coords, heading, durationMs, linear) {
           var targetBearing = (typeof heading === 'number' && !isNaN(heading))
             ? heading
             : map.getBearing();
-          var opts = {
+          if (linear) {
+            // Chế độ di chuyển liên tục -> giao toàn quyền cho vòng lặp 120 FPS VSync Spring Camera!
+            feedSpringCamera(coords, targetBearing, true, true);
+            return;
+          }
+          stopSpringCameraFollow();
+          var mode = (lastRouteData && lastRouteData.travelMode) || 'walking';
+          var targetZoom = mode === 'car' ? 16.4 : (mode === 'motorbike' ? 17.1 : 17.9);
+          map.easeTo({
             center: [coords[1], coords[0]],
-            zoom: 18.0,
-            pitch: is3DEnabled ? 62 : 0,
+            zoom: targetZoom,
+            pitch: is3DEnabled ? 60 : 0,
             bearing: targetBearing,
             padding: { top: 230, bottom: 185, left: 0, right: 0 },
-            duration: durationMs
-          };
-          if (linear) {
-            opts.easing = function(t) { return t; };
-          }
-          map.easeTo(opts);
+            duration: durationMs,
+            easing: easeOutQuint
+          });
         }
 
-        function ensureUserMarker(coords, heading, isNavigating) {
+        function ensureUserMarker(coords, heading, isNavigating, isSim) {
           if (!userMarker) {
             userMarkerEl = createUserMarkerElement();
             userMarker = new gl.Marker({
@@ -2031,13 +2204,23 @@ function buildExplorerMapHtml(
             })
               .setLngLat([coords[1], coords[0]])
               .addTo(map);
+            springCam.initialized = true;
+            springCam.curLat = coords[0];
+            springCam.curLng = coords[1];
+            springCam.tgtLat = coords[0];
+            springCam.tgtLng = coords[1];
 
             userMarker.on('dragend', function() {
               var ll = userMarker.getLngLat();
+              springCam.curLat = ll.lat;
+              springCam.curLng = ll.lng;
+              springCam.tgtLat = ll.lat;
+              springCam.tgtLng = ll.lng;
               postToHost({ type: 'USER_DRAG', lat: ll.lat, lng: ll.lng });
             });
           } else {
-            userMarker.setLngLat([coords[1], coords[0]]);
+            // Luôn trượt marker mượt theo VSync 120fps thay vì giật cục từng bước
+            feedSpringCamera(coords, heading, false, Boolean(isSim));
           }
           updateUserHeadingVisual(heading, isNavigating);
         }
@@ -2287,10 +2470,12 @@ function buildExplorerMapHtml(
                     var coords = top.geometry && top.geometry.coordinates;
                     postToHost({ type: 'SITE_CLICK', siteId: String(props.id) });
                     if (coords && coords.length >= 2) {
+                      stopSpringCameraFollow();
                       map.easeTo({
                         center: [coords[0], coords[1]],
                         zoom: Math.max(map.getZoom(), 15.8),
-                        duration: 420
+                        duration: 420,
+                        easing: easeOutQuint
                       });
                     }
                     return;
@@ -2380,12 +2565,16 @@ function buildExplorerMapHtml(
           });
         });
 
-        map.on('dragstart', function() {
+        function handleUserGestureInterrupt() {
+          stopSpringCameraFollow();
           if (isFollowingNav) {
             isFollowingNav = false;
             postToHost({ type: 'NAV_FOLLOW_CHANGED', following: false });
           }
-        });
+        }
+        map.on('dragstart', handleUserGestureInterrupt);
+        map.on('rotatestart', handleUserGestureInterrupt);
+        map.on('pitchstart', handleUserGestureInterrupt);
 
         window.__SHG_UPDATE__ = function(state) {
           if (!state) return;
@@ -2520,9 +2709,9 @@ function buildExplorerMapHtml(
               });
             }
           } else if (cmd.type === 'ZOOM_IN') {
-            map.zoomIn({ duration: 180 });
+            map.zoomIn({ duration: 220, easing: easeOutQuint });
           } else if (cmd.type === 'ZOOM_OUT') {
-            map.zoomOut({ duration: 180 });
+            map.zoomOut({ duration: 220, easing: easeOutQuint });
           } else if (cmd.type === 'UPDATE_USER') {
             var hasActiveRoute = Boolean(lastRouteData && Array.isArray(lastRouteData.coordinates) && lastRouteData.coordinates.length >= 2);
             if (typeof cmd.followNav === 'boolean') {
@@ -2535,23 +2724,25 @@ function buildExplorerMapHtml(
             }
             if (Array.isArray(cmd.userLocation) && cmd.userLocation.length === 2) {
               lastKnownUser = cmd.userLocation;
-              ensureUserMarker(cmd.userLocation, lastKnownHeading, hasActiveRoute);
+              ensureUserMarker(cmd.userLocation, lastKnownHeading, hasActiveRoute, Boolean(cmd.isSimulatingWalk));
               syncRadiusLayer(cmd.userLocation, hasActiveRoute ? 0 : (cmd.searchRadiusMeters || 0), false);
               if (hasActiveRoute && isFollowingNav) {
-                engageNavCamera(
+                feedSpringCamera(
                   cmd.userLocation,
                   lastKnownHeading,
-                  cmd.isSimulatingWalk ? 260 : 400,
+                  true,
                   Boolean(cmd.isSimulatingWalk)
                 );
               } else {
+                stopSpringCameraFollow();
                 var latD = Math.abs(prevUserCenter[0] - cmd.userLocation[0]);
                 var lngD = Math.abs(prevUserCenter[1] - cmd.userLocation[1]);
                 if (latD > 0.012 || lngD > 0.012) {
                   map.flyTo({
                     center: [cmd.userLocation[1], cmd.userLocation[0]],
                     zoom: 15.6,
-                    duration: 700
+                    duration: 680,
+                    easing: easeOutQuint
                   });
                 }
               }
@@ -2565,7 +2756,8 @@ function buildExplorerMapHtml(
             map.easeTo({
               pitch: is3DEnabled ? 50 : 0,
               bearing: is3DEnabled ? -14 : 0,
-              duration: 500
+              duration: 480,
+              easing: easeOutQuint
             });
           } else if (cmd.type === 'SET_LIGHT' && cmd.preset) {
             currentLightPreset = cmd.preset;
@@ -2573,11 +2765,14 @@ function buildExplorerMapHtml(
               applyMapboxOrOsmEnhancements(map, currentTile, is3DEnabled, currentLightPreset);
             }
             syncHcmcFocusLayer(isFocusHcmcOnly, false);
+            syncRouteLayer(lastRouteData, false);
           } else if (cmd.type === 'FIT_SCOPE') {
             isFollowingNav = false;
+            stopSpringCameraFollow();
             syncHcmcFocusLayer(Boolean(cmd.focusHcmcOnly), true);
           } else if (cmd.type === 'FLY_TO' && typeof cmd.lat === 'number' && typeof cmd.lng === 'number') {
-            map.flyTo({ center: [cmd.lng, cmd.lat], zoom: cmd.zoom || 16, duration: 650 });
+            stopSpringCameraFollow();
+            map.flyTo({ center: [cmd.lng, cmd.lat], zoom: cmd.zoom || 16, duration: 600, easing: easeOutQuint });
           } else if (cmd.type === 'RESIZE') {
             try { map.resize(); } catch (e) {}
           }
