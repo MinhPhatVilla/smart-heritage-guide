@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  AppState,
   Image,
   Linking,
   Modal,
@@ -39,6 +40,7 @@ import {
   Plus,
   Star,
   Sun,
+  Sunrise,
   Sunset,
   Utensils,
   Volume2,
@@ -66,6 +68,8 @@ import {
   buildOsmWalkingUrl,
   getAvailableMapStyles,
   getDefaultMapStyle,
+  getLightPresetLabel,
+  getRealtimeLightPreset,
   getTileConfig,
   isValidMapboxPublicToken,
   resolveMapboxAccessToken,
@@ -203,7 +207,8 @@ function buildExplorerMapHtml(
   initialCenter: [number, number],
   initialTile: MapTileConfig,
   mapboxToken: string,
-  initialFocusHcmcOnly: boolean
+  initialFocusHcmcOnly: boolean,
+  initialLightPreset: MapboxLightPreset
 ): string {
   const useMapboxEngine = Boolean(mapboxToken);
   const safeMapId = JSON.stringify(mapId);
@@ -211,6 +216,13 @@ function buildExplorerMapHtml(
   const safeTile = JSON.stringify(initialTile);
   const safeMapboxToken = JSON.stringify(mapboxToken);
   const safeInitialFocusHcmc = JSON.stringify(initialFocusHcmcOnly);
+  const safeInitialLightPreset = JSON.stringify(initialLightPreset);
+  const initialCanvasBg =
+    initialLightPreset === 'night'
+      ? '#0E121B'
+      : initialLightPreset === 'dusk'
+        ? '#ECE3D7'
+        : '#F4F2EC';
   const safeVietnamBounds = JSON.stringify(VIETNAM_MAX_BOUNDS);
   const safeVietnamFocusBounds = JSON.stringify(VIETNAM_FOCUS_BOUNDS);
   const safeVietnamMinZoom = JSON.stringify(VIETNAM_MIN_ZOOM);
@@ -240,12 +252,12 @@ function buildExplorerMapHtml(
       padding: 0;
       width: 100%;
       height: 100%;
-      background: #F4F2EC;
+      background: ${initialCanvasBg};
       overflow: hidden;
       font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
     }
     .mapboxgl-map, .maplibregl-map, .leaflet-container {
-      background: #F4F2EC;
+      background: ${initialCanvasBg};
       font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
     }
     .mapboxgl-ctrl-attrib, .maplibregl-ctrl-attrib {
@@ -333,6 +345,7 @@ function buildExplorerMapHtml(
       var MAPBOX_TOKEN = ${safeMapboxToken};
       var USE_MAPBOX = Boolean(MAPBOX_TOKEN);
       var INITIAL_FOCUS_HCMC = ${safeInitialFocusHcmc};
+      var INITIAL_LIGHT_PRESET = ${safeInitialLightPreset};
       var VIETNAM_MAX_BOUNDS = ${safeVietnamBounds};
       var VIETNAM_FOCUS_BOUNDS = ${safeVietnamFocusBounds};
       var VIETNAM_MIN_ZOOM = ${safeVietnamMinZoom};
@@ -606,9 +619,19 @@ function buildExplorerMapHtml(
         return el;
       }
 
-      function recolorAllRoadsAndBridges(map) {
+      function recolorAllRoadsAndBridges(map, lightPreset) {
         var style = map.getStyle();
         if (!style || !Array.isArray(style.layers)) return;
+        var isNight = lightPreset === 'night';
+        var isDusk = lightPreset === 'dusk';
+        var isDawn = lightPreset === 'dawn';
+        var fillBridge = isNight ? '#263044' : (isDusk ? '#DED5C7' : (isDawn ? '#EDE3D8' : '#E7E2D8'));
+        var caseMajor = isNight ? '#171E2C' : (isDusk ? '#C6BBA9' : (isDawn ? '#DDD3C6' : '#D6D0C4'));
+        var caseMinor = isNight ? '#1B2333' : (isDusk ? '#D4CABE' : (isDawn ? '#E9E0D4' : '#E5E0D7'));
+        var pathColor = isNight ? '#20293B' : (isDusk ? '#DDD4C7' : (isDawn ? '#EFE6DC' : '#EAE5DB'));
+        var majorColor = isNight ? '#344159' : (isDusk ? '#E2D8C9' : (isDawn ? '#F3EAE0' : '#F1EEE7'));
+        var minorColor = isNight ? '#263145' : (isDusk ? '#F2ECE2' : (isDawn ? '#FFFBF5' : '#FFFFFF'));
+
         for (var i = 0; i < style.layers.length; i++) {
           var lyr = style.layers[i];
           var id = lyr.id || '';
@@ -625,7 +648,7 @@ function buildExplorerMapHtml(
             continue;
           }
           if (lyr.type === 'fill' && lower.indexOf('bridge') !== -1) {
-            try { map.setPaintProperty(id, 'fill-color', '#E7E2D8'); } catch (e) {}
+            try { map.setPaintProperty(id, 'fill-color', fillBridge); } catch (e) {}
             continue;
           }
           if (lyr.type !== 'line') continue;
@@ -660,32 +683,35 @@ function buildExplorerMapHtml(
 
           try {
             if (isCasing) {
-              map.setPaintProperty(id, 'line-color', isMajor ? '#D6D0C4' : '#E5E0D7');
+              map.setPaintProperty(id, 'line-color', isMajor ? caseMajor : caseMinor);
             } else if (isPath) {
-              map.setPaintProperty(id, 'line-color', '#EAE5DB');
+              map.setPaintProperty(id, 'line-color', pathColor);
             } else if (isMajor) {
-              // Đồng màu kem đá trung tính cho cả đường lớn lẫn cầu vượt / cầu sông — không còn vệt vàng!
-              map.setPaintProperty(id, 'line-color', '#F1EEE7');
+              // Đồng màu trung tính cho cả đường lớn lẫn cầu vượt / cầu sông theo đúng khung giờ thực tế
+              map.setPaintProperty(id, 'line-color', majorColor);
             } else {
-              map.setPaintProperty(id, 'line-color', '#FFFFFF');
+              map.setPaintProperty(id, 'line-color', minorColor);
             }
           } catch (e) {}
         }
       }
 
       function applyMapboxOrOsmEnhancements(map, tileCfg, is3D, lightPreset) {
-        // 1. Mapbox Standard 3D (v3): bảng màu Faded hiện đại + ép đường cao tốc/quốc lộ/cầu đồng màu trung tính (không bị vàng)
+        var preset = lightPreset || 'day';
+        var isNight = preset === 'night';
+        var isDusk = preset === 'dusk';
+        var isDawn = preset === 'dawn';
+
+        // 1. Mapbox Standard 3D (v3): bảng màu Faded hiện đại + ánh sáng realtime Bình minh/Ngày/Hoàng hôn/Đêm + đường/cầu đồng màu
         if (USE_MAPBOX && tileCfg.id === 'mapbox_standard') {
-          var isNight = lightPreset === 'night';
-          var isDusk = lightPreset === 'dusk';
           var setBasemapCfg = function(prop, val) {
             try { map.setConfigProperty('basemap', prop, val); } catch (e) {}
           };
           setBasemapCfg('theme', 'faded');
-          setBasemapCfg('lightPreset', lightPreset || 'day');
-          setBasemapCfg('colorMotorways', isNight ? '#333B4C' : (isDusk ? '#D8CEC0' : '#E8E3D9'));
-          setBasemapCfg('colorTrunks', isNight ? '#2B3242' : (isDusk ? '#E2D9CC' : '#EFECE4'));
-          setBasemapCfg('colorRoads', isNight ? '#222836' : (isDusk ? '#F2ECE2' : '#FFFFFF'));
+          setBasemapCfg('lightPreset', preset);
+          setBasemapCfg('colorMotorways', isNight ? '#333B4C' : (isDusk ? '#D8CEC0' : (isDawn ? '#ECE2D6' : '#E8E3D9')));
+          setBasemapCfg('colorTrunks', isNight ? '#2B3242' : (isDusk ? '#E2D9CC' : (isDawn ? '#F3EAE0' : '#EFECE4')));
+          setBasemapCfg('colorRoads', isNight ? '#222836' : (isDusk ? '#F2ECE2' : (isDawn ? '#FFFBF5' : '#FFFFFF')));
           setBasemapCfg('showPointOfInterestLabels', true);
           setBasemapCfg('showRoadLabels', true);
           setBasemapCfg('showTransitLabels', true);
@@ -693,9 +719,9 @@ function buildExplorerMapHtml(
           try {
             if (typeof map.setFog === 'function') {
               map.setFog(is3D ? {
-                color: isNight ? '#0E121B' : (isDusk ? '#ECE1D4' : '#F4F2EC'),
-                'high-color': isNight ? '#05070D' : (isDusk ? '#D8C3AD' : '#E3E9EE'),
-                'space-color': isNight ? '#05070D' : '#DAE3EB',
+                color: isNight ? '#0E121B' : (isDusk ? '#ECE1D4' : (isDawn ? '#F3E6DC' : '#F4F2EC')),
+                'high-color': isNight ? '#05070D' : (isDusk ? '#D8C3AD' : (isDawn ? '#D9C5CE' : '#E3E9EE')),
+                'space-color': isNight ? '#05070D' : (isDusk ? '#A99282' : '#DAE3EB'),
                 'horizon-blend': 0.10,
                 range: [1.8, 12]
               } : null);
@@ -707,7 +733,7 @@ function buildExplorerMapHtml(
         // 2. Mapbox Streets / Outdoors / Satellite v12: đồng màu toàn bộ đường + cầu + khối kiến trúc 3D
         if (USE_MAPBOX && tileCfg.renderMode === 'mapbox') {
           if (tileCfg.id !== 'mapbox_satellite') {
-            recolorAllRoadsAndBridges(map);
+            recolorAllRoadsAndBridges(map, preset);
           }
           try {
             if (is3D && map.getSource('composite') && !map.getLayer('shg-mapbox-3d-buildings')) {
@@ -748,7 +774,7 @@ function buildExplorerMapHtml(
           return;
         }
 
-        // 3. OpenStreetMap Vector 3D (OpenFreeMap) — Đồng màu 100% đất, nước, đường & MỌI CÂY CẦU (bridge_*)
+        // 3. OpenStreetMap Vector 3D (OpenFreeMap) — Tự động chuyển bảng màu Bình minh / Ngày / Hoàng hôn / Đêm theo thời gian thực!
         if (tileCfg.renderMode !== 'vector') return;
         var style = map.getStyle();
         if (!style || !Array.isArray(style.layers)) return;
@@ -761,34 +787,84 @@ function buildExplorerMapHtml(
         };
 
         if (tileCfg.googleLikePalette) {
-          setPaint('background', 'background-color', '#F6F4EF');
-          setPaint('water', 'fill-color', '#D2E2EE');
-          setPaint('waterway_river', 'line-color', '#C3D9E8');
-          setPaint('waterway_other', 'line-color', '#D2E2EE');
-          setPaint('park', 'fill-color', '#DCE7D4');
-          setPaint('park_outline', 'line-color', '#CEDCC4');
-          setPaint('landcover_wood', 'fill-color', '#D4E2CB');
-          setPaint('landcover_grass', 'fill-color', '#E2ECD9');
-          setPaint('landuse_residential', 'fill-color', '#F2EFE9');
-          setPaint('landuse_commercial_area', 'fill-color', '#F4EEE4');
-          setPaint('landuse_hospital', 'fill-color', '#F5EAE8');
-          setPaint('landuse_school', 'fill-color', '#F4EFE3');
-          setPaint('building', 'fill-color', '#EBE7DF');
-          setPaint('building', 'fill-outline-color', '#DED9CF');
-          // Tô đồng màu toàn bộ road_*, bridge_*, tunnel_*, highway_* (xóa triệt để màu vàng trên mọi cây cầu!)
-          recolorAllRoadsAndBridges(map);
+          if (isNight) {
+            setPaint('background', 'background-color', '#121722');
+            setPaint('water', 'fill-color', '#0B1320');
+            setPaint('waterway_river', 'line-color', '#0D1829');
+            setPaint('waterway_other', 'line-color', '#0E192B');
+            setPaint('park', 'fill-color', '#15251E');
+            setPaint('park_outline', 'line-color', '#1A2E25');
+            setPaint('landcover_wood', 'fill-color', '#14221C');
+            setPaint('landcover_grass', 'fill-color', '#172821');
+            setPaint('landuse_residential', 'fill-color', '#151B28');
+            setPaint('landuse_commercial_area', 'fill-color', '#1A2130');
+            setPaint('landuse_hospital', 'fill-color', '#241B26');
+            setPaint('landuse_school', 'fill-color', '#1D2230');
+            setPaint('building', 'fill-color', '#1B2333');
+            setPaint('building', 'fill-outline-color', '#253046');
+          } else if (isDusk) {
+            setPaint('background', 'background-color', '#EFE7DC');
+            setPaint('water', 'fill-color', '#AFC4D6');
+            setPaint('waterway_river', 'line-color', '#A1BACF');
+            setPaint('waterway_other', 'line-color', '#AFC4D6');
+            setPaint('park', 'fill-color', '#CBD6C2');
+            setPaint('park_outline', 'line-color', '#BECBB3');
+            setPaint('landcover_wood', 'fill-color', '#C3D0B9');
+            setPaint('landcover_grass', 'fill-color', '#D2DCC8');
+            setPaint('landuse_residential', 'fill-color', '#EAE1D5');
+            setPaint('landuse_commercial_area', 'fill-color', '#EDE2D3');
+            setPaint('landuse_hospital', 'fill-color', '#EEDDD9');
+            setPaint('landuse_school', 'fill-color', '#ECE2D2');
+            setPaint('building', 'fill-color', '#E0D7C9');
+            setPaint('building', 'fill-outline-color', '#D3C9BA');
+          } else if (isDawn) {
+            setPaint('background', 'background-color', '#F6F0E9');
+            setPaint('water', 'fill-color', '#CADCEB');
+            setPaint('waterway_river', 'line-color', '#BCD2E4');
+            setPaint('waterway_other', 'line-color', '#CADCEB');
+            setPaint('park', 'fill-color', '#D7E3CF');
+            setPaint('park_outline', 'line-color', '#C9D8BF');
+            setPaint('landcover_wood', 'fill-color', '#CFDEC6');
+            setPaint('landcover_grass', 'fill-color', '#DDE8D4');
+            setPaint('landuse_residential', 'fill-color', '#F3ECE4');
+            setPaint('landuse_commercial_area', 'fill-color', '#F6ECE2');
+            setPaint('landuse_hospital', 'fill-color', '#F6E7E7');
+            setPaint('landuse_school', 'fill-color', '#F4ECE0');
+            setPaint('building', 'fill-color', '#EAE2D9');
+            setPaint('building', 'fill-outline-color', '#DDD4CA');
+          } else {
+            setPaint('background', 'background-color', '#F6F4EF');
+            setPaint('water', 'fill-color', '#D2E2EE');
+            setPaint('waterway_river', 'line-color', '#C3D9E8');
+            setPaint('waterway_other', 'line-color', '#D2E2EE');
+            setPaint('park', 'fill-color', '#DCE7D4');
+            setPaint('park_outline', 'line-color', '#CEDCC4');
+            setPaint('landcover_wood', 'fill-color', '#D4E2CB');
+            setPaint('landcover_grass', 'fill-color', '#E2ECD9');
+            setPaint('landuse_residential', 'fill-color', '#F2EFE9');
+            setPaint('landuse_commercial_area', 'fill-color', '#F4EEE4');
+            setPaint('landuse_hospital', 'fill-color', '#F5EAE8');
+            setPaint('landuse_school', 'fill-color', '#F4EFE3');
+            setPaint('building', 'fill-color', '#EBE7DF');
+            setPaint('building', 'fill-outline-color', '#DED9CF');
+          }
+          // Tô đồng màu toàn bộ road_*, bridge_*, tunnel_*, highway_* theo khung giờ hiện tại
+          recolorAllRoadsAndBridges(map, preset);
         }
 
         if (map.getLayer('building-3d')) {
           setLayout('building-3d', 'visibility', is3D ? 'visible' : 'none');
+          var extrudeColors = isNight
+            ? [0, '#1D2536', 18, '#253046', 50, '#2E3C57', 130, '#3C4D6E']
+            : isDusk
+              ? [0, '#E9DFD2', 18, '#DDD2C2', 50, '#CFC3B2', 130, '#C0B3A1']
+              : isDawn
+                ? [0, '#F5ECE4', 18, '#EAE0D6', 50, '#DDD2C6', 130, '#CFC3B6']
+                : [0, '#F5F2EC', 18, '#EAE5DC', 50, '#DDD7CC', 130, '#CFC8BC'];
           setPaint('building-3d', 'fill-extrusion-color', [
             'interpolate', ['linear'],
-            ['coalesce', ['get', 'render_height'], 10],
-            0, '#F5F2EC',
-            18, '#EAE5DC',
-            50, '#DDD7CC',
-            130, '#CFC8BC'
-          ]);
+            ['coalesce', ['get', 'render_height'], 10]
+          ].concat(extrudeColors));
           setPaint('building-3d', 'fill-extrusion-opacity', 0.88);
           setPaint('building-3d', 'fill-extrusion-vertical-gradient', true);
         }
@@ -803,7 +879,7 @@ function buildExplorerMapHtml(
         var currentTile = INITIAL_TILE;
         var currentStyleId = INITIAL_TILE.id;
         var is3DEnabled = true;
-        var currentLightPreset = 'day';
+        var currentLightPreset = INITIAL_LIGHT_PRESET || 'day';
         var prevUserCenter = INITIAL_CENTER;
         var lastSitesSignature = '';
         var lastRouteKey = '';
@@ -853,13 +929,16 @@ function buildExplorerMapHtml(
           attributionControl: true
         };
         if (USE_MAPBOX && INITIAL_TILE.id === 'mapbox_standard') {
+          var initNight = currentLightPreset === 'night';
+          var initDusk = currentLightPreset === 'dusk';
+          var initDawn = currentLightPreset === 'dawn';
           mapInitOpts.config = {
             basemap: {
               theme: 'faded',
-              lightPreset: 'day',
-              colorMotorways: '#E8E3D9',
-              colorTrunks: '#EFECE4',
-              colorRoads: '#FFFFFF',
+              lightPreset: currentLightPreset,
+              colorMotorways: initNight ? '#333B4C' : (initDusk ? '#D8CEC0' : (initDawn ? '#ECE2D6' : '#E8E3D9')),
+              colorTrunks: initNight ? '#2B3242' : (initDusk ? '#E2D9CC' : (initDawn ? '#F3EAE0' : '#EFECE4')),
+              colorRoads: initNight ? '#222836' : (initDusk ? '#F2ECE2' : (initDawn ? '#FFFBF5' : '#FFFFFF')),
               showPointOfInterestLabels: true,
               showRoadLabels: true,
               showTransitLabels: true,
@@ -1257,6 +1336,7 @@ function buildExplorerMapHtml(
         function getSpotlightTheme() {
           var isDark = currentTile.id === 'mapbox_satellite' || currentTile.id === 'satellite' || currentLightPreset === 'night';
           var isDusk = !isDark && currentLightPreset === 'dusk';
+          var isDawn = !isDark && currentLightPreset === 'dawn';
           if (isDark) {
             return {
               maskColor: '#0B0F17',
@@ -1277,6 +1357,17 @@ function buildExplorerMapHtml(
               casingColor: '#FAF9F6',
               lineColor: '#B93815',
               lineOpacity: 0.84
+            };
+          }
+          if (isDawn) {
+            return {
+              maskColor: '#F3EAE2',
+              maskOpacity: 0.76,
+              featherColor: '#9A8479',
+              featherOpacity: 0.14,
+              casingColor: '#FAF9F6',
+              lineColor: '#B93815',
+              lineOpacity: 0.82
             };
           }
           // Warm Alabaster Frosted Veil — harmonized 1:1 with app parchment #FAF9F6 & terracotta #B93815
@@ -2567,7 +2658,14 @@ export const MapExplorer: React.FC<MapExplorerProps> = React.memo(({
     getDefaultMapStyle()
   );
   const [is3DView, setIs3DView] = useState<boolean>(true);
-  const [lightPreset, setLightPreset] = useState<MapboxLightPreset>('day');
+  const [autoLightByTime, setAutoLightByTime] = useState<boolean>(true);
+  const [lightPreset, setLightPreset] = useState<MapboxLightPreset>(() =>
+    getRealtimeLightPreset()
+  );
+  const [clockLabel, setClockLabel] = useState<string>(() => {
+    const now = new Date();
+    return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  });
   const [showRestaurantsOnMap, setShowRestaurantsOnMap] =
     useState<boolean>(true);
   const [showStyleMenu, setShowStyleMenu] = useState<boolean>(false);
@@ -2629,7 +2727,8 @@ export const MapExplorer: React.FC<MapExplorerProps> = React.memo(({
         userLocation,
         getTileConfig(getDefaultMapStyle(activeMapboxToken)),
         activeMapboxToken,
-        focusHcmcOnly
+        focusHcmcOnly,
+        getRealtimeLightPreset()
       ),
     // Keep static HTML shell per mapId so map never reloads on minor prop updates
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -2961,14 +3060,72 @@ export const MapExplorer: React.FC<MapExplorerProps> = React.memo(({
     });
   }, [sendToMap]);
 
-  const handleCycleLightPreset = useCallback(() => {
-    const order: MapboxLightPreset[] = ['day', 'dusk', 'night'];
-    setLightPreset((prev) => {
-      const next = order[(order.indexOf(prev) + 1) % order.length];
-      sendToMap({ type: 'CMD', command: { type: 'SET_LIGHT', preset: next } });
-      return next;
+  // Tự động đồng bộ ánh sáng bản đồ realtime theo giờ thực tế (mỗi 30s + khi mở lại app/tab)
+  useEffect(() => {
+    const syncClockAndLight = () => {
+      const now = new Date();
+      const nextClock = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+      setClockLabel((prev) => (prev === nextClock ? prev : nextClock));
+      if (!autoLightByTime) return;
+      const nextPreset = getRealtimeLightPreset(now);
+      setLightPreset((prev) => {
+        if (prev === nextPreset) return prev;
+        sendToMap({ type: 'CMD', command: { type: 'SET_LIGHT', preset: nextPreset } });
+        return nextPreset;
+      });
+    };
+
+    syncClockAndLight();
+    const timer = setInterval(syncClockAndLight, 30000);
+    const appStateSub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') syncClockAndLight();
     });
+
+    let cleanupVisibility: (() => void) | undefined;
+    if (Platform.OS === 'web' && typeof document !== 'undefined') {
+      const onVis = () => {
+        if (document.visibilityState === 'visible') syncClockAndLight();
+      };
+      document.addEventListener('visibilitychange', onVis);
+      cleanupVisibility = () => document.removeEventListener('visibilitychange', onVis);
+    }
+
+    return () => {
+      clearInterval(timer);
+      appStateSub.remove();
+      cleanupVisibility?.();
+    };
+  }, [autoLightByTime, sendToMap]);
+
+  const handleResumeRealtimeLight = useCallback(() => {
+    const realtime = getRealtimeLightPreset();
+    setAutoLightByTime(true);
+    setLightPreset(realtime);
+    sendToMap({ type: 'CMD', command: { type: 'SET_LIGHT', preset: realtime } });
   }, [sendToMap]);
+
+  const handleCycleLightPreset = useCallback(() => {
+    const order: MapboxLightPreset[] = ['dawn', 'day', 'dusk', 'night'];
+    if (autoLightByTime) {
+      // Đang ở chế độ tự động theo giờ -> chuyển sang xem trước khung giờ kế tiếp
+      setAutoLightByTime(false);
+      setLightPreset((prev) => {
+        const next = order[(order.indexOf(prev) + 1) % order.length];
+        sendToMap({ type: 'CMD', command: { type: 'SET_LIGHT', preset: next } });
+        return next;
+      });
+      return;
+    }
+    const realtime = getRealtimeLightPreset();
+    const nextIdx = (order.indexOf(lightPreset) + 1) % order.length;
+    const next = order[nextIdx];
+    if (next === realtime) {
+      // Khi quay vòng đúng khung giờ thực tế -> bật lại chế độ tự động realtime
+      setAutoLightByTime(true);
+    }
+    setLightPreset(next);
+    sendToMap({ type: 'CMD', command: { type: 'SET_LIGHT', preset: next } });
+  }, [autoLightByTime, lightPreset, sendToMap]);
 
   const handleOpenTokenModal = useCallback(() => {
     setShowStyleMenu(false);
@@ -3032,8 +3189,7 @@ export const MapExplorer: React.FC<MapExplorerProps> = React.memo(({
   const is3DCapable =
     currentTileConfig.renderMode === 'mapbox' ||
     currentTileConfig.renderMode === 'vector';
-  const showLightButton =
-    isMapboxActive && currentTileConfig.supportsLightPreset;
+  const showLightButton = Boolean(currentTileConfig.supportsLightPreset);
 
   return (
     <View style={styles.root}>
@@ -3083,62 +3239,101 @@ export const MapExplorer: React.FC<MapExplorerProps> = React.memo(({
         )}
       </View>
 
-      {/* Top-Left Region Scope Switcher (TP.HCM · sương mờ tỉnh lân cận vs Việt Nam) + Tapped Place Pill */}
+      {/* Top-Left Region Scope Switcher (TP.HCM · sương mờ tỉnh lân cận vs Việt Nam) + Realtime Clock Pill */}
       <View style={styles.topLeftPlaceWrap} pointerEvents="box-none">
         {!activeRoute && (
-          <View style={styles.scopeSegmentedPill}>
-            <TouchableOpacity
-              activeOpacity={0.82}
-              onPress={() => {
-                onToggleFocusHcmcOnly?.(true);
-                sendToMap({ type: 'CMD', command: { type: 'FIT_SCOPE', focusHcmcOnly: true } });
-              }}
-              style={[
-                styles.scopeSegBtn,
-                focusHcmcOnly && styles.scopeSegBtnActive,
-              ]}
-              accessibilityLabel="Chỉ hiển thị TP.HCM và làm mờ các tỉnh xung quanh"
-            >
-              <MapPin
-                size={12}
-                color={focusHcmcOnly ? COLORS.white : COLORS.inkMuted}
-                strokeWidth={2.4}
-              />
-              <Text
+          <View style={styles.topLeftRow} pointerEvents="box-none">
+            <View style={styles.scopeSegmentedPill}>
+              <TouchableOpacity
+                activeOpacity={0.82}
+                onPress={() => {
+                  onToggleFocusHcmcOnly?.(true);
+                  sendToMap({ type: 'CMD', command: { type: 'FIT_SCOPE', focusHcmcOnly: true } });
+                }}
                 style={[
-                  styles.scopeSegText,
-                  focusHcmcOnly && styles.scopeSegTextActive,
+                  styles.scopeSegBtn,
+                  focusHcmcOnly && styles.scopeSegBtnActive,
                 ]}
+                accessibilityLabel="Chỉ hiển thị TP.HCM và làm mờ các tỉnh xung quanh"
               >
-                TP.HCM
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              activeOpacity={0.82}
-              onPress={() => {
-                onToggleFocusHcmcOnly?.(false);
-                sendToMap({ type: 'CMD', command: { type: 'FIT_SCOPE', focusHcmcOnly: false } });
-              }}
-              style={[
-                styles.scopeSegBtn,
-                !focusHcmcOnly && styles.scopeSegBtnActive,
-              ]}
-              accessibilityLabel="Mở bản đồ toàn lãnh thổ Việt Nam"
-            >
-              <Globe
-                size={12}
-                color={!focusHcmcOnly ? COLORS.white : COLORS.inkMuted}
-                strokeWidth={2.2}
-              />
-              <Text
+                <MapPin
+                  size={12}
+                  color={focusHcmcOnly ? COLORS.white : COLORS.inkMuted}
+                  strokeWidth={2.4}
+                />
+                <Text
+                  style={[
+                    styles.scopeSegText,
+                    focusHcmcOnly && styles.scopeSegTextActive,
+                  ]}
+                >
+                  TP.HCM
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                activeOpacity={0.82}
+                onPress={() => {
+                  onToggleFocusHcmcOnly?.(false);
+                  sendToMap({ type: 'CMD', command: { type: 'FIT_SCOPE', focusHcmcOnly: false } });
+                }}
                 style={[
-                  styles.scopeSegText,
-                  !focusHcmcOnly && styles.scopeSegTextActive,
+                  styles.scopeSegBtn,
+                  !focusHcmcOnly && styles.scopeSegBtnActive,
                 ]}
+                accessibilityLabel="Mở bản đồ toàn lãnh thổ Việt Nam"
               >
-                Việt Nam
-              </Text>
-            </TouchableOpacity>
+                <Globe
+                  size={12}
+                  color={!focusHcmcOnly ? COLORS.white : COLORS.inkMuted}
+                  strokeWidth={2.2}
+                />
+                <Text
+                  style={[
+                    styles.scopeSegText,
+                    !focusHcmcOnly && styles.scopeSegTextActive,
+                  ]}
+                >
+                  Việt Nam
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {showLightButton && (
+              <TouchableOpacity
+                activeOpacity={0.82}
+                onPress={autoLightByTime ? handleCycleLightPreset : handleResumeRealtimeLight}
+                style={[
+                  styles.realtimeClockPill,
+                  lightPreset === 'night' && styles.realtimeClockPillNight,
+                ]}
+                accessibilityLabel={
+                  autoLightByTime
+                    ? `Ánh sáng realtime theo giờ ${clockLabel} (${getLightPresetLabel(lightPreset)}). Chạm để đổi thử khung giờ`
+                    : `Đang xem trước ${getLightPresetLabel(lightPreset)}. Chạm để quay về giờ thực tế`
+                }
+              >
+                {autoLightByTime && <View style={styles.realtimeClockDot} />}
+                {lightPreset === 'dawn' ? (
+                  <Sunrise size={12} color={COLORS.accent} />
+                ) : lightPreset === 'day' ? (
+                  <Sun size={12} color="#D97706" />
+                ) : lightPreset === 'dusk' ? (
+                  <Sunset size={12} color="#C2410C" />
+                ) : (
+                  <Moon size={11.5} color="#FDE68A" />
+                )}
+                <Text
+                  style={[
+                    styles.realtimeClockText,
+                    lightPreset === 'night' && styles.realtimeClockTextNight,
+                  ]}
+                >
+                  {autoLightByTime
+                    ? `${clockLabel} · ${getLightPresetLabel(lightPreset)}`
+                    : `${getLightPresetLabel(lightPreset)} · Tự động`}
+                </Text>
+              </TouchableOpacity>
+            )}
           </View>
         )}
 
@@ -3207,15 +3402,22 @@ export const MapExplorer: React.FC<MapExplorerProps> = React.memo(({
                 activeOpacity={0.8}
                 onPress={handleCycleLightPreset}
                 style={styles.dockBtn}
-                accessibilityLabel="Đổi ánh sáng Mapbox Standard 3D"
+                accessibilityLabel={
+                  autoLightByTime
+                    ? `Ánh sáng tự động theo giờ thực tế (${getLightPresetLabel(lightPreset)})`
+                    : `Đang chọn thủ công: ${getLightPresetLabel(lightPreset)}`
+                }
               >
-                {lightPreset === 'day' ? (
-                  <Sun size={16} color={COLORS.accent} />
+                {lightPreset === 'dawn' ? (
+                  <Sunrise size={16} color={COLORS.accent} />
+                ) : lightPreset === 'day' ? (
+                  <Sun size={16} color="#D97706" />
                 ) : lightPreset === 'dusk' ? (
-                  <Sunset size={16} color={COLORS.inkSecondary} />
+                  <Sunset size={16} color="#C2410C" />
                 ) : (
                   <Moon size={15} color={COLORS.ink} />
                 )}
+                {autoLightByTime && <View style={styles.realtimeLightDot} />}
               </TouchableOpacity>
             </>
           )}
@@ -3863,6 +4065,58 @@ const styles = StyleSheet.create({
     height: 38,
     alignItems: 'center',
     justifyContent: 'center',
+    position: 'relative',
+  },
+  realtimeLightDot: {
+    position: 'absolute',
+    top: 7,
+    right: 7,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#10B981',
+    borderWidth: 1,
+    borderColor: '#FAF9F6',
+  },
+  topLeftRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  realtimeClockPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: 'rgba(250, 249, 246, 0.92)',
+    borderWidth: 1,
+    borderColor: 'rgba(20, 20, 19, 0.09)',
+    ...(Platform.OS === 'web'
+      ? ({ backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)' } as object)
+      : {}),
+    ...SHADOWS.floating,
+  },
+  realtimeClockPillNight: {
+    backgroundColor: 'rgba(18, 23, 34, 0.88)',
+    borderColor: 'rgba(253, 230, 138, 0.24)',
+  },
+  realtimeClockDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#10B981',
+  },
+  realtimeClockText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: COLORS.ink,
+    letterSpacing: -0.1,
+  },
+  realtimeClockTextNight: {
+    color: '#FAF9F6',
   },
   dockBtnActive: {
     backgroundColor: COLORS.ink,
