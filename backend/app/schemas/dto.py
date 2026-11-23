@@ -331,7 +331,7 @@ TtsProviderMode = Literal["auto", "neural", "offline"]
 
 
 class TtsSynthesizeRequest(BaseModel):
-    text: str = Field(..., min_length=1, max_length=2500)
+    text: str = Field(..., min_length=1, max_length=4500)
     language: str = Field(default="vi", min_length=2, max_length=16)
     voice_gender: Literal["female", "male"] = "female"
     provider: TtsProviderMode = "auto"

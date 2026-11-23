@@ -23,6 +23,20 @@ def test_normalize_text_for_vietnamese_speech() -> None:
     assert "40.000 đồng" in out
     assert "–" not in out
 
+    rich = (
+        "Nhà thờ Notre-Dame xây thế kỷ XIX – XX theo kiến trúc Gothic và Roman, "
+        "cao 57,6m, diện tích 4.800 m², dấu mốc 30/4/1975 do UNESCO vinh danh."
+    )
+    rich_out = tts_service.normalize_text_for_speech(rich, "vi")
+    assert "Nốt tơ Đam" in rich_out
+    assert "thế kỷ 19 đến 20" in rich_out
+    assert "Gô tích" in rich_out
+    assert "Rô măng" in rich_out
+    assert "57 phẩy 6 mét" in rich_out
+    assert "4.800 mét vuông" in rich_out
+    assert "30 tháng 4 năm 1975" in rich_out
+    assert "U nét cô" in rich_out
+
 
 def test_resolve_neural_voice_all_languages() -> None:
     for lang in ("vi", "en", "fr", "zh", "ja"):

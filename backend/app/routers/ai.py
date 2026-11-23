@@ -182,7 +182,7 @@ async def ai_tts_post(payload: TtsSynthesizeRequest) -> StreamingResponse:
     },
 )
 async def ai_tts_get(
-    text: str = Query(..., min_length=1, max_length=1800),
+    text: str = Query(..., min_length=1, max_length=4000),
     language: str = Query(default="vi", min_length=2, max_length=16),
     voice_gender: Literal["female", "male"] = Query(default="female"),
     provider: TtsProviderMode = Query(default="auto"),

@@ -47,7 +47,72 @@ logger = logging.getLogger(__name__)
 VoiceGender = Literal["female", "male"]
 TtsProviderMode = Literal["auto", "neural", "offline"]
 
-MAX_TTS_TEXT_LENGTH = 1800
+MAX_TTS_TEXT_LENGTH = 4000
+EDGE_TTS_ATTEMPT_TIMEOUT_SECONDS = 5.0
+
+_ROMAN_NUMERALS_MAP: dict[str, int] = {
+    "I": 1, "II": 2, "III": 3, "IV": 4, "V": 5, "VI": 6, "VII": 7,
+    "VIII": 8, "IX": 9, "X": 10, "XI": 11, "XII": 12, "XIII": 13,
+    "XIV": 14, "XV": 15, "XVI": 16, "XVII": 17, "XVIII": 18,
+    "XIX": 19, "XX": 20, "XXI": 21, "XXII": 22,
+}
+
+_VI_FOREIGN_PRONUNCIATION_MAP: list[tuple[str, str]] = [
+    (r"\bAlfred\s+Foulhoux\b", "An phờ rét Phu lu"),
+    (r"\bMarie-Alfred\s+Foulhoux\b", "Ma ri An phờ rét Phu lu"),
+    (r"\bGustave\s+Eiffel\b", "Gút xờ táp Ép phen"),
+    (r"\bJules\s+Bourard\b", "Giuyn Bu ra"),
+    (r"\bEug[eè]ne\s+Ferret\b", "Ơ gien Phê rê"),
+    (r"\bPaul\s+Gard[eè]s\b", "Pôn Gác đét"),
+    (r"\bPaul\s+Doumer\b", "Pôn Đu me"),
+    (r"\bAlexandre\s+de\s+Rhodes\b", "A lếch xăng đờ Rốt"),
+    (r"\bPigneau\s+de\s+B[eé]haine\b", "Pi nhô đờ Bê hen"),
+    (r"\bH[oô]tel\s+de\s+Ville\b", "Ô ten đờ Vin"),
+    (r"\bVilla\s+Blanche\b", "Vi la Blăng"),
+    (r"\bNotre[- ]Dame\b", "Nốt tơ Đam"),
+    (r"\bArt\s+Deco\b", "Ạc Đê cô"),
+    (r"\bArt\s+Nouveau\b", "Ạc Nu vô"),
+    (r"\bCable\s+Car\b", "cáp treo"),
+    (r"\bLandmark\s*81\b", "Len mác 81"),
+    (r"\bVũng\s+Tàu\s+Marina\b", "Vũng Tàu Ma ri na"),
+    (r"\bCheck-in\b", "chếch in"),
+    (r"\bUNESCO\b", "U nét cô"),
+    (r"\bRomanesque\b", "Rô ma nét"),
+    (r"\bNeoclassical\b", "tân cổ điển"),
+    (r"\bRenaissance\b", "Rơ ne xăng"),
+    (r"\bGothic\b", "Gô tích"),
+    (r"\bBaroque\b", "Ba rốc"),
+    (r"\bRoman\b", "Rô măng"),
+    (r"\bIndochine\b", "In đô sin"),
+    (r"\bIndochina\b", "Đông Dương"),
+    (r"\bFoulhoux\b", "Phu lu"),
+    (r"\bVilledieu\b", "Vin điơ"),
+    (r"\bEiffel\b", "Ép phen"),
+    (r"\bBourard\b", "Bu ra"),
+    (r"\bFerret\b", "Phê rê"),
+    (r"\bGard[eè]s\b", "Gác đét"),
+    (r"\bPasteur\b", "Pát xờ tơ"),
+    (r"\bYersin\b", "Y éc xanh"),
+    (r"\bCalmette\b", "Can mét"),
+    (r"\bNorodom\b", "Nô rô đôm"),
+    (r"\bMarseille\b", "Mác xây"),
+    (r"\bParis\b", "Pa ri"),
+    (r"\bBitexco\b", "Bi tếch cô"),
+    (r"\bContinental\b", "Côn ti nen tồ"),
+    (r"\bMajestic\b", "Ma gét tích"),
+    (r"\bCaravelle\b", "Ca ra ven"),
+    (r"\bOpera\b", "Ô pê ra"),
+    (r"\bMarina\b", "Ma ri na"),
+    (r"\bBoulevard\b", "đại lộ"),
+    (r"\bPlaza\b", "Pờ la da"),
+    (r"\bResort\b", "khu nghỉ dưỡng"),
+    (r"\bSafari\b", "Sa pha ri"),
+    (r"\bSaigon\b", "Sài Gòn"),
+    (r"\bview\b", "tầm nhìn"),
+    (r"\b3D\b", "ba đê"),
+    (r"\b4D\b", "bốn đê"),
+    (r"\bGPS\b", "Gờ Pê Ét"),
+]
 
 # 5 ngôn ngữ cốt lõi của ứng dụng được ánh xạ sẵn (0ms lookup)
 NEURAL_VOICES: dict[str, dict[str, dict[str, str]]] = {
@@ -428,26 +493,92 @@ def normalize_text_for_speech(text: str, language: str = "vi") -> str:
     cleaned = re.sub(r"\s+", " ", cleaned)
 
     if base == "vi":
+        # 1. Ngày tháng dd/mm/yyyy & ngày lễ lịch sử (xử lý trước khi thay dấu `/`)
+        cleaned = re.sub(r"\b(\d{1,2})/(\d{1,2})/(\d{4})\b", r"\1 tháng \2 năm \3", cleaned)
+        cleaned = re.sub(
+            r"\b(ngày|mùng|đêm|sáng|chiều|tối|lễ|chiến thắng|giải phóng|kỷ niệm)\s+(\d{1,2})/(\d{1,2})\b",
+            r"\1 \2 tháng \3",
+            cleaned,
+            flags=re.IGNORECASE,
+        )
+        for date_pat, date_repl in (
+            (r"\b(?:30/4|30/04)\b", "30 tháng 4"),
+            (r"\b(?:2/9|02/09)\b", "2 tháng 9"),
+            (r"\b(?:19/8|19/08)\b", "19 tháng 8"),
+            (r"\b(?:19/5|19/05)\b", "19 tháng 5"),
+            (r"\b(?:7/5|07/05)\b", "7 tháng 5"),
+            (r"\b(?:1/5|01/05)\b", "1 tháng 5"),
+            (r"\b20/11\b", "20 tháng 11"),
+        ):
+            cleaned = re.sub(date_pat, date_repl, cleaned)
+
+        # 2. Số La Mã sau thế kỷ / giai đoạn / khu / thứ
+        def _repl_roman_range(m: re.Match[str]) -> str:
+            r1 = _ROMAN_NUMERALS_MAP.get(m.group(2).upper())
+            r2 = _ROMAN_NUMERALS_MAP.get(m.group(3).upper())
+            if r1 and r2:
+                return f"{m.group(1)} {r1} đến {r2}"
+            return m.group(0)
+
+        def _repl_roman_single(m: re.Match[str]) -> str:
+            r1 = _ROMAN_NUMERALS_MAP.get(m.group(2).upper())
+            return f"{m.group(1)} {r1}" if r1 else m.group(0)
+
+        cleaned = re.sub(
+            r"\b(thế kỷ|giai đoạn|khu|phần|đợt|cấp|tầng|hạng|thứ)\s+([IVX]{1,5})\s*[–—-]\s*([IVX]{1,5})\b",
+            _repl_roman_range,
+            cleaned,
+            flags=re.IGNORECASE,
+        )
+        cleaned = re.sub(
+            r"\b(thế kỷ|giai đoạn|khu|phần|đợt|cấp|tầng|hạng|thứ)\s+([IVX]{1,5})\b",
+            _repl_roman_single,
+            cleaned,
+            flags=re.IGNORECASE,
+        )
+
+        # 3. Từ viết tắt, đơn vị đo, tiền tệ, giờ, khoảng năm và số thập phân
         replacements = [
             (r"\bTP\.?\s*HCM\b", "Thành phố Hồ Chí Minh"),
             (r"\bTP\.?\s*Thủ Đức\b", "Thành phố Thủ Đức"),
+            (r"\bTP\.?\s*Vũng Tàu\b", "Thành phố Vũng Tàu"),
             (r"\bUBND\b", "Ủy ban nhân dân"),
             (r"\bKTS\.?\s*", "Kiến trúc sư "),
             (r"\bHSSV\b", "học sinh, sinh viên"),
             (r"\bQ\.\s*(\d+)\b", r"Quận \1"),
             (r"\bP\.\s*(\d+)\b", r"Phường \1"),
-            (r"(\d+)\s*ha\b", r"\1 héc ta"),
-            (r"(\d+)\s*km\b", r"\1 ki lô mét"),
-            (r"(\d+)\s*m\b", r"\1 mét"),
-            (r"(\d[\d\.]*)\s*đ\b", r"\1 đồng"),
-            (r"(\d{3,4})\s*[–—-]\s*(\d{3,4})", r"\1 đến \2"),
+            (r"\bQL\.?\s*(\d+[A-Z]?)\b", r"Quốc lộ \1"),
+            (r"(\d+(?:[.,]\d+)?)\s*km²", r"\1 ki lô mét vuông"),
+            (r"(\d+(?:[.,]\d+)?)\s*m²", r"\1 mét vuông"),
+            (r"(\d+(?:[.,]\d+)?)\s*km/h", r"\1 ki lô mét mỗi giờ"),
+            (r"(\d+(?:[.,]\d+)?)\s*ha\b", r"\1 héc ta"),
+            (r"(\d+(?:[.,]\d+)?)\s*km\b", r"\1 ki lô mét"),
+            (r"(\d+(?:[.,]\d+)?)\s*cm\b", r"\1 xăng ti mét"),
+            (r"(\d+(?:[.,]\d+)?)\s*mm\b", r"\1 mi li mét"),
+            (r"(\d+(?:[.,]\d+)?)\s*m\b", r"\1 mét"),
+            (r"(\d+(?:[.,]\d+)?)\s*°\s*C", r"\1 độ Cê"),
+            (r"(\d+(?:[.,]\d+)?)\s*°", r"\1 độ"),
+            (r"(\d+(?:[.,]\d+)?)\s*%", r"\1 phần trăm"),
+            (r"(\d[\d\.]*)\s*(?:VNĐ|VND|đ)(?=$|[\s,.;:!?)/])", r"\1 đồng"),
+            (r"(\d[\d\.]*)\s*USD\b", r"\1 đô la Mỹ"),
             (r"(\d{1,2}):00\s*[–—-]\s*(\d{1,2}):00", r"\1 giờ đến \2 giờ"),
             (r"(\d{1,2}):(\d{2})\s*[–—-]\s*(\d{1,2}):(\d{2})", r"\1 giờ \2 đến \3 giờ \4"),
+            (r"\b(\d{1,2}):00\b", r"\1 giờ"),
+            (r"\b(\d{1,2}):(\d{2})\b", r"\1 giờ \2"),
+            (r"(\d{1,4})\s*[–—-]\s*(\d{1,4})", r"\1 đến \2"),
+            (r"(\d+),(\d+)", r"\1 phẩy \2"),
         ]
         for pattern, repl in replacements:
             cleaned = re.sub(pattern, repl, cleaned, flags=re.IGNORECASE)
+
+        # 4. Phiên âm tên riêng nước ngoài & thuật ngữ kiến trúc
+        for pattern, repl in _VI_FOREIGN_PRONUNCIATION_MAP:
+            cleaned = re.sub(pattern, repl, cleaned, flags=re.IGNORECASE)
+        cleaned = re.sub(r"\bAI\b", "ây ai", cleaned)
     elif base == "en":
         cleaned = re.sub(r"(\d{3,4})\s*[–—-]\s*(\d{3,4})", r"\1 to \2", cleaned)
+        cleaned = re.sub(r"(\d+(?:\.\d+)?)\s*m²", r"\1 square meters", cleaned, flags=re.IGNORECASE)
+        cleaned = re.sub(r"(\d+(?:\.\d+)?)\s*km²", r"\1 square kilometers", cleaned, flags=re.IGNORECASE)
 
     # Convert awkward separators into natural vocal pauses
     cleaned = re.sub(r"\s*[–—]\s*", ", ", cleaned)
@@ -734,13 +865,16 @@ async def _synthesize_edge_neural_ram(
     last_error: Exception | None = None
     for attempt in range(2):
         try:
-            audio_bytes = await _stream_once()
+            audio_bytes = await asyncio.wait_for(
+                _stream_once(),
+                timeout=EDGE_TTS_ATTEMPT_TIMEOUT_SECONDS,
+            )
             if len(audio_bytes) >= 256:
                 break
         except Exception as exc:
             last_error = exc
             if attempt == 0:
-                await asyncio.sleep(0.25)
+                await asyncio.sleep(0.15)
 
     if len(audio_bytes) < 256:
         detail = f" ({type(last_error).__name__}: {last_error})" if last_error else ""
@@ -830,16 +964,8 @@ async def synthesize_speech_stream(
             if effective_provider == "neural":
                 raise RuntimeError(str(exc)) from exc
 
-        # Chế độ `auto`: tự động chuyển sang Engine 2 (Piper/sherpa-onnx offline ONNX WAV trong RAM, tự tải model nếu cần)
-        can_auto_fetch = (
-            settings.TTS_AUTO_DOWNLOAD_OFFLINE
-            and not os.environ.get("PYTEST_CURRENT_TEST")
-            and settings.APP_ENV.lower() != "test"
-            and _resolve_catalog_key_for_language(norm_lang) is not None
-        )
-        if is_offline_onnx_available() and (
-            _find_offline_model_dir(norm_lang) is not None or can_auto_fetch
-        ):
+        # Chế độ `auto`: chỉ fallback sang Engine 2 nếu model ONNX ĐÃ cài sẵn trên đĩa (không chặn request tải 63MB!)
+        if is_offline_onnx_available() and _find_offline_model_dir(norm_lang) is not None:
             wav_bytes, voice_id = await asyncio.to_thread(
                 _synthesize_offline_sync, normalized, norm_lang, gender
             )
@@ -851,6 +977,20 @@ async def synthesize_speech_stream(
                 provider="sherpa-onnx",
                 cache_hit=False,
             )
+
+        # Nếu thiếu model offline & bật auto-download: tải ngầm trong background thread cho các lần sau
+        if (
+            is_offline_onnx_available()
+            and settings.TTS_AUTO_DOWNLOAD_OFFLINE
+            and not os.environ.get("PYTEST_CURRENT_TEST")
+            and settings.APP_ENV.lower() != "test"
+            and _resolve_catalog_key_for_language(norm_lang) is not None
+        ):
+            threading.Thread(
+                target=ensure_offline_model_installed_sync,
+                args=(norm_lang,),
+                daemon=True,
+            ).start()
 
         raise RuntimeError(
             f"Cả hai engine TTS đều chưa sẵn sàng cho '{norm_lang}': {neural_err}"
