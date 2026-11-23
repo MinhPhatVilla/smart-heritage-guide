@@ -38,55 +38,74 @@ interface SiteRowProps {
 }
 
 const AdminSiteRow = memo<SiteRowProps>(
-  ({ site, onEdit, onDelete, onInspect }) => (
-    <View style={styles.card}>
-      <Image
-        source={{ uri: site.coverImage }}
-        style={styles.thumb}
-        resizeMode="cover"
-      />
-      <View style={styles.cardBody}>
-        <View style={styles.metaRow}>
-          <Text style={styles.metaTag}>{getCategoryLabel(site.category)}</Text>
-          <Text style={styles.metaDot}>·</Text>
-          <Text style={styles.metaMuted} numberOfLines={1}>
-            {site.city}
+  ({ site, onEdit, onDelete, onInspect }) => {
+    const langCodes: Array<'vi' | 'en' | 'fr' | 'zh' | 'ja'> = [
+      'vi',
+      'en',
+      'fr',
+      'zh',
+      'ja',
+    ];
+    const readyLangs = langCodes.filter((code) => {
+      const loc = site.translations?.[code];
+      return Boolean(
+        loc?.name?.trim() &&
+          loc?.shortSummary?.trim() &&
+          Array.isArray(loc?.audioScript) &&
+          loc.audioScript.length > 0
+      );
+    }).length;
+
+    return (
+      <View style={styles.card}>
+        <Image
+          source={{ uri: site.coverImage }}
+          style={styles.thumb}
+          resizeMode="cover"
+        />
+        <View style={styles.cardBody}>
+          <View style={styles.metaRow}>
+            <Text style={styles.metaTag}>{getCategoryLabel(site.category)}</Text>
+            <Text style={styles.metaDot}>·</Text>
+            <Text style={styles.metaMuted} numberOfLines={1}>
+              {site.city}
+            </Text>
+          </View>
+          <Text style={styles.title} numberOfLines={2}>
+            {site.translations.vi.name}
+          </Text>
+          <Text style={styles.subMeta} numberOfLines={1}>
+            {readyLangs}/5 ngôn ngữ · {site.nearbyRestaurants.length} quán · ★{' '}
+            {site.rating.toFixed(1)}
           </Text>
         </View>
-        <Text style={styles.title} numberOfLines={2}>
-          {site.translations.vi.name}
-        </Text>
-        <Text style={styles.subMeta} numberOfLines={1}>
-          {site.nearbyRestaurants.length} quán · ★ {site.rating.toFixed(1)} ·{' '}
-          {site.lat.toFixed(4)}, {site.lng.toFixed(4)}
-        </Text>
-      </View>
 
-      <View style={styles.actionsCol}>
-        <TouchableOpacity
-          onPress={() => onInspect(site)}
-          style={styles.iconBtn}
-          accessibilityLabel="Kiểm tra trên Bản đồ QC"
-        >
-          <MapPin size={14} color={COLORS.gpsBlue} />
-        </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() => onEdit(site)}
-          style={styles.iconBtn}
-          accessibilityLabel="Chỉnh sửa di tích"
-        >
-          <Edit3 size={14} color={COLORS.ink} />
-        </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() => onDelete(site)}
-          style={[styles.iconBtn, styles.iconBtnDanger]}
-          accessibilityLabel="Xóa di tích"
-        >
-          <Trash2 size={14} color={COLORS.accent} />
-        </TouchableOpacity>
+        <View style={styles.actionsCol}>
+          <TouchableOpacity
+            onPress={() => onInspect(site)}
+            style={styles.iconBtn}
+            accessibilityLabel="Kiểm tra trên Bản đồ QC"
+          >
+            <MapPin size={14} color={COLORS.gpsBlue} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => onEdit(site)}
+            style={styles.iconBtn}
+            accessibilityLabel="Chỉnh sửa di tích"
+          >
+            <Edit3 size={14} color={COLORS.ink} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => onDelete(site)}
+            style={[styles.iconBtn, styles.iconBtnDanger]}
+            accessibilityLabel="Xóa di tích"
+          >
+            <Trash2 size={14} color={COLORS.accent} />
+          </TouchableOpacity>
+        </View>
       </View>
-    </View>
-  )
+    );
+  }
 );
 
 export const AdminSitesTab: React.FC<AdminSitesTabProps> = ({

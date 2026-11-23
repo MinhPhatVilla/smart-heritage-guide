@@ -1,7 +1,10 @@
 import {
   HeritageCategory,
   HeritageSite,
+  LocalizedContent,
   NearbyRestaurant,
+  SUPPORTED_LANGUAGES,
+  SupportedLanguage,
 } from '../types/heritage';
 import { ApiResult, apiRequest, getApiBaseUrl } from './apiClient';
 
@@ -125,15 +128,24 @@ function normalizeBackendHealth(raw: RawBackendHealthResponse): BackendHealthSta
   };
 }
 
-export interface AdminSiteFormInput {
-  id: string;
-  nameVi: string;
-  nameEn: string;
-  shortSummaryVi: string;
-  architecturalHighlightsText?: string;
-  audioScriptText?: string;
+export interface AdminLocalizedTextDraft {
+  name: string;
+  shortSummary: string;
   historicalEra: string;
   openingHours: string;
+  architecturalHighlightsText: string;
+  audioScriptText: string;
+}
+
+export type AdminTranslationsDraftMap = Record<
+  SupportedLanguage,
+  AdminLocalizedTextDraft
+>;
+
+export type LanguageCompletenessState = 'empty' | 'partial' | 'complete';
+
+export interface AdminSiteFormInput {
+  id: string;
   city: string;
   district: string;
   address: string;
@@ -145,6 +157,264 @@ export interface AdminSiteFormInput {
   rating: number;
   nationalSpecialMonument: boolean;
   unescoRecognized: boolean;
+  translations: AdminTranslationsDraftMap;
+}
+
+export interface AdminTranslateSiteApiResponse {
+  source_language: SupportedLanguage;
+  translations: Partial<Record<SupportedLanguage, LocalizedContent>>;
+  mode: 'gemini' | 'fallback';
+  note: string;
+}
+
+const DEFAULT_OPENING_HOURS_BY_LANG: Record<SupportedLanguage, string> = {
+  vi: '07:30 – 17:30 Hàng ngày',
+  en: '07:30 – 17:30 Daily',
+  fr: '07h30 – 17h30 Tous les jours',
+  zh: '07:30 – 17:30 每日开放',
+  ja: '07:30 – 17:30 毎日',
+};
+
+const DEFAULT_ERA_BY_LANG: Record<SupportedLanguage, string> = {
+  vi: 'Thế kỷ XIX – XX',
+  en: '19th – 20th Century',
+  fr: 'XIXe – XXe siècle',
+  zh: '19世纪 – 20世纪',
+  ja: '19世紀〜20世紀',
+};
+
+const FALLBACK_HIGHLIGHT_BY_LANG: Record<SupportedLanguage, string> = {
+  vi: 'Công trình di sản văn hóa – lịch sử tiêu biểu tại TP. Hồ Chí Minh',
+  en: 'Notable cultural and historical heritage landmark in Ho Chi Minh City',
+  fr: 'Site culturel et historique emblématique à Hô Chi Minh-Ville',
+  zh: '胡志明市具有代表性的历史文化地标',
+  ja: 'ホーチミン市を代表する歴史文化遺産スポット',
+};
+
+export function createEmptyLocalizedDrafts(): AdminTranslationsDraftMap {
+  return {
+    vi: {
+      name: '',
+      shortSummary: '',
+      historicalEra: DEFAULT_ERA_BY_LANG.vi,
+      openingHours: DEFAULT_OPENING_HOURS_BY_LANG.vi,
+      architecturalHighlightsText: '',
+      audioScriptText: '',
+    },
+    en: {
+      name: '',
+      shortSummary: '',
+      historicalEra: '',
+      openingHours: '',
+      architecturalHighlightsText: '',
+      audioScriptText: '',
+    },
+    fr: {
+      name: '',
+      shortSummary: '',
+      historicalEra: '',
+      openingHours: '',
+      architecturalHighlightsText: '',
+      audioScriptText: '',
+    },
+    zh: {
+      name: '',
+      shortSummary: '',
+      historicalEra: '',
+      openingHours: '',
+      architecturalHighlightsText: '',
+      audioScriptText: '',
+    },
+    ja: {
+      name: '',
+      shortSummary: '',
+      historicalEra: '',
+      openingHours: '',
+      architecturalHighlightsText: '',
+      audioScriptText: '',
+    },
+  };
+}
+
+export function extractLocalizedDraftsFromSite(
+  site: HeritageSite
+): AdminTranslationsDraftMap {
+  const result = createEmptyLocalizedDrafts();
+  for (const meta of SUPPORTED_LANGUAGES) {
+    const loc = site.translations?.[meta.code];
+    if (!loc) continue;
+    result[meta.code] = {
+      name: loc.name || '',
+      shortSummary: loc.shortSummary || '',
+      historicalEra: loc.historicalEra || '',
+      openingHours: loc.openingHours || '',
+      architecturalHighlightsText: (loc.architecturalHighlights || []).join('\n'),
+      audioScriptText: (loc.audioScript || []).join('\n'),
+    };
+  }
+  return result;
+}
+
+export function getLanguageCompleteness(
+  draft: AdminLocalizedTextDraft | undefined
+): LanguageCompletenessState {
+  if (!draft) return 'empty';
+  const hasName = Boolean(draft.name.trim());
+  const hasSummary = Boolean(draft.shortSummary.trim());
+  const hasScript = Boolean(draft.audioScriptText.trim());
+  const hasHighlights = Boolean(draft.architecturalHighlightsText.trim());
+  if (hasName && hasSummary && hasScript) {
+    return 'complete';
+  }
+  if (hasName || hasSummary || hasScript || hasHighlights) {
+    return 'partial';
+  }
+  return 'empty';
+}
+
+export function countCompleteLanguages(
+  drafts: AdminTranslationsDraftMap
+): number {
+  return SUPPORTED_LANGUAGES.filter(
+    (meta) => getLanguageCompleteness(drafts[meta.code]) === 'complete'
+  ).length;
+}
+
+function parseBulletLines(text: string): string[] {
+  return (text || '')
+    .split('\n')
+    .map((line) => line.replace(/^[-•*]\s*/, '').trim())
+    .filter(Boolean);
+}
+
+function parseScriptLines(text: string): string[] {
+  return (text || '')
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean);
+}
+
+function localizeOpeningHoursFallback(
+  raw: string,
+  targetLang: SupportedLanguage
+): string {
+  const trimmed = raw.trim();
+  if (!trimmed) return DEFAULT_OPENING_HOURS_BY_LANG[targetLang];
+  if (targetLang === 'en') {
+    return trimmed
+      .replace(/Hàng ngày/gi, 'Daily')
+      .replace(/Mỗi ngày/gi, 'Daily')
+      .replace(/Mở cửa tự do/gi, 'Open access');
+  }
+  if (targetLang === 'fr') {
+    return trimmed
+      .replace(/Hàng ngày|Mỗi ngày|Daily/gi, 'Tous les jours')
+      .replace(/Mở cửa tự do/gi, 'Accès libre');
+  }
+  if (targetLang === 'zh') {
+    return trimmed
+      .replace(/Hàng ngày|Mỗi ngày|Daily/gi, '每日开放')
+      .replace(/Mở cửa tự do/gi, '全天免费开放');
+  }
+  if (targetLang === 'ja') {
+    return trimmed
+      .replace(/Hàng ngày|Mỗi ngày|Daily/gi, '毎日')
+      .replace(/Mở cửa tự do/gi, '終日開放');
+  }
+  return trimmed;
+}
+
+function localizeEraFallback(
+  raw: string,
+  targetLang: SupportedLanguage
+): string {
+  const trimmed = raw.trim();
+  if (!trimmed) return DEFAULT_ERA_BY_LANG[targetLang];
+  if (targetLang === 'en') {
+    return trimmed
+      .replace(/Thế kỷ/gi, 'Century')
+      .replace(/Hiện đại/gi, 'Modern Era')
+      .replace(/Thời Pháp thuộc/gi, 'French Colonial Era');
+  }
+  if (targetLang === 'fr') {
+    return trimmed
+      .replace(/Thế kỷ/gi, 'Siècle')
+      .replace(/Hiện đại/gi, 'Époque moderne')
+      .replace(/Thời Pháp thuộc/gi, 'Époque coloniale française');
+  }
+  if (targetLang === 'zh') {
+    return trimmed
+      .replace(/Thế kỷ/gi, '世纪')
+      .replace(/Hiện đại/gi, '现代')
+      .replace(/Thời Pháp thuộc/gi, '法属时期');
+  }
+  if (targetLang === 'ja') {
+    return trimmed
+      .replace(/Thế kỷ/gi, '世紀')
+      .replace(/Hiện đại/gi, '現代')
+      .replace(/Thời Pháp thuộc/gi, 'フランス植民地時代');
+  }
+  return trimmed;
+}
+
+function buildIntroScriptFallback(
+  lang: SupportedLanguage,
+  name: string,
+  location: string,
+  summary: string
+): string {
+  switch (lang) {
+    case 'en':
+      return `Welcome to ${name}, located in ${location}. ${summary}`;
+    case 'fr':
+      return `Bienvenue à ${name}, situé à ${location}. ${summary}`;
+    case 'zh':
+      return `欢迎来到位于${location}的${name}。${summary}`;
+    case 'ja':
+      return `${location}にある${name}へようこそ。${summary}`;
+    case 'vi':
+    default:
+      return `Chào mừng quý khách đến với ${name}, tọa lạc tại ${location}. ${summary}`;
+  }
+}
+
+export function buildLocalFallbackTranslations(
+  sourceLang: SupportedLanguage,
+  sourceDraft: AdminLocalizedTextDraft,
+  city: string,
+  address: string,
+  targetLanguages?: SupportedLanguage[]
+): Partial<Record<SupportedLanguage, AdminLocalizedTextDraft>> {
+  const targets = (
+    targetLanguages && targetLanguages.length > 0
+      ? targetLanguages
+      : SUPPORTED_LANGUAGES.map((m) => m.code)
+  ).filter((code) => code !== sourceLang);
+
+  const location = address.trim() || city.trim() || 'TP. Hồ Chí Minh';
+  const baseName = sourceDraft.name.trim() || 'Heritage Site';
+  const baseSummary = sourceDraft.shortSummary.trim() || `${baseName} (${location}).`;
+  const sourceHighlights = parseBulletLines(sourceDraft.architecturalHighlightsText);
+  const sourceScripts = parseScriptLines(sourceDraft.audioScriptText);
+
+  const result: Partial<Record<SupportedLanguage, AdminLocalizedTextDraft>> = {};
+  for (const lang of targets) {
+    result[lang] = {
+      name: baseName,
+      shortSummary: baseSummary,
+      historicalEra: localizeEraFallback(sourceDraft.historicalEra, lang),
+      openingHours: localizeOpeningHoursFallback(sourceDraft.openingHours, lang),
+      architecturalHighlightsText:
+        sourceHighlights.length > 0
+          ? sourceHighlights.join('\n')
+          : FALLBACK_HIGHLIGHT_BY_LANG[lang],
+      audioScriptText:
+        sourceScripts.length > 0
+          ? sourceScripts.join('\n')
+          : buildIntroScriptFallback(lang, baseName, location, baseSummary),
+    };
+  }
+  return result;
 }
 
 export interface AdminRestaurantFormInput {
@@ -177,60 +447,77 @@ export function buildHeritageSiteFromForm(
   form: AdminSiteFormInput,
   existing?: HeritageSite | null
 ): HeritageSite {
+  const viDraft = form.translations.vi;
+  const primaryNameVi =
+    viDraft.name.trim() ||
+    form.translations.en.name.trim() ||
+    existing?.translations.vi.name ||
+    'Di tích mới';
   const safeId =
-    existing?.id || form.id.trim() || slugifyVietnamese(form.nameVi) || `site-${Date.now()}`;
-  const summaryVi = form.shortSummaryVi.trim() || `${form.nameVi.trim()} tại ${form.city.trim()}.`;
-  const nameEn = form.nameEn.trim() || form.nameVi.trim();
-  const baseVi = existing?.translations.vi;
+    existing?.id ||
+    form.id.trim() ||
+    slugifyVietnamese(primaryNameVi) ||
+    `site-${Date.now()}`;
+  const locationLabel = form.address.trim() || form.city.trim() || 'TP. Hồ Chí Minh';
 
-  const parsedHighlights = (form.architecturalHighlightsText || '')
-    .split('\n')
-    .map((line) => line.replace(/^[-•*]\s*/, '').trim())
-    .filter(Boolean);
+  const buildLocalized = (
+    lang: SupportedLanguage,
+    fallbackSource?: LocalizedContent
+  ): LocalizedContent => {
+    const draft = form.translations[lang];
+    const existingLoc = existing?.translations?.[lang];
+    const name =
+      draft?.name.trim() ||
+      existingLoc?.name?.trim() ||
+      fallbackSource?.name ||
+      primaryNameVi;
+    const summary =
+      draft?.shortSummary.trim() ||
+      existingLoc?.shortSummary?.trim() ||
+      fallbackSource?.shortSummary ||
+      `${name} (${form.city.trim() || 'TP.HCM'}).`;
+    const era =
+      draft?.historicalEra.trim() ||
+      existingLoc?.historicalEra?.trim() ||
+      localizeEraFallback(viDraft.historicalEra, lang);
+    const hours =
+      draft?.openingHours.trim() ||
+      existingLoc?.openingHours?.trim() ||
+      localizeOpeningHoursFallback(viDraft.openingHours, lang);
+    const parsedHighlights = parseBulletLines(
+      draft?.architecturalHighlightsText || ''
+    );
+    const parsedScript = parseScriptLines(draft?.audioScriptText || '');
 
-  const parsedAudioScript = (form.audioScriptText || '')
-    .split('\n')
-    .map((line) => line.trim())
-    .filter(Boolean);
-
-  const viContent = {
-    name: form.nameVi.trim(),
-    shortSummary: summaryVi,
-    historicalEra: form.historicalEra.trim() || baseVi?.historicalEra || 'TP. Hồ Chí Minh',
-    openingHours: form.openingHours.trim() || baseVi?.openingHours || '07:30 – 17:30 Hàng ngày',
-    architecturalHighlights:
-      parsedHighlights.length > 0
-        ? parsedHighlights
-        : baseVi?.architecturalHighlights && baseVi.architecturalHighlights.length > 0
-          ? baseVi.architecturalHighlights
-          : ['Công trình di sản văn hóa – lịch sử tiêu biểu tại TP. Hồ Chí Minh'],
-    audioScript:
-      parsedAudioScript.length > 0
-        ? parsedAudioScript
-        : baseVi?.audioScript && baseVi.audioScript.length > 0
-          ? baseVi.audioScript
-          : [
-              `Chào mừng quý khách đến với ${form.nameVi.trim()}, tọa lạc tại ${form.address.trim() || form.city.trim()}. ${summaryVi}`,
-            ],
+    return {
+      name,
+      shortSummary: summary,
+      historicalEra: era,
+      openingHours: hours,
+      architecturalHighlights:
+        parsedHighlights.length > 0
+          ? parsedHighlights
+          : existingLoc?.architecturalHighlights &&
+              existingLoc.architecturalHighlights.length > 0
+            ? existingLoc.architecturalHighlights
+            : fallbackSource?.architecturalHighlights &&
+                fallbackSource.architecturalHighlights.length > 0
+              ? fallbackSource.architecturalHighlights
+              : [FALLBACK_HIGHLIGHT_BY_LANG[lang]],
+      audioScript:
+        parsedScript.length > 0
+          ? parsedScript
+          : existingLoc?.audioScript && existingLoc.audioScript.length > 0
+            ? existingLoc.audioScript
+            : [buildIntroScriptFallback(lang, name, locationLabel, summary)],
+    };
   };
 
-  const enContent = existing?.translations.en
-    ? {
-        ...existing.translations.en,
-        name: nameEn,
-        historicalEra: viContent.historicalEra,
-        openingHours: viContent.openingHours,
-      }
-    : {
-        name: nameEn,
-        shortSummary: summaryVi,
-        historicalEra: viContent.historicalEra,
-        openingHours: viContent.openingHours,
-        architecturalHighlights: viContent.architecturalHighlights,
-        audioScript: [
-          `Welcome to ${nameEn} located in ${form.city.trim()}. ${summaryVi}`,
-        ],
-      };
+  const viContent = buildLocalized('vi');
+  const enContent = buildLocalized('en', viContent);
+  const frContent = buildLocalized('fr', enContent);
+  const zhContent = buildLocalized('zh', enContent);
+  const jaContent = buildLocalized('ja', enContent);
 
   const cover =
     form.coverImage.trim() ||
@@ -254,9 +541,9 @@ export function buildHeritageSiteFromForm(
     translations: {
       vi: viContent,
       en: enContent,
-      fr: existing?.translations.fr ?? enContent,
-      zh: existing?.translations.zh ?? enContent,
-      ja: existing?.translations.ja ?? enContent,
+      fr: frContent,
+      zh: zhContent,
+      ja: jaContent,
     },
     mediaGallery:
       existing?.mediaGallery && existing.mediaGallery.length > 0
@@ -267,17 +554,47 @@ export function buildHeritageSiteFromForm(
               type: 'image',
               url: cover,
               caption: {
-                vi: form.nameVi.trim(),
-                en: nameEn,
-                fr: nameEn,
-                zh: nameEn,
-                ja: nameEn,
+                vi: viContent.name,
+                en: enContent.name,
+                fr: frContent.name,
+                zh: zhContent.name,
+                ja: jaContent.name,
               },
               yearOrSource: 'Quản trị Smart Heritage Guide',
             },
           ],
     nearbyRestaurants: existing?.nearbyRestaurants ?? [],
   };
+}
+
+export async function adminTranslateSiteContent(params: {
+  sourceLanguage: SupportedLanguage;
+  sourceDraft: AdminLocalizedTextDraft;
+  targetLanguages?: SupportedLanguage[];
+  city: string;
+  address: string;
+}): Promise<ApiResult<AdminTranslateSiteApiResponse>> {
+  const { sourceLanguage, sourceDraft, targetLanguages, city, address } = params;
+  return apiRequest<AdminTranslateSiteApiResponse>('/api/v1/admin/translate-site', {
+    method: 'POST',
+    timeoutMs: 25000,
+    body: {
+      source_language: sourceLanguage,
+      target_languages: targetLanguages ?? [],
+      city: city.trim() || 'TP. Hồ Chí Minh',
+      address: address.trim(),
+      source_content: {
+        name: sourceDraft.name.trim(),
+        shortSummary: sourceDraft.shortSummary.trim(),
+        historicalEra: sourceDraft.historicalEra.trim(),
+        openingHours: sourceDraft.openingHours.trim(),
+        architecturalHighlights: parseBulletLines(
+          sourceDraft.architecturalHighlightsText
+        ),
+        audioScript: parseScriptLines(sourceDraft.audioScriptText),
+      },
+    },
+  });
 }
 
 export function buildRestaurantFromForm(

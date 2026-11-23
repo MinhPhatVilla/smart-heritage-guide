@@ -17,27 +17,45 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   Check,
+  Copy,
+  Globe2,
   LocateFixed,
   Map as MapIcon,
   MapPin,
   Search,
+  Sparkles,
+  Square,
   Trash2,
+  Volume2,
   X,
 } from 'lucide-react-native';
-import { HeritageSite, NearbyRestaurant } from '../../types/heritage';
 import {
+  HeritageSite,
+  NearbyRestaurant,
+  SUPPORTED_LANGUAGES,
+  SupportedLanguage,
+} from '../../types/heritage';
+import {
+  AdminLocalizedTextDraft,
   AdminRestaurantFormInput,
   AdminSiteFormInput,
   adminCreateRestaurant,
   adminCreateSite,
   adminDeleteRestaurant,
   adminDeleteSite,
+  adminTranslateSiteContent,
   adminUpdateRestaurant,
   adminUpdateSite,
   buildHeritageSiteFromForm,
+  buildLocalFallbackTranslations,
   buildRestaurantFromForm,
+  countCompleteLanguages,
+  createEmptyLocalizedDrafts,
+  extractLocalizedDraftsFromSite,
+  getLanguageCompleteness,
   slugifyVietnamese,
 } from '../../services/adminService';
+import { speechService } from '../../services/speechService';
 import {
   AdminMapPickerModal,
   ExistingMapPoint,
@@ -81,6 +99,59 @@ const DEFAULT_SITE_COVER =
 const DEFAULT_DINING_COVER =
   'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=600&q=80';
 
+const LANG_PLACEHOLDERS: Record<
+  SupportedLanguage,
+  {
+    name: string;
+    era: string;
+    hours: string;
+    summary: string;
+    highlights: string;
+    script: string;
+  }
+> = {
+  vi: {
+    name: 'VD: Bảo tàng Áo Dài TP.HCM',
+    era: 'VD: 1880 – 1891 hoặc Thế kỷ XX',
+    hours: '07:30 – 17:30 Hàng ngày',
+    summary: 'Mô tả ngắn gọn giá trị lịch sử & kiến trúc (Tiếng Việt)...',
+    highlights: 'VD: Mái vòm gạch đỏ kiểu Roman\nHai tháp chuông cao 57,6 mét',
+    script: 'Nhập các đoạn thuyết minh để giọng AI tự động đọc (mỗi dòng 1 đoạn)...',
+  },
+  en: {
+    name: 'e.g. Ao Dai Museum Ho Chi Minh City',
+    era: 'e.g. 1880 – 1891 or 20th Century',
+    hours: '07:30 – 17:30 Daily',
+    summary: 'Concise historical & architectural overview in English...',
+    highlights: 'e.g. Neo-Romanesque red brick facade\nTwin 57.6m bell towers',
+    script: 'Enter English audio guide narration paragraphs (one paragraph per line)...',
+  },
+  fr: {
+    name: "ex. Musée de l'Áo Dài de Hô Chi Minh-Ville",
+    era: 'ex. 1880 – 1891 ou XXe siècle',
+    hours: '07h30 – 17h30 Tous les jours',
+    summary: 'Présentation historique et architecturale en français...',
+    highlights: 'ex. Façade néo-romane en briques rouges\nClochers jumeaux de 57,6 m',
+    script: 'Saisissez le script audio en français (un paragraphe par ligne)...',
+  },
+  zh: {
+    name: '例如：胡志明市奥黛博物馆',
+    era: '例如：1880 – 1891 或 20世纪',
+    hours: '07:30 – 17:30 每日开放',
+    summary: '简明历史与建筑价值介绍（简体中文）...',
+    highlights: '例如：红砖罗马风格穹顶\n57.6米双钟楼',
+    script: '输入中文语音导览解说词（每行一段）...',
+  },
+  ja: {
+    name: '例：ホーチミン市アオザイ博物館',
+    era: '例：1880年〜1891年 または 20世紀',
+    hours: '07:30 – 17:30 毎日',
+    summary: '歴史・建築的価値の簡潔な紹介（日本語）...',
+    highlights: '例：赤レンガ造りのネオ・ロマネスク様式\n高さ57.6mの双塔',
+    script: '日本語の音声ガイド原稿を入力してください（1行につき1段落）...',
+  },
+};
+
 export const AdminEditorModals: React.FC<AdminEditorModalsProps> = ({
   siteModalOpen,
   editingSite,
@@ -101,6 +172,10 @@ export const AdminEditorModals: React.FC<AdminEditorModalsProps> = ({
   onRecordActivity,
 }) => {
   const [isSaving, setIsSaving] = useState<boolean>(false);
+  const [activeLang, setActiveLang] = useState<SupportedLanguage>('vi');
+  const [isTranslating, setIsTranslating] = useState<boolean>(false);
+  const [translateNotice, setTranslateNotice] = useState<string | null>(null);
+  const [isPreviewSpeaking, setIsPreviewSpeaking] = useState<boolean>(false);
   const [mapPickerTarget, setMapPickerTarget] = useState<
     'site' | 'restaurant' | null
   >(null);
@@ -108,13 +183,6 @@ export const AdminEditorModals: React.FC<AdminEditorModalsProps> = ({
 
   const [siteForm, setSiteForm] = useState<AdminSiteFormInput>({
     id: '',
-    nameVi: '',
-    nameEn: '',
-    shortSummaryVi: '',
-    architecturalHighlightsText: '',
-    audioScriptText: '',
-    historicalEra: 'Thế kỷ XIX – XX',
-    openingHours: '07:30 – 17:30 Hàng ngày',
     city: 'Quận 1 · TP.HCM',
     district: 'Quận 1',
     address: '',
@@ -126,6 +194,7 @@ export const AdminEditorModals: React.FC<AdminEditorModalsProps> = ({
     rating: 4.7,
     nationalSpecialMonument: false,
     unescoRecognized: false,
+    translations: createEmptyLocalizedDrafts(),
   });
 
   const [restForm, setRestForm] = useState<AdminRestaurantFormInput>({
@@ -142,23 +211,26 @@ export const AdminEditorModals: React.FC<AdminEditorModalsProps> = ({
     imageUrl: DEFAULT_DINING_COVER,
   });
 
+  // Stop any TTS preview whenever modal closes or unmounts
+  useEffect(() => {
+    if (!siteModalOpen) {
+      speechService.stop();
+      setIsPreviewSpeaking(false);
+      setTranslateNotice(null);
+    }
+    return () => {
+      speechService.stop();
+    };
+  }, [siteModalOpen]);
+
   // Hydrate Site form whenever modal opens
   useEffect(() => {
     if (!siteModalOpen) return;
+    setActiveLang('vi');
+    setTranslateNotice(null);
     if (editingSite) {
       setSiteForm({
         id: editingSite.id,
-        nameVi: editingSite.translations.vi.name,
-        nameEn: editingSite.translations.en.name,
-        shortSummaryVi: editingSite.translations.vi.shortSummary,
-        architecturalHighlightsText: (
-          editingSite.translations.vi.architecturalHighlights || []
-        ).join('\n'),
-        audioScriptText: (editingSite.translations.vi.audioScript || []).join(
-          '\n'
-        ),
-        historicalEra: editingSite.translations.vi.historicalEra,
-        openingHours: editingSite.translations.vi.openingHours,
         city: editingSite.city,
         district:
           editingSite.district ||
@@ -173,17 +245,11 @@ export const AdminEditorModals: React.FC<AdminEditorModalsProps> = ({
         rating: editingSite.rating,
         nationalSpecialMonument: Boolean(editingSite.nationalSpecialMonument),
         unescoRecognized: Boolean(editingSite.unescoRecognized),
+        translations: extractLocalizedDraftsFromSite(editingSite),
       });
     } else {
       setSiteForm({
         id: '',
-        nameVi: '',
-        nameEn: '',
-        shortSummaryVi: '',
-        architecturalHighlightsText: '',
-        audioScriptText: '',
-        historicalEra: 'Thế kỷ XIX – XX',
-        openingHours: '07:30 – 17:30 Hàng ngày',
         city: 'Quận 1 · TP.HCM',
         district: 'Quận 1',
         address: '',
@@ -195,9 +261,199 @@ export const AdminEditorModals: React.FC<AdminEditorModalsProps> = ({
         rating: 4.7,
         nationalSpecialMonument: false,
         unescoRecognized: false,
+        translations: createEmptyLocalizedDrafts(),
       });
     }
   }, [editingSite, siteModalOpen, userLocation]);
+
+  const activeDraft = siteForm.translations[activeLang];
+  const activeLangMeta = useMemo(
+    () =>
+      SUPPORTED_LANGUAGES.find((m) => m.code === activeLang) ||
+      SUPPORTED_LANGUAGES[0],
+    [activeLang]
+  );
+  const completeLangCount = useMemo(
+    () => countCompleteLanguages(siteForm.translations),
+    [siteForm.translations]
+  );
+
+  const updateActiveDraftField = (
+    field: keyof AdminLocalizedTextDraft,
+    value: string
+  ) => {
+    setSiteForm((prev) => {
+      const nextTranslations = {
+        ...prev.translations,
+        [activeLang]: {
+          ...prev.translations[activeLang],
+          [field]: value,
+        },
+      };
+      return {
+        ...prev,
+        id:
+          !editingSite && activeLang === 'vi' && field === 'name'
+            ? slugifyVietnamese(value)
+            : prev.id,
+        translations: nextTranslations,
+      };
+    });
+  };
+
+  const handleSelectLang = (lang: SupportedLanguage) => {
+    if (lang === activeLang) return;
+    if (isPreviewSpeaking) {
+      speechService.stop();
+      setIsPreviewSpeaking(false);
+    }
+    setActiveLang(lang);
+  };
+
+  const handleTogglePreviewTts = () => {
+    if (isPreviewSpeaking) {
+      speechService.stop();
+      setIsPreviewSpeaking(false);
+      return;
+    }
+    const scriptLines = activeDraft.audioScriptText
+      .split('\n')
+      .map((s) => s.trim())
+      .filter(Boolean);
+    const segments =
+      scriptLines.length > 0
+        ? scriptLines
+        : [activeDraft.shortSummary.trim(), activeDraft.name.trim()].filter(
+            Boolean
+          );
+
+    if (segments.length === 0) {
+      Alert.alert(
+        'Chưa có nội dung để đọc',
+        `Vui lòng nhập kịch bản thuyết minh hoặc mô tả cho ngôn ngữ ${activeLangMeta.nativeLabel}.`
+      );
+      return;
+    }
+
+    setIsPreviewSpeaking(true);
+    speechService.speakScript(segments, activeLang, 1.0, 0, {
+      onStateChange: (st) => {
+        if (st === 'idle') setIsPreviewSpeaking(false);
+      },
+      onEnd: () => setIsPreviewSpeaking(false),
+      onError: () => setIsPreviewSpeaking(false),
+    });
+  };
+
+  const handleAutoTranslateAll = async () => {
+    const srcDraft = siteForm.translations[activeLang];
+    if (!srcDraft.name.trim()) {
+      Alert.alert(
+        'Thiếu văn bản gốc',
+        `Vui lòng nhập ít nhất Tên di tích cho ngôn ngữ ${activeLangMeta.nativeLabel} trước khi dịch tự động.`
+      );
+      return;
+    }
+
+    setIsTranslating(true);
+    setTranslateNotice(null);
+
+    const targetLangs = SUPPORTED_LANGUAGES.map((m) => m.code).filter(
+      (code) => code !== activeLang
+    );
+
+    const apiRes = await adminTranslateSiteContent({
+      sourceLanguage: activeLang,
+      sourceDraft: srcDraft,
+      targetLanguages: targetLangs,
+      city: siteForm.city,
+      address: siteForm.address,
+    });
+
+    if (apiRes.ok && apiRes.data?.translations) {
+      const incoming = apiRes.data.translations;
+      setSiteForm((prev) => {
+        const merged = { ...prev.translations };
+        for (const lang of targetLangs) {
+          const loc = incoming[lang];
+          if (!loc) continue;
+          merged[lang] = {
+            name: loc.name || prev.translations[lang].name,
+            shortSummary: loc.shortSummary || prev.translations[lang].shortSummary,
+            historicalEra:
+              loc.historicalEra || prev.translations[lang].historicalEra,
+            openingHours:
+              loc.openingHours || prev.translations[lang].openingHours,
+            architecturalHighlightsText: (
+              loc.architecturalHighlights || []
+            ).join('\n'),
+            audioScriptText: (loc.audioScript || []).join('\n'),
+          };
+        }
+        return { ...prev, translations: merged };
+      });
+      setTranslateNotice(
+        apiRes.data.mode === 'gemini'
+          ? `Đã dịch tự động bằng Gemini AI từ ${activeLang.toUpperCase()} sang 4 ngôn ngữ còn lại.`
+          : apiRes.data.note ||
+              'Đã tạo bản nháp đa ngôn ngữ chuẩn hóa — hãy chuyển tab ngôn ngữ để rà soát.'
+      );
+    } else {
+      // Offline / Local Demo fallback so Admin always gets 5-language drafts immediately
+      const localDrafts = buildLocalFallbackTranslations(
+        activeLang,
+        srcDraft,
+        siteForm.city,
+        siteForm.address,
+        targetLangs
+      );
+      setSiteForm((prev) => {
+        const merged = { ...prev.translations };
+        for (const lang of targetLangs) {
+          const item = localDrafts[lang];
+          if (item) {
+            merged[lang] = item;
+          }
+        }
+        return { ...prev, translations: merged };
+      });
+      setTranslateNotice(
+        'Backend AI chưa sẵn sàng — đã khởi tạo bản nháp 4 ngôn ngữ cục bộ để bạn chỉnh sửa nhanh.'
+      );
+    }
+
+    setIsTranslating(false);
+  };
+
+  const handleCopyFromVietnamese = () => {
+    if (activeLang === 'vi') return;
+    const vi = siteForm.translations.vi;
+    if (!vi.name.trim() && !vi.shortSummary.trim()) {
+      Alert.alert(
+        'Chưa có nội dung Tiếng Việt',
+        'Vui lòng nhập nội dung Tiếng Việt trước để sao chép khung sang ngôn ngữ này.'
+      );
+      return;
+    }
+    const localDraft = buildLocalFallbackTranslations(
+      'vi',
+      vi,
+      siteForm.city,
+      siteForm.address,
+      [activeLang]
+    )[activeLang];
+    if (!localDraft) return;
+    setSiteForm((prev) => ({
+      ...prev,
+      translations: {
+        ...prev.translations,
+        [activeLang]: localDraft,
+      },
+    }));
+    setTranslateNotice(
+      `Đã sao chép khung dữ liệu từ Tiếng Việt sang ${activeLangMeta.nativeLabel}.`
+    );
+  };
 
   // Hydrate Restaurant form whenever modal opens
   useEffect(() => {
@@ -304,7 +560,8 @@ export const AdminEditorModals: React.FC<AdminEditorModalsProps> = ({
   };
 
   const handleSaveSite = async () => {
-    if (!siteForm.nameVi.trim()) {
+    if (!siteForm.translations.vi.name.trim()) {
+      setActiveLang('vi');
       Alert.alert('Thiếu thông tin', 'Vui lòng nhập tên di tích tiếng Việt.');
       return;
     }
@@ -317,6 +574,9 @@ export const AdminEditorModals: React.FC<AdminEditorModalsProps> = ({
       );
       return;
     }
+
+    speechService.stop();
+    setIsPreviewSpeaking(false);
 
     const builtSite = buildHeritageSiteFromForm(
       { ...siteForm, lat: latNum, lng: lngNum },
@@ -467,21 +727,237 @@ export const AdminEditorModals: React.FC<AdminEditorModalsProps> = ({
               contentContainerStyle={styles.modalBody}
               keyboardShouldPersistTaps="handled"
             >
-              <View style={styles.fieldGroup}>
-                <Text style={styles.fieldLabel}>Tên di tích (Tiếng Việt) *</Text>
-                <TextInput
-                  value={siteForm.nameVi}
-                  onChangeText={(txt) =>
-                    setSiteForm((prev) => ({
-                      ...prev,
-                      nameVi: txt,
-                      id: editingSite ? prev.id : slugifyVietnamese(txt),
-                    }))
-                  }
-                  placeholder="VD: Bảo tàng Áo Dài TP.HCM"
-                  placeholderTextColor={COLORS.inkMuted}
-                  style={styles.input}
-                />
+              {/* MULTILINGUAL TEXT STUDIO CARD (VI · EN · FR · ZH · JA) */}
+              <View style={styles.langStudioCard}>
+                <View style={styles.langStudioHeader}>
+                  <View style={styles.langStudioTitleRow}>
+                    <Globe2 size={15} color={COLORS.accent} />
+                    <Text style={styles.langStudioTitle}>
+                      Nội dung Đa ngôn ngữ (5 thứ tiếng)
+                    </Text>
+                  </View>
+                  <View
+                    style={[
+                      styles.langProgressBadge,
+                      completeLangCount === 5 && styles.langProgressBadgeFull,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.langProgressText,
+                        completeLangCount === 5 && styles.langProgressTextFull,
+                      ]}
+                    >
+                      {completeLangCount}/5 đủ
+                    </Text>
+                  </View>
+                </View>
+
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.langTabRow}
+                >
+                  {SUPPORTED_LANGUAGES.map((meta) => {
+                    const isActive = activeLang === meta.code;
+                    const status = getLanguageCompleteness(
+                      siteForm.translations[meta.code]
+                    );
+                    const dotColor =
+                      status === 'complete'
+                        ? COLORS.visitedDot
+                        : status === 'partial'
+                          ? COLORS.amber
+                          : '#CBD5E1';
+                    return (
+                      <TouchableOpacity
+                        key={meta.code}
+                        activeOpacity={0.85}
+                        onPress={() => handleSelectLang(meta.code)}
+                        style={[
+                          styles.langTabBtn,
+                          isActive && styles.langTabBtnActive,
+                        ]}
+                      >
+                        <Text style={styles.langTabFlag}>{meta.flag}</Text>
+                        <Text
+                          style={[
+                            styles.langTabCode,
+                            isActive && styles.langTabCodeActive,
+                          ]}
+                        >
+                          {meta.code.toUpperCase()}
+                        </Text>
+                        <View
+                          style={[
+                            styles.langStatusDot,
+                            { backgroundColor: dotColor },
+                          ]}
+                        />
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+
+                <View style={styles.langActionBar}>
+                  <TouchableOpacity
+                    activeOpacity={0.85}
+                    onPress={handleAutoTranslateAll}
+                    disabled={isTranslating}
+                    style={styles.aiTranslateBtn}
+                  >
+                    {isTranslating ? (
+                      <ActivityIndicator size="small" color={COLORS.white} />
+                    ) : (
+                      <Sparkles size={13} color={COLORS.white} />
+                    )}
+                    <Text style={styles.aiTranslateBtnText}>
+                      {isTranslating
+                        ? 'Đang dịch 4 ngôn ngữ...'
+                        : `AI Dịch từ ${activeLang.toUpperCase()} → 4 ngôn ngữ`}
+                    </Text>
+                  </TouchableOpacity>
+
+                  {activeLang !== 'vi' && (
+                    <TouchableOpacity
+                      activeOpacity={0.85}
+                      onPress={handleCopyFromVietnamese}
+                      style={styles.copyViBtn}
+                    >
+                      <Copy size={12} color={COLORS.ink} />
+                      <Text style={styles.copyViBtnText}>Chép từ VI</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+
+                {Boolean(translateNotice) && (
+                  <Text style={styles.translateNoticeText}>
+                    {translateNotice}
+                  </Text>
+                )}
+
+                {/* ACTIVE LANGUAGE TEXT FIELDS */}
+                <View style={styles.fieldGroup}>
+                  <Text style={styles.fieldLabel}>
+                    Tên di tích ({activeLangMeta.flag} {activeLangMeta.nativeLabel})
+                    {activeLang === 'vi' ? ' *' : ''}
+                  </Text>
+                  <TextInput
+                    value={activeDraft.name}
+                    onChangeText={(txt) => updateActiveDraftField('name', txt)}
+                    placeholder={LANG_PLACEHOLDERS[activeLang].name}
+                    placeholderTextColor={COLORS.inkMuted}
+                    style={styles.input}
+                  />
+                </View>
+
+                <View style={styles.twoColRow}>
+                  <View style={[styles.fieldGroup, styles.flex]}>
+                    <Text style={styles.fieldLabel}>
+                      Niên đại ({activeLang.toUpperCase()})
+                    </Text>
+                    <TextInput
+                      value={activeDraft.historicalEra}
+                      onChangeText={(txt) =>
+                        updateActiveDraftField('historicalEra', txt)
+                      }
+                      placeholder={LANG_PLACEHOLDERS[activeLang].era}
+                      placeholderTextColor={COLORS.inkMuted}
+                      style={styles.input}
+                    />
+                  </View>
+                  <View style={[styles.fieldGroup, styles.flex]}>
+                    <Text style={styles.fieldLabel}>
+                      Giờ mở cửa ({activeLang.toUpperCase()})
+                    </Text>
+                    <TextInput
+                      value={activeDraft.openingHours}
+                      onChangeText={(txt) =>
+                        updateActiveDraftField('openingHours', txt)
+                      }
+                      placeholder={LANG_PLACEHOLDERS[activeLang].hours}
+                      placeholderTextColor={COLORS.inkMuted}
+                      style={styles.input}
+                    />
+                  </View>
+                </View>
+
+                <View style={styles.fieldGroup}>
+                  <Text style={styles.fieldLabel}>
+                    Tóm tắt lịch sử & RAG AI ({activeLang.toUpperCase()})
+                  </Text>
+                  <TextInput
+                    value={activeDraft.shortSummary}
+                    onChangeText={(txt) =>
+                      updateActiveDraftField('shortSummary', txt)
+                    }
+                    placeholder={LANG_PLACEHOLDERS[activeLang].summary}
+                    placeholderTextColor={COLORS.inkMuted}
+                    multiline
+                    numberOfLines={3}
+                    style={[styles.input, styles.textArea]}
+                  />
+                </View>
+
+                <View style={styles.fieldGroup}>
+                  <Text style={styles.fieldLabel}>
+                    Điểm nhấn kiến trúc ({activeLang.toUpperCase()} · mỗi dòng 1 ý)
+                  </Text>
+                  <TextInput
+                    value={activeDraft.architecturalHighlightsText}
+                    onChangeText={(txt) =>
+                      updateActiveDraftField('architecturalHighlightsText', txt)
+                    }
+                    placeholder={LANG_PLACEHOLDERS[activeLang].highlights}
+                    placeholderTextColor={COLORS.inkMuted}
+                    multiline
+                    numberOfLines={3}
+                    style={[styles.input, styles.textArea]}
+                  />
+                </View>
+
+                <View style={styles.fieldGroup}>
+                  <View style={styles.fieldLabelRow}>
+                    <Text style={styles.fieldLabel}>
+                      Kịch bản thuyết minh ({activeLang.toUpperCase()} · mỗi dòng 1 đoạn)
+                    </Text>
+                    <TouchableOpacity
+                      activeOpacity={0.85}
+                      onPress={handleTogglePreviewTts}
+                      style={[
+                        styles.ttsPreviewBtn,
+                        isPreviewSpeaking && styles.ttsPreviewBtnActive,
+                      ]}
+                    >
+                      {isPreviewSpeaking ? (
+                        <Square size={11} color={COLORS.white} />
+                      ) : (
+                        <Volume2 size={12} color={COLORS.accent} />
+                      )}
+                      <Text
+                        style={[
+                          styles.ttsPreviewBtnText,
+                          isPreviewSpeaking && styles.ttsPreviewBtnTextActive,
+                        ]}
+                      >
+                        {isPreviewSpeaking
+                          ? 'Dừng đọc'
+                          : `Nghe thử ${activeLang.toUpperCase()}`}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                  <TextInput
+                    value={activeDraft.audioScriptText}
+                    onChangeText={(txt) =>
+                      updateActiveDraftField('audioScriptText', txt)
+                    }
+                    placeholder={LANG_PLACEHOLDERS[activeLang].script}
+                    placeholderTextColor={COLORS.inkMuted}
+                    multiline
+                    numberOfLines={4}
+                    style={[styles.input, styles.textAreaTall]}
+                  />
+                </View>
               </View>
 
               <View style={styles.fieldGroup}>
@@ -496,19 +972,6 @@ export const AdminEditorModals: React.FC<AdminEditorModalsProps> = ({
                   placeholderTextColor={COLORS.inkMuted}
                   autoCapitalize="none"
                   style={[styles.input, editingSite && styles.inputDisabled]}
-                />
-              </View>
-
-              <View style={styles.fieldGroup}>
-                <Text style={styles.fieldLabel}>Tên tiếng Anh</Text>
-                <TextInput
-                  value={siteForm.nameEn}
-                  onChangeText={(txt) =>
-                    setSiteForm((prev) => ({ ...prev, nameEn: txt }))
-                  }
-                  placeholder="Ao Dai Museum Ho Chi Minh City"
-                  placeholderTextColor={COLORS.inkMuted}
-                  style={styles.input}
                 />
               </View>
 
@@ -561,33 +1024,6 @@ export const AdminEditorModals: React.FC<AdminEditorModalsProps> = ({
                       setSiteForm((prev) => ({ ...prev, ticketPrice: txt }))
                     }
                     placeholder="40.000đ"
-                    placeholderTextColor={COLORS.inkMuted}
-                    style={styles.input}
-                  />
-                </View>
-              </View>
-
-              <View style={styles.twoColRow}>
-                <View style={[styles.fieldGroup, styles.flex]}>
-                  <Text style={styles.fieldLabel}>Niên đại / Giai đoạn</Text>
-                  <TextInput
-                    value={siteForm.historicalEra}
-                    onChangeText={(txt) =>
-                      setSiteForm((prev) => ({ ...prev, historicalEra: txt }))
-                    }
-                    placeholder="VD: 1880 – 1891"
-                    placeholderTextColor={COLORS.inkMuted}
-                    style={styles.input}
-                  />
-                </View>
-                <View style={[styles.fieldGroup, styles.flex]}>
-                  <Text style={styles.fieldLabel}>Giờ mở cửa</Text>
-                  <TextInput
-                    value={siteForm.openingHours}
-                    onChangeText={(txt) =>
-                      setSiteForm((prev) => ({ ...prev, openingHours: txt }))
-                    }
-                    placeholder="07:30 – 17:30 Hàng ngày"
                     placeholderTextColor={COLORS.inkMuted}
                     style={styles.input}
                   />
@@ -672,62 +1108,6 @@ export const AdminEditorModals: React.FC<AdminEditorModalsProps> = ({
                   placeholder="Số nhà, đường, phường, quận..."
                   placeholderTextColor={COLORS.inkMuted}
                   style={styles.input}
-                />
-              </View>
-
-              <View style={styles.fieldGroup}>
-                <Text style={styles.fieldLabel}>
-                  Tóm tắt lịch sử (hiển thị & RAG AI)
-                </Text>
-                <TextInput
-                  value={siteForm.shortSummaryVi}
-                  onChangeText={(txt) =>
-                    setSiteForm((prev) => ({ ...prev, shortSummaryVi: txt }))
-                  }
-                  placeholder="Mô tả ngắn gọn giá trị lịch sử & kiến trúc..."
-                  placeholderTextColor={COLORS.inkMuted}
-                  multiline
-                  numberOfLines={3}
-                  style={[styles.input, styles.textArea]}
-                />
-              </View>
-
-              <View style={styles.fieldGroup}>
-                <Text style={styles.fieldLabel}>
-                  Điểm nhấn kiến trúc (mỗi dòng 1 ý)
-                </Text>
-                <TextInput
-                  value={siteForm.architecturalHighlightsText || ''}
-                  onChangeText={(txt) =>
-                    setSiteForm((prev) => ({
-                      ...prev,
-                      architecturalHighlightsText: txt,
-                    }))
-                  }
-                  placeholder={
-                    'VD: Mái vòm gạch đỏ kiểu Roman\nHai tháp chuông cao 57,6 mét'
-                  }
-                  placeholderTextColor={COLORS.inkMuted}
-                  multiline
-                  numberOfLines={3}
-                  style={[styles.input, styles.textArea]}
-                />
-              </View>
-
-              <View style={styles.fieldGroup}>
-                <Text style={styles.fieldLabel}>
-                  Kịch bản thuyết minh âm thanh (mỗi dòng 1 đoạn đọc)
-                </Text>
-                <TextInput
-                  value={siteForm.audioScriptText || ''}
-                  onChangeText={(txt) =>
-                    setSiteForm((prev) => ({ ...prev, audioScriptText: txt }))
-                  }
-                  placeholder="Nhập các đoạn thuyết minh để giọng AI Hoài My / Nam Minh tự động đọc..."
-                  placeholderTextColor={COLORS.inkMuted}
-                  multiline
-                  numberOfLines={4}
-                  style={[styles.input, styles.textAreaTall]}
                 />
               </View>
 
@@ -1135,6 +1515,155 @@ const styles = StyleSheet.create({
     padding: SPACING.lg,
     gap: 14,
     paddingBottom: 30,
+  },
+  langStudioCard: {
+    backgroundColor: COLORS.surface,
+    borderRadius: RADII.lg,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    padding: 14,
+    gap: 12,
+    ...SHADOWS.card,
+  },
+  langStudioHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  langStudioTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flex: 1,
+  },
+  langStudioTitle: {
+    fontFamily: SERIF_FONT,
+    fontSize: 14.5,
+    fontWeight: '700',
+    color: COLORS.ink,
+  },
+  langProgressBadge: {
+    paddingHorizontal: 9,
+    paddingVertical: 3,
+    borderRadius: RADII.pill,
+    backgroundColor: COLORS.amberBg,
+  },
+  langProgressBadgeFull: {
+    backgroundColor: COLORS.visitedBg,
+  },
+  langProgressText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: COLORS.amber,
+  },
+  langProgressTextFull: {
+    color: COLORS.visited,
+  },
+  langTabRow: {
+    gap: 7,
+    paddingVertical: 2,
+  },
+  langTabBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 11,
+    paddingVertical: 7,
+    borderRadius: RADII.pill,
+    backgroundColor: COLORS.surfaceMuted,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  langTabBtnActive: {
+    backgroundColor: '#141413',
+    borderColor: '#141413',
+  },
+  langTabFlag: {
+    fontSize: 13,
+  },
+  langTabCode: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.ink,
+  },
+  langTabCodeActive: {
+    color: COLORS.white,
+  },
+  langStatusDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+  },
+  langActionBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  aiTranslateBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: RADII.md,
+    backgroundColor: COLORS.accent,
+    flexGrow: 1,
+  },
+  aiTranslateBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.white,
+  },
+  copyViBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: RADII.md,
+    backgroundColor: COLORS.surfaceMuted,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  copyViBtnText: {
+    fontSize: 11.5,
+    fontWeight: '600',
+    color: COLORS.ink,
+  },
+  translateNoticeText: {
+    fontSize: 11.5,
+    lineHeight: 16,
+    color: COLORS.visited,
+    backgroundColor: COLORS.visitedBg,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: RADII.md,
+  },
+  ttsPreviewBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: RADII.pill,
+    backgroundColor: COLORS.accentSoft,
+    borderWidth: 1,
+    borderColor: COLORS.accentBorder,
+  },
+  ttsPreviewBtnActive: {
+    backgroundColor: COLORS.accent,
+    borderColor: COLORS.accent,
+  },
+  ttsPreviewBtnText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: COLORS.accent,
+  },
+  ttsPreviewBtnTextActive: {
+    color: COLORS.white,
   },
   fieldGroup: {
     gap: 6,

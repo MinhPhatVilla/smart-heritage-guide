@@ -196,6 +196,30 @@ class HeritageSiteUpdateRequest(BaseModel):
     media_gallery: Optional[list[dict[str, Any]]] = None
 
 
+class LocalizedSiteContentDTO(BaseModel):
+    name: str = Field(..., min_length=1, max_length=255)
+    shortSummary: str = Field(default="", max_length=4000)
+    historicalEra: str = Field(default="", max_length=255)
+    openingHours: str = Field(default="", max_length=255)
+    architecturalHighlights: list[str] = Field(default_factory=list)
+    audioScript: list[str] = Field(default_factory=list)
+
+
+class AdminTranslateSiteRequest(BaseModel):
+    source_language: SupportedLanguage = "vi"
+    target_languages: list[SupportedLanguage] = Field(default_factory=list)
+    source_content: LocalizedSiteContentDTO
+    city: str = Field(default="TP. Hồ Chí Minh", max_length=255)
+    address: str = Field(default="", max_length=500)
+
+
+class AdminTranslateSiteResponse(BaseModel):
+    source_language: SupportedLanguage
+    translations: dict[SupportedLanguage, LocalizedSiteContentDTO] = Field(default_factory=dict)
+    mode: Literal["gemini", "fallback"] = "fallback"
+    note: str = ""
+
+
 # ---------------------------------------------------------------------------
 # Smart AI Pillar 1: Explainable Recommendations & 2-Opt Walking Tour Planner
 # ---------------------------------------------------------------------------
