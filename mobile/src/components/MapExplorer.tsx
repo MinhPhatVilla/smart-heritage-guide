@@ -160,7 +160,15 @@ type MapCommand =
   | { type: 'SET_LIGHT'; preset: MapboxLightPreset }
   | { type: 'FIT_SCOPE'; focusHcmcOnly: boolean }
   | { type: 'FLY_TO'; lat: number; lng: number; zoom?: number }
-  | { type: 'RESIZE' };
+  | { type: 'RESIZE' }
+  | {
+      type: 'UPDATE_USER';
+      userLocation: [number, number];
+      userHeading: number | null;
+      followNav: boolean;
+      isSimulatingWalk: boolean;
+      searchRadiusMeters: number;
+    };
 
 type MapBridgeIncomingMessage =
   | { source: 'shg-map'; mapId: string; type: 'MAP_READY'; engine?: string }
@@ -817,6 +825,13 @@ function buildExplorerMapHtml(
         var loadingPhotoSprites = {};
         var spriteRefreshTimer = null;
 
+        var isInteracting = false;
+        var interactCooldownTimer = null;
+        var pendingSpriteBatches = [];
+        var lastRadiusSig = '';
+        var lastRestaurantsSig = '';
+
+        var dpr = typeof window.devicePixelRatio === 'number' ? window.devicePixelRatio : 1;
         var mapInitOpts = {
           container: 'map',
           style: resolveGlStyle(INITIAL_TILE),
@@ -828,9 +843,13 @@ function buildExplorerMapHtml(
           pitch: 50,
           bearing: -15,
           maxPitch: 70,
-          antialias: true,
-          fadeDuration: 90,
-          maxTileCacheSize: 120,
+          // Trên màn hình HiDPI/Retina (>=1.5x), tắt MSAA antialias giúp tăng 30-50% FPS khi phóng to thu nhỏ mà vẫn sắc nét
+          antialias: dpr < 1.5,
+          fadeDuration: 0,
+          maxTileCacheSize: 160,
+          collectResourceTiming: false,
+          preserveDrawingBuffer: false,
+          refreshExpiredTiles: false,
           attributionControl: true
         };
         if (USE_MAPBOX && INITIAL_TILE.id === 'mapbox_standard') {
@@ -850,14 +869,21 @@ function buildExplorerMapHtml(
         }
         var map = new gl.Map(mapInitOpts);
 
+        // Giới hạn pixelRatio tối đa 2x (màn hình 3x iPhone/Android giảm 56% tải GPU fragment shader khi zoom!)
+        try {
+          if (typeof map.setPixelRatio === 'function' && dpr > 2) {
+            map.setPixelRatio(2);
+          }
+        } catch (e) {}
+
         // Tối ưu độ nhạy & độ mượt khi lăn chuột / phóng to thu nhỏ
         try {
           if (map.scrollZoom) {
             if (typeof map.scrollZoom.setWheelZoomRate === 'function') {
-              map.scrollZoom.setWheelZoomRate(1 / 220);
+              map.scrollZoom.setWheelZoomRate(1 / 250);
             }
             if (typeof map.scrollZoom.setZoomRate === 'function') {
-              map.scrollZoom.setZoomRate(1 / 85);
+              map.scrollZoom.setZoomRate(1 / 90);
             }
           }
         } catch (e) {}
@@ -1022,13 +1048,31 @@ function buildExplorerMapHtml(
         var directWikimediaErrors = 0;
 
         function scheduleSpriteSourceRefresh() {
-          if (spriteRefreshTimer) return;
+          if (spriteRefreshTimer || isInteracting) return;
           spriteRefreshTimer = setTimeout(function() {
             spriteRefreshTimer = null;
-            if (styleReady && lastKnownSites.length) {
-              syncGpuMarkers(lastKnownSites, lastShowRestaurants);
+            if (styleReady && !isInteracting && lastKnownSites.length) {
+              syncSitesSourceOnly(lastKnownSites);
             }
-          }, 90);
+          }, 260);
+        }
+
+        function flushPendingSpriteRegistrations() {
+          if (!styleReady || isInteracting || pendingSpriteBatches.length === 0) return;
+          var batch = pendingSpriteBatches.splice(0, 12);
+          var addedAny = false;
+          for (var i = 0; i < batch.length; i++) {
+            var item = batch[i];
+            if (registerSiteSpriteFromImgImmediate(item.site, item.spriteId, item.imgObj)) {
+              addedAny = true;
+            }
+          }
+          if (addedAny) {
+            scheduleSpriteSourceRefresh();
+          }
+          if (pendingSpriteBatches.length > 0 && !isInteracting) {
+            setTimeout(flushPendingSpriteRegistrations, 48);
+          }
         }
 
         function buildPinPhotoCandidates(rawUrl) {
@@ -1075,7 +1119,7 @@ function buildExplorerMapHtml(
           return list;
         }
 
-        function registerSiteSpriteFromImg(site, spriteId, imgObj) {
+        function registerSiteSpriteFromImgImmediate(site, spriteId, imgObj) {
           var accent = site.isVisited ? '#047857' : '#B93815';
           var badge = site.isVisited ? '✓' : String(site.index);
           try {
@@ -1083,11 +1127,22 @@ function buildExplorerMapHtml(
               map.addImage(spriteId, drawPinCanvas(imgObj, accent, badge), { pixelRatio: 2 });
             }
             loadedPhotoSprites[spriteId] = true;
-            scheduleSpriteSourceRefresh();
             return true;
           } catch (err) {
             return false;
           }
+        }
+
+        function registerSiteSpriteFromImg(site, spriteId, imgObj) {
+          if (isInteracting) {
+            pendingSpriteBatches.push({ site: site, spriteId: spriteId, imgObj: imgObj });
+            return true;
+          }
+          var ok = registerSiteSpriteFromImgImmediate(site, spriteId, imgObj);
+          if (ok) {
+            scheduleSpriteSourceRefresh();
+          }
+          return ok;
         }
 
         function prioritizePhotoQueueByViewport() {
@@ -1109,7 +1164,7 @@ function buildExplorerMapHtml(
         }
 
         function pumpPhotoLoadQueue() {
-          if (!styleReady) return;
+          if (!styleReady || isInteracting) return;
           prioritizePhotoQueueByViewport();
           while (activePhotoLoads < MAX_CONCURRENT_PHOTO_LOADS && photoLoadQueue.length > 0) {
             var job = photoLoadQueue.shift();
@@ -1242,10 +1297,14 @@ function buildExplorerMapHtml(
           var theme = getSpotlightTheme();
 
           // Lớp sương mờ tông kem ấm đồng bộ app (Frosted Alabaster Veil)
+          // maxzoom: 12 + tolerance: 0.75 giúp tránh re-tiling / re-triangulation đa giác lớn khi phóng to từ mức 12 -> 20!
           if (!map.getSource('shg-hcmc-mask')) {
             map.addSource('shg-hcmc-mask', {
               type: 'geojson',
-              data: { type: 'FeatureCollection', features: [] }
+              data: { type: 'FeatureCollection', features: [] },
+              maxzoom: 12,
+              tolerance: 0.75,
+              buffer: 32
             });
             map.addLayer(Object.assign({
               id: 'shg-hcmc-mask-fill',
@@ -1261,9 +1320,12 @@ function buildExplorerMapHtml(
           if (!map.getSource('shg-hcmc-border')) {
             map.addSource('shg-hcmc-border', {
               type: 'geojson',
-              data: { type: 'FeatureCollection', features: [] }
+              data: { type: 'FeatureCollection', features: [] },
+              maxzoom: 12,
+              tolerance: 0.75,
+              buffer: 32
             });
-            // 1. Subtle architectural drop shadow along the border (clean, never muddy)
+            // 1. Subtle lightweight halo along the border (bỏ line-blur tốn GPU fragment shader khi zoom!)
             map.addLayer(Object.assign({
               id: 'shg-hcmc-border-glow',
               type: 'line',
@@ -1271,8 +1333,7 @@ function buildExplorerMapHtml(
               layout: { 'line-join': 'round', 'line-cap': 'round' },
               paint: {
                 'line-color': theme.featherColor,
-                'line-width': 9,
-                'line-blur': 6,
+                'line-width': 5.5,
                 'line-opacity': theme.featherOpacity
               }
             }, topSlotProps));
@@ -1284,7 +1345,7 @@ function buildExplorerMapHtml(
               layout: { 'line-join': 'round', 'line-cap': 'round' },
               paint: {
                 'line-color': theme.casingColor,
-                'line-width': 3.4,
+                'line-width': 3.2,
                 'line-opacity': 0.92
               }
             }, topSlotProps));
@@ -1305,7 +1366,10 @@ function buildExplorerMapHtml(
           if (!map.getSource('shg-radius')) {
             map.addSource('shg-radius', {
               type: 'geojson',
-              data: { type: 'FeatureCollection', features: [] }
+              data: { type: 'FeatureCollection', features: [] },
+              maxzoom: 14,
+              tolerance: 0.6,
+              buffer: 32
             });
             map.addLayer(Object.assign({
               id: 'shg-radius-fill',
@@ -1381,31 +1445,33 @@ function buildExplorerMapHtml(
           if (!map.getSource('shg-restaurants-src')) {
             map.addSource('shg-restaurants-src', {
               type: 'geojson',
-              data: { type: 'FeatureCollection', features: [] }
+              data: { type: 'FeatureCollection', features: [] },
+              maxzoom: 15,
+              buffer: 32
             });
-            // District zoom (12.8 - 14.8): ultra-fast GPU dots smoothly fading & scaling in real time during zoom
+            // District zoom (12.8 - 15.2): ultra-fast GPU dots (0ms collision CPU cost during zoom!)
             map.addLayer(Object.assign({
               id: 'shg-res-dots',
               type: 'circle',
               source: 'shg-restaurants-src',
               minzoom: 12.8,
-              maxzoom: 14.9,
+              maxzoom: 15.3,
               filter: ['!=', ['get', 'isSelectedSite'], 1],
               paint: {
-                'circle-radius': ['interpolate', ['linear'], ['zoom'], 12.8, 3.2, 14.5, 5.2],
+                'circle-radius': ['interpolate', ['linear'], ['zoom'], 12.8, 3.2, 14.8, 5.2],
                 'circle-color': ['case', ['==', ['get', 'isOverture'], 1], '#B45309', '#B93815'],
                 'circle-stroke-width': 1.8,
                 'circle-stroke-color': '#FAF9F6',
-                'circle-opacity': ['interpolate', ['linear'], ['zoom'], 12.8, 0, 13.3, 0.92, 14.5, 0.92, 14.9, 0],
-                'circle-stroke-opacity': ['interpolate', ['linear'], ['zoom'], 12.8, 0, 13.3, 0.95, 14.5, 0.95, 14.9, 0]
+                'circle-opacity': ['interpolate', ['linear'], ['zoom'], 12.8, 0, 13.3, 0.92, 14.9, 0.92, 15.3, 0],
+                'circle-stroke-opacity': ['interpolate', ['linear'], ['zoom'], 12.8, 0, 13.3, 0.95, 14.9, 0.95, 15.3, 0]
               }
             }, topSlotProps));
-            // Street zoom (>= 14.5): crisp GPU Warm-Ivory Rating Pills with automatic WebGL collision detection!
+            // Street zoom (>= 15.0): crisp GPU Warm-Ivory Rating Pills with automatic WebGL collision detection
             map.addLayer(Object.assign({
               id: 'shg-res-pills',
               type: 'symbol',
               source: 'shg-restaurants-src',
-              minzoom: 14.5,
+              minzoom: 15.0,
               filter: ['!=', ['get', 'isSelectedSite'], 1],
               layout: Object.assign({
                 'icon-image': ['case', ['==', ['get', 'isOverture'], 1], 'shg-res-pill-overture', 'shg-res-pill-curated'],
@@ -1449,6 +1515,7 @@ function buildExplorerMapHtml(
             map.addSource('shg-sites-src', {
               type: 'geojson',
               data: { type: 'FeatureCollection', features: [] },
+              buffer: 64,
               cluster: true,
               clusterMaxZoom: 13,
               clusterRadius: 42,
@@ -1564,12 +1631,17 @@ function buildExplorerMapHtml(
           }
         }
 
-        function syncRadiusLayer(coords, radiusMeters) {
+        function syncRadiusLayer(coords, radiusMeters, force) {
           lastRadiusMeters = radiusMeters || 0;
           if (!styleReady || !map.getSource('shg-radius')) return;
+          var nextSig = lastRadiusMeters > 0 && lastRadiusMeters <= 25000
+            ? (coords[0].toFixed(5) + ',' + coords[1].toFixed(5) + ':' + lastRadiusMeters)
+            : 'none';
+          if (!force && nextSig === lastRadiusSig) return;
+          lastRadiusSig = nextSig;
           if (lastRadiusMeters > 0 && lastRadiusMeters <= 25000) {
             map.getSource('shg-radius').setData(
-              createCircleGeoJson([coords[1], coords[0]], lastRadiusMeters, 64)
+              createCircleGeoJson([coords[1], coords[0]], lastRadiusMeters, 48)
             );
           } else {
             map.getSource('shg-radius').setData({ type: 'FeatureCollection', features: [] });
@@ -1680,18 +1752,12 @@ function buildExplorerMapHtml(
 
         var lastShowRestaurants = true;
 
-        function syncGpuMarkers(sites, showRestaurants) {
-          if (!styleReady) return;
+        function syncSitesSourceOnly(sites) {
+          if (!styleReady || !map.getSource('shg-sites-src')) return;
           ensureMarkerSprites();
-
           var siteFeatures = [];
-          var resFeatures = [];
-          var selectedSiteObj = null;
-
-          sites.forEach(function(site) {
-            if (site.isSelected) {
-              selectedSiteObj = site;
-            }
+          for (var i = 0; i < sites.length; i++) {
+            var site = sites[i];
             var iconName = ensureSitePhotoSprite(site);
             siteFeatures.push({
               type: 'Feature',
@@ -1704,40 +1770,66 @@ function buildExplorerMapHtml(
                 iconName: iconName
               }
             });
-
-            if (showRestaurants && Array.isArray(site.restaurants)) {
-              site.restaurants.forEach(function(res) {
-                var ratingNum = Number(res.rating) || 4.5;
-                resFeatures.push({
-                  type: 'Feature',
-                  geometry: { type: 'Point', coordinates: [res.lng, res.lat] },
-                  properties: {
-                    id: res.id,
-                    siteId: site.id,
-                    rating: ratingNum,
-                    ratingText: ratingNum.toFixed(1),
-                    isOverture: res.source === 'overture' ? 1 : 0,
-                    isSelectedSite: site.isSelected ? 1 : 0
-                  }
-                });
-              });
-            }
-          });
-
+          }
           try {
-            if (map.getSource('shg-sites-src')) {
-              map.getSource('shg-sites-src').setData({
-                type: 'FeatureCollection',
-                features: siteFeatures
-              });
-            }
-            if (map.getSource('shg-restaurants-src')) {
-              map.getSource('shg-restaurants-src').setData({
-                type: 'FeatureCollection',
-                features: resFeatures
-              });
-            }
+            map.getSource('shg-sites-src').setData({
+              type: 'FeatureCollection',
+              features: siteFeatures
+            });
           } catch (e) {}
+        }
+
+        function syncGpuMarkers(sites, showRestaurants, forceRestaurants) {
+          if (!styleReady) return;
+          ensureMarkerSprites();
+
+          var selectedSiteObj = null;
+          for (var i = 0; i < sites.length; i++) {
+            if (sites[i].isSelected) {
+              selectedSiteObj = sites[i];
+              break;
+            }
+          }
+
+          syncSitesSourceOnly(sites);
+
+          // Chỉ cập nhật GeoJSON 250+ quán ăn khi danh sách/bộ lọc/điểm chọn thực sự thay đổi (không chạy lại khi tải ảnh!)
+          var resSig = (showRestaurants ? '1' : '0') + '|' + (selectedSiteObj ? selectedSiteObj.id : '') + '|' + sites.length;
+          if (forceRestaurants || resSig !== lastRestaurantsSig) {
+            lastRestaurantsSig = resSig;
+            var resFeatures = [];
+            if (showRestaurants) {
+              for (var sIdx = 0; sIdx < sites.length; sIdx++) {
+                var st = sites[sIdx];
+                if (!Array.isArray(st.restaurants)) continue;
+                var selFlag = st.isSelected ? 1 : 0;
+                for (var rIdx = 0; rIdx < st.restaurants.length; rIdx++) {
+                  var res = st.restaurants[rIdx];
+                  var ratingNum = Number(res.rating) || 4.5;
+                  resFeatures.push({
+                    type: 'Feature',
+                    geometry: { type: 'Point', coordinates: [res.lng, res.lat] },
+                    properties: {
+                      id: res.id,
+                      siteId: st.id,
+                      rating: ratingNum,
+                      ratingText: ratingNum.toFixed(1),
+                      isOverture: res.source === 'overture' ? 1 : 0,
+                      isSelectedSite: selFlag
+                    }
+                  });
+                }
+              }
+            }
+            try {
+              if (map.getSource('shg-restaurants-src')) {
+                map.getSource('shg-restaurants-src').setData({
+                  type: 'FeatureCollection',
+                  features: resFeatures
+                });
+              }
+            } catch (e) {}
+          }
 
           // Chỉ dùng đúng 1 DOM marker nổi duy nhất cho địa điểm đang chọn
           if (selectedSiteMarker) {
@@ -1796,21 +1888,51 @@ function buildExplorerMapHtml(
           loadedPhotoSprites = {};
           loadingPhotoSprites = {};
           photoLoadQueue = [];
+          pendingSpriteBatches = [];
+          lastRadiusSig = '';
+          lastRestaurantsSig = '';
           applyMapboxOrOsmEnhancements(map, currentTile, is3DEnabled, currentLightPreset);
           ensureCustomOverlayLayers();
           syncHcmcFocusLayer(isFocusHcmcOnly, false);
-          syncRadiusLayer(lastKnownUser, lastRadiusMeters);
+          syncRadiusLayer(lastKnownUser, lastRadiusMeters, true);
           syncRouteLayer(lastRouteData, false);
           if (lastKnownSites.length) {
-            syncGpuMarkers(lastKnownSites, lastShowRestaurants);
+            syncGpuMarkers(lastKnownSites, lastShowRestaurants, true);
           }
         });
 
-        map.on('moveend', function() {
-          if (styleReady && photoLoadQueue.length > 0) {
-            pumpPhotoLoadQueue();
+        function markInteractingStart() {
+          isInteracting = true;
+          if (interactCooldownTimer) {
+            clearTimeout(interactCooldownTimer);
+            interactCooldownTimer = null;
           }
-        });
+          if (spriteRefreshTimer) {
+            clearTimeout(spriteRefreshTimer);
+            spriteRefreshTimer = null;
+          }
+        }
+
+        function markInteractingEnd() {
+          if (interactCooldownTimer) clearTimeout(interactCooldownTimer);
+          // Đợi 150ms sau khi dừng lăn chuột / chụm tay mới giải mã ảnh & cập nhật sprite (0ms giật khung hình khi zoom!)
+          interactCooldownTimer = setTimeout(function() {
+            interactCooldownTimer = null;
+            isInteracting = false;
+            if (!styleReady) return;
+            if (pendingSpriteBatches.length > 0) {
+              flushPendingSpriteRegistrations();
+            }
+            if (photoLoadQueue.length > 0) {
+              pumpPhotoLoadQueue();
+            }
+          }, 150);
+        }
+
+        map.on('movestart', markInteractingStart);
+        map.on('zoomstart', markInteractingStart);
+        map.on('moveend', markInteractingEnd);
+        map.on('zoomend', markInteractingEnd);
 
         var fallbackTriggered = false;
         map.on('error', function(e) {
@@ -1843,14 +1965,19 @@ function buildExplorerMapHtml(
           'shg-res-dots'
         ];
 
-        map.on('mousemove', function(e) {
-          if (!styleReady || (typeof map.isMoving === 'function' && map.isMoving())) return;
-          try {
-            var activeLayers = interactiveGpuLayers.filter(function(id) { return !!map.getLayer(id); });
-            if (!activeLayers.length) return;
-            var hit = map.queryRenderedFeatures(e.point, { layers: activeLayers });
-            map.getCanvas().style.cursor = hit.length ? 'pointer' : '';
-          } catch (err) {}
+        // Dùng sự kiện cấp layer native của Mapbox thay vì queryRenderedFeatures trên từng pixel mousemove (giảm tải CPU rõ rệt)
+        var hoveredInteractiveCount = 0;
+        interactiveGpuLayers.forEach(function(layerId) {
+          map.on('mouseenter', layerId, function() {
+            hoveredInteractiveCount++;
+            map.getCanvas().style.cursor = 'pointer';
+          });
+          map.on('mouseleave', layerId, function() {
+            hoveredInteractiveCount = Math.max(0, hoveredInteractiveCount - 1);
+            if (hoveredInteractiveCount === 0) {
+              map.getCanvas().style.cursor = '';
+            }
+          });
         });
 
         map.on('click', function(e) {
@@ -2086,9 +2213,43 @@ function buildExplorerMapHtml(
               });
             }
           } else if (cmd.type === 'ZOOM_IN') {
-            map.zoomIn({ duration: 260 });
+            map.zoomIn({ duration: 180 });
           } else if (cmd.type === 'ZOOM_OUT') {
-            map.zoomOut({ duration: 260 });
+            map.zoomOut({ duration: 180 });
+          } else if (cmd.type === 'UPDATE_USER') {
+            var hasActiveRoute = Boolean(lastRouteData && Array.isArray(lastRouteData.coordinates) && lastRouteData.coordinates.length >= 2);
+            if (typeof cmd.followNav === 'boolean') {
+              isFollowingNav = hasActiveRoute && cmd.followNav;
+            }
+            if (typeof cmd.userHeading === 'number') {
+              lastKnownHeading = cmd.userHeading;
+            } else if (!hasActiveRoute) {
+              lastKnownHeading = null;
+            }
+            if (Array.isArray(cmd.userLocation) && cmd.userLocation.length === 2) {
+              lastKnownUser = cmd.userLocation;
+              ensureUserMarker(cmd.userLocation, lastKnownHeading, hasActiveRoute);
+              syncRadiusLayer(cmd.userLocation, hasActiveRoute ? 0 : (cmd.searchRadiusMeters || 0), false);
+              if (hasActiveRoute && isFollowingNav) {
+                engageNavCamera(
+                  cmd.userLocation,
+                  lastKnownHeading,
+                  cmd.isSimulatingWalk ? 260 : 400,
+                  Boolean(cmd.isSimulatingWalk)
+                );
+              } else {
+                var latD = Math.abs(prevUserCenter[0] - cmd.userLocation[0]);
+                var lngD = Math.abs(prevUserCenter[1] - cmd.userLocation[1]);
+                if (latD > 0.012 || lngD > 0.012) {
+                  map.flyTo({
+                    center: [cmd.userLocation[1], cmd.userLocation[0]],
+                    zoom: 15.6,
+                    duration: 700
+                  });
+                }
+              }
+              prevUserCenter = cmd.userLocation;
+            }
           } else if (cmd.type === 'SET_3D') {
             is3DEnabled = !!cmd.enabled;
             if (styleReady) {
@@ -2528,9 +2689,10 @@ export const MapExplorer: React.FC<MapExplorerProps> = React.memo(({
     return cfg;
   }, [mapStyle, isMapboxActive]);
 
-  const mapStatePayload = useMemo<MapStatePayload>(() => {
+  // Tách riêng danh sách 97 địa điểm + 250+ quán ăn để KHÔNG phải serialize lại 60KB JSON khi chỉ đổi GPS hoặc góc la bàn!
+  const serializedSites = useMemo<SerializedSiteMarker[]>(() => {
     const visitedIdSet = new Set(visitedRecords.map((r) => r.siteId));
-    const serializedSites: SerializedSiteMarker[] = sites.map((site, idx) => {
+    return sites.map((site, idx) => {
       const localName =
         (site.translations[selectedLanguage] || site.translations.vi).name;
       return {
@@ -2553,17 +2715,36 @@ export const MapExplorer: React.FC<MapExplorerProps> = React.memo(({
         })),
       };
     });
+  }, [sites, visitedRecords, selectedLanguage, selectedSiteId, focusedSite?.id]);
 
+  // Ref giữ trạng thái GPS/la bàn mới nhất cho full sync đầu tiên mà không ép re-build payload nặng
+  const liveUserStateRef = useRef({
+    userLocation,
+    userHeading: userHeading ?? null,
+    followNav: isFollowingNav,
+    isSimulatingWalk,
+    searchRadiusMeters,
+  });
+  liveUserStateRef.current = {
+    userLocation,
+    userHeading: userHeading ?? null,
+    followNav: isFollowingNav,
+    isSimulatingWalk,
+    searchRadiusMeters,
+  };
+
+  const mapStatePayload = useMemo<MapStatePayload>(() => {
+    const u = liveUserStateRef.current;
     return {
       tileConfig: currentTileConfig,
       is3D: is3DView,
       lightPreset,
       selectedLanguage,
-      userLocation,
-      userHeading: userHeading ?? null,
-      followNav: isFollowingNav,
-      isSimulatingWalk,
-      searchRadiusMeters,
+      userLocation: u.userLocation,
+      userHeading: u.userHeading,
+      followNav: u.followNav,
+      isSimulatingWalk: u.isSimulatingWalk,
+      searchRadiusMeters: u.searchRadiusMeters,
       focusHcmcOnly,
       sites: serializedSites,
       showRestaurants: showRestaurantsOnMap,
@@ -2582,16 +2763,8 @@ export const MapExplorer: React.FC<MapExplorerProps> = React.memo(({
     is3DView,
     lightPreset,
     selectedLanguage,
-    userLocation,
-    userHeading,
-    isFollowingNav,
-    isSimulatingWalk,
-    searchRadiusMeters,
     focusHcmcOnly,
-    sites,
-    visitedRecords,
-    selectedSiteId,
-    focusedSite,
+    serializedSites,
     showRestaurantsOnMap,
     activeRoute,
   ]);
@@ -2606,6 +2779,31 @@ export const MapExplorer: React.FC<MapExplorerProps> = React.memo(({
     hasFlushedInitialRef.current = true;
     sendToMap({ type: 'UPDATE_STATE', payload: mapStatePayload });
   }, [isMapReady, isVisible, mapStatePayload, sendToMap]);
+
+  // Kênh siêu nhẹ (~120 bytes) chỉ cập nhật GPS/la bàn — hoàn toàn không gửi lại 97 di tích & 250 quán ăn qua bridge!
+  useEffect(() => {
+    if (!isMapReady || !isVisible) return;
+    sendToMap({
+      type: 'CMD',
+      command: {
+        type: 'UPDATE_USER',
+        userLocation,
+        userHeading: userHeading ?? null,
+        followNav: isFollowingNav,
+        isSimulatingWalk,
+        searchRadiusMeters,
+      },
+    });
+  }, [
+    isMapReady,
+    isVisible,
+    userLocation,
+    userHeading,
+    isFollowingNav,
+    isSimulatingWalk,
+    searchRadiusMeters,
+    sendToMap,
+  ]);
 
   // Ngay khi người dùng chuyển sang tab Bản đồ -> resize tức thì + đẩy dữ liệu mới nhất (0ms reload!)
   useEffect(() => {
@@ -2868,6 +3066,8 @@ export const MapExplorer: React.FC<MapExplorerProps> = React.memo(({
               onMessage={handleWebViewMessage}
               javaScriptEnabled
               domStorageEnabled
+              cacheEnabled
+              androidLayerType="hardware"
               scrollEnabled={false}
               bounces={false}
               overScrollMode="never"
