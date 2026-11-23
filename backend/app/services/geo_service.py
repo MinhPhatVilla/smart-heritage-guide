@@ -12,6 +12,11 @@ from app.core.config import settings
 
 EARTH_RADIUS_METERS = 6_371_000.0
 DEFAULT_WALKING_SPEED_MPS = 1.35  # ~4.86 km/h comfortable sightseeing walk
+TRAVEL_MODE_SPEED_MPS: dict[str, float] = {
+    "walking": DEFAULT_WALKING_SPEED_MPS,  # ~4.9 km/h
+    "motorbike": 8.5,                      # ~30.6 km/h urban + suburban motorbike
+    "car": 11.0,                           # ~39.6 km/h urban + intercity car
+}
 
 
 def haversine_meters(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
@@ -41,6 +46,22 @@ def estimate_walking_minutes(distance_meters: float, speed_mps: float = DEFAULT_
     if distance_meters <= 0:
         return 0
     return max(1, int(math.ceil(estimate_walking_seconds(distance_meters, speed_mps) / 60.0)))
+
+
+def estimate_travel_seconds(distance_meters: float, travel_mode: str = "walking") -> int:
+    """Estimate travel duration in seconds for walking, motorbike, or car."""
+    if distance_meters <= 0:
+        return 0
+    speed = TRAVEL_MODE_SPEED_MPS.get(travel_mode, DEFAULT_WALKING_SPEED_MPS)
+    road_factor = 1.2 if travel_mode == "walking" else 1.28
+    return max(1, int(round((distance_meters * road_factor) / max(speed, 0.5))))
+
+
+def estimate_travel_minutes(distance_meters: float, travel_mode: str = "walking") -> int:
+    """Estimate travel duration in whole minutes (minimum 1 min if distance > 0)."""
+    if distance_meters <= 0:
+        return 0
+    return max(1, int(math.ceil(estimate_travel_seconds(distance_meters, travel_mode) / 60.0)))
 
 
 def polyline_metrics(coordinates: Sequence[Sequence[float]]) -> tuple[float, float]:

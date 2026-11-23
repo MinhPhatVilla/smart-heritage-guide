@@ -19,6 +19,22 @@ describe('speechService text preprocessing & voice scoring', () => {
     expect(out).not.toContain('–');
   });
 
+  it('normalizes dates, Roman numerals, measurements, decimals, and foreign names for Vietnamese TTS', () => {
+    const input =
+      'Nhà thờ Notre-Dame do KTS. Jules Bourard thiết kế cuối thế kỷ XIX – XX theo phong cách Roman và Gothic, tháp cao 57,6m, diện tích 4.800 m², gắn mốc 30/4/1975 và UNESCO.';
+    const out = preprocessTextForSpeech(input, 'vi');
+
+    expect(out).toContain('Nốt tơ Đam');
+    expect(out).toContain('Giuyn Bu ra');
+    expect(out).toContain('thế kỷ 19 đến 20');
+    expect(out).toContain('Rô măng');
+    expect(out).toContain('Gô tích');
+    expect(out).toContain('57 phẩy 6 mét');
+    expect(out).toContain('4.800 mét vuông');
+    expect(out).toContain('30 tháng 4 năm 1975');
+    expect(out).toContain('U nét cô');
+  });
+
   it('prefers Microsoft Natural/Neural voices over legacy robotic voices', () => {
     const legacy = scoreSpeechVoice(
       {

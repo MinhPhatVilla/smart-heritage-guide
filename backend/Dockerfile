@@ -21,7 +21,15 @@ WORKDIR /app
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PATH="/opt/venv/bin:$PATH" \
-    PORT=8000
+    PORT=8000 \
+    TTS_DEFAULT_PROVIDER=auto \
+    TTS_AUTO_DOWNLOAD_OFFLINE=true \
+    TTS_PRELOAD_OFFLINE_LANGS=vi
+
+# Runtime shared libs required by onnxruntime / piper-tts / sherpa-onnx on slim Debian
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends libgomp1 libstdc++6 \
+    && rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /opt/venv /opt/venv
 COPY app ./app
@@ -29,7 +37,13 @@ COPY scripts ./scripts
 COPY supabase ./supabase
 COPY .env.example ./.env.example
 
-RUN mkdir -p /app/uploads
+RUN mkdir -p /app/uploads /app/models/tts
+
+# Đóng gói sẵn model giọng Việt Open-Source ONNX ngay trong Docker image khi deploy (Render/Railway/Docker)
+ARG PRELOAD_TTS_LANGS=vi
+RUN if [ -n "$PRELOAD_TTS_LANGS" ]; then \
+      python -c "from app.services.tts_service import preload_offline_models_sync; preload_offline_models_sync('$PRELOAD_TTS_LANGS')" || true; \
+    fi
 
 EXPOSE 8000
 

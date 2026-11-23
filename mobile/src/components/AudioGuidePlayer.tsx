@@ -170,6 +170,13 @@ export const AudioGuidePlayer: React.FC<AudioGuidePlayerProps> = ({
     );
   }, [selectedLanguage, segments.length]);
 
+  // Tiền tải (pre-warm) toàn bộ bài thuyết minh liên mạch ngay khi mở di tích / đổi ngôn ngữ hoặc giọng đọc
+  useEffect(() => {
+    if (segments.length > 0) {
+      speechService.prefetchScript(segments, selectedLanguage, voiceGender);
+    }
+  }, [site.id, selectedLanguage, voiceGender, segments]);
+
   const handleTogglePlay = () => {
     if (playState === 'idle') {
       startSpeaking(safeActiveSegment, selectedLanguage, speechRate);
@@ -500,7 +507,13 @@ export const AudioGuidePlayer: React.FC<AudioGuidePlayerProps> = ({
               return (
                 <TouchableOpacity
                   key={idx}
-                  onPress={() => startSpeaking(idx, selectedLanguage, speechRate)}
+                  onPress={() => {
+                    if (playState === 'playing' || playState === 'paused') {
+                      speechService.jumpToSegment(idx, true);
+                    } else {
+                      startSpeaking(idx, selectedLanguage, speechRate);
+                    }
+                  }}
                   style={[
                     styles.segmentCard,
                     isCurrent && styles.segmentCardActive,

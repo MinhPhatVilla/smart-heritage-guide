@@ -72,6 +72,9 @@ def _serialize_journey(
         else ([] if "photos" in unloaded else list(journey.photos or []))
     )
     sorted_photos = sorted(raw_photos, key=lambda p: p.taken_at, reverse=True)
+    raw_details = dict(journey.verification_details or {})
+    raw_mode = str(raw_details.get("travel_mode") or "walking")
+    safe_mode = raw_mode if raw_mode in ("walking", "motorbike", "car") else "walking"
     return JourneyOut(
         id=journey.id,
         user_id=journey.user_id,
@@ -85,15 +88,17 @@ def _serialize_journey(
         route_coordinates=list(journey.route_coordinates or []),
         user_note=journey.user_note or "",
         user_rating=int(journey.user_rating or 5),
+        travel_mode=safe_mode,  # type: ignore[arg-type]
         verification_status=journey.verification_status,  # type: ignore[arg-type]
         verification_score=float(journey.verification_score or 0.0),
-        verification_details=dict(journey.verification_details or {}),
+        verification_details=raw_details,
         photos=[_serialize_photo(p) for p in sorted_photos],
     )
 
 
 async def _recompute_profile_verified_stats(db: AsyncSession, profile: Profile) -> dict[str, int]:
-    """Recompute Profile's verified walking aggregates strictly from `verified` journeys."""
+    """Recompute Profile's verified stats: all verified visits count toward `verified_sites_count`,
+    while ONLY `travel_mode == 'walking'` counts toward walking time/distance leaderboard."""
     verified_rows = (
         await db.execute(
             select(VisitedJourney).where(
@@ -103,8 +108,13 @@ async def _recompute_profile_verified_stats(db: AsyncSession, profile: Profile) 
         )
     ).scalars().all()
 
-    total_seconds = sum(int(j.walking_duration_seconds or 0) for j in verified_rows)
-    total_meters = sum(int(j.walking_distance_meters or 0) for j in verified_rows)
+    walking_rows = [
+        j
+        for j in verified_rows
+        if str((j.verification_details or {}).get("travel_mode") or "walking") == "walking"
+    ]
+    total_seconds = sum(int(j.walking_duration_seconds or 0) for j in walking_rows)
+    total_meters = sum(int(j.walking_distance_meters or 0) for j in walking_rows)
     unique_sites = len({j.site_id for j in verified_rows})
 
     profile.total_verified_walking_seconds = total_seconds

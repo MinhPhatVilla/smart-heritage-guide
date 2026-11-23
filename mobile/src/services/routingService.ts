@@ -1,23 +1,30 @@
-import { RouteStep, WalkingRouteResult } from '../types/heritage';
-import { calculateDistanceMeters, estimateWalkingSeconds } from '../utils/geoUtils';
+import { RouteStep, TravelMode, WalkingRouteResult } from '../types/heritage';
+import {
+  calculateDistanceMeters,
+  estimateTravelSeconds,
+  estimateWalkingSeconds,
+} from '../utils/geoUtils';
 
 /**
- * Thứ tự nguồn chỉ đường đi bộ:
+ * Thứ tự nguồn chỉ đường đa phương tiện (Đi bộ · Xe máy · Ô tô):
  * 1. Backend Routing Proxy (`POST /api/v1/routing/walking`) — có cache DB + OSRM/Goong server-side
- * 2. FOSSGIS OSRM (routing.openstreetmap.de) — profile đi bộ thật, miễn phí, không cần key
- * 3. Goong Direction API (nếu có EXPO_PUBLIC_GOONG_API_KEY) — Goong không có chế độ đi bộ nên dùng
- *    hình học tuyến `bike`, còn thời gian được tính lại theo tốc độ đi bộ (~1.25 m/s)
- * 4. Tuyến nội suy offline — để ứng dụng vẫn chạy mượt khi mất mạng
- *
- * Lưu ý: router.project-osrm.org chỉ chạy profile ô tô (bỏ qua chữ `foot` trong URL),
- * nên không dùng để tính đường đi bộ.
+ * 2. FOSSGIS OSRM (`routed-foot` cho Đi bộ, `routed-car` cho Xe máy / Ô tô)
+ * 3. Goong Direction API (`bike` / `car` nếu có EXPO_PUBLIC_GOONG_API_KEY)
+ * 4. Tuyến nội suy offline theo tốc độ phương tiện — để ứng dụng vẫn chạy mượt khi mất mạng
  */
 
 const FOSSGIS_FOOT_URL = 'https://routing.openstreetmap.de/routed-foot/route/v1/foot';
+const FOSSGIS_CAR_URL = 'https://routing.openstreetmap.de/routed-car/route/v1/driving';
 const GOONG_DIRECTION_URL = 'https://rsapi.goong.io/v2/direction';
 const DEFAULT_BACKEND_URL = 'http://localhost:8000';
 const BACKEND_PROXY_TIMEOUT_MS = 2500;
 const REQUEST_TIMEOUT_MS = 6000;
+
+const MODE_VERB_VI: Record<TravelMode, string> = {
+  walking: 'đi bộ',
+  motorbike: 'chạy xe máy',
+  car: 'lái ô tô',
+};
 
 export type RouteSource = Omit<
   WalkingRouteResult,
@@ -118,16 +125,18 @@ function maneuverFromModifier(modifier: string): RouteStep['maneuverType'] {
   return 'straight';
 }
 
-/** 1. FOSSGIS OSRM — profile đi bộ */
+/** 1. FOSSGIS OSRM — profile đi bộ (`foot`) hoặc cơ giới (`driving` cho xe máy/ô tô) */
 async function fetchFromFossgisFoot(
   origin: [number, number],
   destination: [number, number],
-  targetName: string
+  targetName: string,
+  travelMode: TravelMode = 'walking'
 ): Promise<RouteSource | null> {
   const [lat1, lng1] = origin;
   const [lat2, lng2] = destination;
+  const baseUrl = travelMode === 'walking' ? FOSSGIS_FOOT_URL : FOSSGIS_CAR_URL;
   const data = await fetchJsonWithTimeout<OsrmResponse>(
-    `${FOSSGIS_FOOT_URL}/${lng1},${lat1};${lng2},${lat2}?overview=full&geometries=geojson&steps=true`
+    `${baseUrl}/${lng1},${lat1};${lng2},${lat2}?overview=full&geometries=geojson&steps=true`
   );
   const route = data?.routes?.[0];
   if (!route?.geometry?.coordinates?.length) return null;
@@ -135,6 +144,9 @@ async function fetchFromFossgisFoot(
   const coordinates: [number, number][] = route.geometry.coordinates.map(
     (c: [number, number]) => [c[1], c[0]]
   );
+
+  const durationScale = travelMode === 'motorbike' ? 1.08 : 1.0;
+  const verb = MODE_VERB_VI[travelMode] || 'đi bộ';
 
   const rawSteps: OsrmStep[] = route.legs?.[0]?.steps || [];
   const steps: RouteStep[] = rawSteps
@@ -149,7 +161,7 @@ async function fetchFromFossgisFoot(
       let instruction = `Đi tiếp theo${road}`;
       if (isFirst) {
         maneuverType = 'depart';
-        instruction = `Bắt đầu đi bộ vào${road}`;
+        instruction = `Bắt đầu ${verb} vào${road}`;
       } else if (isLast) {
         maneuverType = 'arrive';
         instruction = `Đến nơi: ${targetName}`;
@@ -161,7 +173,7 @@ async function fetchFromFossgisFoot(
       return {
         instruction,
         distanceMeters: Math.max(5, Math.round(step.distance || 0)),
-        durationSeconds: Math.max(5, Math.round(step.duration || 0)),
+        durationSeconds: Math.max(5, Math.round((step.duration || 0) * durationScale)),
         maneuverType,
       };
     });
@@ -169,22 +181,25 @@ async function fetchFromFossgisFoot(
   return {
     coordinates,
     totalDistanceMeters: Math.round(route.distance ?? 0),
-    estimatedDurationSeconds: Math.round(route.duration ?? 0),
+    estimatedDurationSeconds: Math.round((route.duration ?? 0) * durationScale),
     steps,
+    travelMode,
   };
 }
 
-/** 2. Goong Direction API (dự phòng) — dùng tuyến xe máy, tính lại thời gian theo tốc độ đi bộ */
+/** 2. Goong Direction API (dự phòng) — chọn phương tiện `bike` / `car` tương ứng */
 async function fetchFromGoong(
   origin: [number, number],
   destination: [number, number],
-  targetName: string
+  targetName: string,
+  travelMode: TravelMode = 'walking'
 ): Promise<RouteSource | null> {
   const apiKey = getGoongApiKey();
   if (!apiKey) return null;
 
+  const vehicle = travelMode === 'car' ? 'car' : 'bike';
   const data = await fetchJsonWithTimeout<GoongDirectionResponse>(
-    `${GOONG_DIRECTION_URL}?origin=${origin[0]},${origin[1]}&destination=${destination[0]},${destination[1]}&vehicle=bike&api_key=${encodeURIComponent(apiKey)}`
+    `${GOONG_DIRECTION_URL}?origin=${origin[0]},${origin[1]}&destination=${destination[0]},${destination[1]}&vehicle=${vehicle}&api_key=${encodeURIComponent(apiKey)}`
   );
   const route = data?.routes?.[0];
   const leg = route?.legs?.[0];
@@ -197,8 +212,10 @@ async function fetchFromGoong(
   const totalDistanceMeters = Math.round(leg.distance?.value ?? 0);
   if (!totalDistanceMeters) return null;
 
-  // Goong tính thời gian cho xe máy => quy đổi lại sang tốc độ đi bộ (~1.25 m/s)
-  const estimatedDurationSeconds = Math.round(totalDistanceMeters / 1.25);
+  const estimatedDurationSeconds =
+    travelMode === 'walking'
+      ? Math.round(totalDistanceMeters / 1.25)
+      : estimateTravelSeconds(totalDistanceMeters / 1.3, travelMode);
 
   const rawSteps: GoongStep[] = leg.steps || [];
   const steps: RouteStep[] = rawSteps.slice(0, 8).map((step, idx, arr) => {
@@ -213,25 +230,39 @@ async function fetchFromGoong(
     return {
       instruction: idx === arr.length - 1 ? `${text} · Đến nơi: ${targetName}` : text,
       distanceMeters,
-      durationSeconds: Math.round(distanceMeters / 1.25),
+      durationSeconds:
+        travelMode === 'walking'
+          ? Math.round(distanceMeters / 1.25)
+          : estimateTravelSeconds(distanceMeters / 1.3, travelMode),
       maneuverType,
     };
   });
 
-  return { coordinates, totalDistanceMeters, estimatedDurationSeconds, steps };
+  return {
+    coordinates,
+    totalDistanceMeters,
+    estimatedDurationSeconds,
+    steps,
+    travelMode,
+  };
 }
 
 /** 3. Tuyến nội suy offline */
 export function buildFallbackRoute(
   origin: [number, number],
   destination: [number, number],
-  targetName: string
+  targetName: string,
+  travelMode: TravelMode = 'walking'
 ): RouteSource {
   const [lat1, lng1] = origin;
   const [lat2, lng2] = destination;
   const straightDist = calculateDistanceMeters(lat1, lng1, lat2, lng2);
-  const totalDistanceMeters = Math.max(50, Math.round(straightDist * 1.25));
-  const estimatedDurationSeconds = estimateWalkingSeconds(straightDist);
+  const factor = travelMode === 'walking' ? 1.25 : 1.3;
+  const totalDistanceMeters = Math.max(50, Math.round(straightDist * factor));
+  const estimatedDurationSeconds =
+    travelMode === 'walking'
+      ? estimateWalkingSeconds(straightDist)
+      : estimateTravelSeconds(straightDist, travelMode);
 
   const coordinates: [number, number][] = [];
   const segments = 8;
@@ -244,13 +275,15 @@ export function buildFallbackRoute(
     ]);
   }
 
+  const verb = MODE_VERB_VI[travelMode] || 'đi bộ';
   return {
     coordinates,
     totalDistanceMeters,
     estimatedDurationSeconds,
+    travelMode,
     steps: [
       {
-        instruction: `Đi bộ theo hướng ${targetName} (chưa kết nối được máy chủ chỉ đường)`,
+        instruction: `Di chuyển (${verb}) theo hướng ${targetName} (tuyến nội suy offline)`,
         distanceMeters: totalDistanceMeters,
         durationSeconds: estimatedDurationSeconds,
         maneuverType: 'depart',
@@ -301,7 +334,8 @@ async function fetchFromBackendProxy(
   destination: [number, number],
   targetName: string,
   targetType: 'heritage' | 'restaurant',
-  targetId: string
+  targetId: string,
+  travelMode: TravelMode = 'walking'
 ): Promise<RouteSource | null> {
   const baseUrl = getBackendProxyBaseUrl();
   if (!baseUrl) return null;
@@ -324,6 +358,7 @@ async function fetchFromBackendProxy(
         target_name: targetName,
         target_type: targetType,
         language: 'vi',
+        travel_mode: travelMode,
       }),
       signal: controller.signal,
     });
@@ -339,7 +374,7 @@ async function fetchFromBackendProxy(
       Number(pt[1]),
     ]);
     const steps: RouteStep[] = (data.steps || []).map((step, idx, arr) => ({
-      instruction: step.instruction || `Đi bộ theo hướng ${targetName}`,
+      instruction: step.instruction || `Di chuyển theo hướng ${targetName}`,
       distanceMeters: Math.max(0, Math.round(step.distance_meters ?? 0)),
       durationSeconds: Math.max(0, Math.round(step.duration_seconds ?? 0)),
       maneuverType:
@@ -358,6 +393,7 @@ async function fetchFromBackendProxy(
         Math.round(data.estimated_duration_seconds ?? 0)
       ),
       steps,
+      travelMode,
     };
   } catch {
     return null;
@@ -367,14 +403,15 @@ async function fetchFromBackendProxy(
 }
 
 /**
- * Lấy lộ trình đi bộ từ vị trí người dùng tới danh lam thắng cảnh / tiệm ăn uống
+ * Lấy lộ trình đa phương tiện (Đi bộ / Xe máy / Ô tô) từ vị trí người dùng tới di tích / quán ăn
  */
 export async function fetchWalkingRoute(
   origin: [number, number],
   destination: [number, number],
   targetName: string,
   targetType: 'heritage' | 'restaurant',
-  targetId: string
+  targetId: string,
+  travelMode: TravelMode = 'walking'
 ): Promise<WalkingRouteResult> {
   const source =
     (await fetchFromBackendProxy(
@@ -382,11 +419,20 @@ export async function fetchWalkingRoute(
       destination,
       targetName,
       targetType,
-      targetId
+      targetId,
+      travelMode
     )) ??
-    (await fetchFromFossgisFoot(origin, destination, targetName)) ??
-    (await fetchFromGoong(origin, destination, targetName)) ??
-    buildFallbackRoute(origin, destination, targetName);
+    (await fetchFromFossgisFoot(origin, destination, targetName, travelMode)) ??
+    (await fetchFromGoong(origin, destination, targetName, travelMode)) ??
+    buildFallbackRoute(origin, destination, targetName, travelMode);
 
-  return { origin, destination, targetName, targetType, targetId, ...source };
+  return {
+    origin,
+    destination,
+    targetName,
+    targetType,
+    targetId,
+    travelMode,
+    ...source,
+  };
 }

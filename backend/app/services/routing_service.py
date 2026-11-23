@@ -13,15 +13,25 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.models.entities import RouteCache
-from app.schemas.dto import RouteStepDTO, WalkingRouteRequest, WalkingRouteResponse
-from app.services.geo_service import estimate_walking_seconds, haversine_meters
+from app.schemas.dto import RouteStepDTO, TravelMode, WalkingRouteRequest, WalkingRouteResponse
+from app.services.geo_service import estimate_travel_seconds, estimate_walking_seconds, haversine_meters
 
 GOONG_DIRECTION_URL = "https://rsapi.goong.io/v2/direction"
+FOSSGIS_CAR_OSRM_BASE = "https://routing.openstreetmap.de/routed-car"
 REQUEST_TIMEOUT_SECONDS = 6.0
 GRID_PRECISION = 4  # ~11m grid snapping for higher cache hit rate
 
-_HTML_TAG_RE = re.compile(r"<[^>]*>")
-_WHITESPACE_RE = re.compile(r"\s+")
+_MODE_PREFIX: dict[str, str] = {
+    "walking": "walk",
+    "motorbike": "motorbike",
+    "car": "car",
+}
+
+_MODE_VERB_VI: dict[str, str] = {
+    "walking": "đi bộ",
+    "motorbike": "chạy xe máy",
+    "car": "lái ô tô",
+}
 
 
 def build_route_cache_key(
@@ -29,14 +39,20 @@ def build_route_cache_key(
     origin_lng: float,
     dest_lat: float,
     dest_lng: float,
+    travel_mode: TravelMode = "walking",
 ) -> str:
-    """Create a deterministic grid-rounded cache key for walking route lookups."""
+    """Create a deterministic grid-rounded cache key for route lookups per travel mode."""
+    prefix = _MODE_PREFIX.get(travel_mode, "walk")
     return (
-        f"walk:{round(origin_lat, GRID_PRECISION):.{GRID_PRECISION}f},"
+        f"{prefix}:{round(origin_lat, GRID_PRECISION):.{GRID_PRECISION}f},"
         f"{round(origin_lng, GRID_PRECISION):.{GRID_PRECISION}f}->"
         f"{round(dest_lat, GRID_PRECISION):.{GRID_PRECISION}f},"
         f"{round(dest_lng, GRID_PRECISION):.{GRID_PRECISION}f}"
     )
+
+
+_HTML_TAG_RE = re.compile(r"<[^>]*>")
+_WHITESPACE_RE = re.compile(r"\s+")
 
 
 def decode_polyline(encoded: str) -> list[list[float]]:
@@ -92,11 +108,18 @@ async def fetch_from_osrm(
     dest_lat: float,
     dest_lng: float,
     target_name: str,
+    travel_mode: TravelMode = "walking",
 ) -> Optional[dict[str, Any]]:
-    """Fetch true pedestrian walking route from FOSSGIS OSRM (`routed-foot`)."""
-    base = settings.OSRM_BASE_URL.rstrip("/")
+    """Fetch real route from FOSSGIS OSRM (`routed-foot` for walking, `routed-car` for motorbike/car)."""
+    if travel_mode == "walking":
+        base = settings.OSRM_BASE_URL.rstrip("/")
+        profile = "foot"
+    else:
+        base = FOSSGIS_CAR_OSRM_BASE
+        profile = "driving"
+
     url = (
-        f"{base}/route/v1/foot/{origin_lng},{origin_lat};{dest_lng},{dest_lat}"
+        f"{base}/route/v1/{profile}/{origin_lng},{origin_lat};{dest_lng},{dest_lat}"
         "?overview=full&geometries=geojson&steps=true"
     )
     try:
@@ -129,6 +152,10 @@ async def fetch_from_osrm(
         if (s.get("distance") or 0) > 0 or (s.get("maneuver") or {}).get("type") == "arrive"
     ][:8]
 
+    # Motorbike in HCMC traffic is typically ~12% slower on highways / ~10% nimbler in city -> ~1.08x car OSRM baseline
+    duration_scale = 1.08 if travel_mode == "motorbike" else 1.0
+    verb = _MODE_VERB_VI.get(travel_mode, "đi bộ")
+
     steps: list[dict[str, Any]] = []
     dest_label = target_name or "điểm đến"
     total_step_count = len(filtered_steps)
@@ -144,7 +171,7 @@ async def fetch_from_osrm(
         instruction = f"Đi tiếp theo{road}"
         if is_first:
             maneuver_type = "depart"
-            instruction = f"Bắt đầu đi bộ vào{road}"
+            instruction = f"Bắt đầu {verb} vào{road}"
         elif is_last:
             maneuver_type = "arrive"
             instruction = f"Đến nơi: {dest_label}"
@@ -157,7 +184,7 @@ async def fetch_from_osrm(
             {
                 "instruction": instruction,
                 "distance_meters": float(max(5, round(step.get("distance") or 0))),
-                "duration_seconds": float(max(5, round(step.get("duration") or 0))),
+                "duration_seconds": float(max(5, round((step.get("duration") or 0) * duration_scale))),
                 "maneuver_type": maneuver_type,
             }
         )
@@ -165,7 +192,7 @@ async def fetch_from_osrm(
     return {
         "coordinates": coordinates,
         "total_distance_meters": float(round(route.get("distance") or 0)),
-        "estimated_duration_seconds": float(round(route.get("duration") or 0)),
+        "estimated_duration_seconds": float(round((route.get("duration") or 0) * duration_scale)),
         "steps": steps,
         "provider": "osrm",
     }
@@ -177,15 +204,17 @@ async def fetch_from_goong(
     dest_lat: float,
     dest_lng: float,
     target_name: str,
+    travel_mode: TravelMode = "walking",
 ) -> Optional[dict[str, Any]]:
-    """Fallback route via Goong Direction API (server-side API key, walking speed adjusted)."""
+    """Fallback route via Goong Direction API (server-side API key, mode-aware vehicle)."""
     if not settings.has_goong:
         return None
 
+    vehicle = "car" if travel_mode == "car" else "bike"
     params = {
         "origin": f"{origin_lat},{origin_lng}",
         "destination": f"{dest_lat},{dest_lng}",
-        "vehicle": "bike",
+        "vehicle": vehicle,
         "api_key": settings.GOONG_API_KEY.strip(),
     }
     try:
@@ -215,8 +244,12 @@ async def fetch_from_goong(
     if total_distance <= 0:
         return None
 
-    # Convert bike route distance to realistic pedestrian pace (~1.25 m/s)
-    estimated_duration = float(round(total_distance / 1.25))
+    if travel_mode == "walking":
+        estimated_duration = float(round(total_distance / 1.25))
+    else:
+        raw_dur = float((leg.get("duration") or {}).get("value") or 0)
+        estimated_duration = raw_dur if raw_dur > 0 else float(estimate_travel_seconds(total_distance, travel_mode))
+
     raw_steps = (leg.get("steps") or [])[:8]
     dest_label = target_name or "điểm đến"
     steps: list[dict[str, Any]] = []
@@ -230,11 +263,16 @@ async def fetch_from_goong(
         else:
             mtype = _maneuver_from_modifier(str(step.get("maneuver") or ""))
         instruction = f"{text} · Đến nơi: {dest_label}" if idx == len(raw_steps) - 1 else text
+        step_dur = (
+            float(round(dist_m / 1.25))
+            if travel_mode == "walking"
+            else float(max(5, round((step.get("duration") or {}).get("value") or estimate_travel_seconds(dist_m, travel_mode))))
+        )
         steps.append(
             {
                 "instruction": instruction,
                 "distance_meters": dist_m,
-                "duration_seconds": float(round(dist_m / 1.25)),
+                "duration_seconds": step_dur,
                 "maneuver_type": mtype,
             }
         )
@@ -254,11 +292,17 @@ def build_fallback_route(
     dest_lat: float,
     dest_lng: float,
     target_name: str,
+    travel_mode: TravelMode = "walking",
 ) -> dict[str, Any]:
-    """Build a realistic curved offline Haversine walking route when external providers fail."""
+    """Build a realistic curved offline Haversine route when external providers fail."""
     straight_dist = haversine_meters(origin_lat, origin_lng, dest_lat, dest_lng)
-    total_distance_meters = float(max(50, round(straight_dist * 1.25)))
-    estimated_duration_seconds = float(estimate_walking_seconds(straight_dist))
+    factor = 1.25 if travel_mode == "walking" else 1.3
+    total_distance_meters = float(max(50, round(straight_dist * factor)))
+    estimated_duration_seconds = (
+        float(estimate_walking_seconds(straight_dist))
+        if travel_mode == "walking"
+        else float(estimate_travel_seconds(straight_dist, travel_mode))
+    )
 
     segments = 8
     coordinates: list[list[float]] = []
@@ -273,9 +317,10 @@ def build_fallback_route(
         )
 
     dest_label = target_name or "điểm đến"
+    verb = _MODE_VERB_VI.get(travel_mode, "đi bộ")
     steps = [
         {
-            "instruction": f"Đi bộ theo hướng {dest_label} (tuyến nội suy dự phòng)",
+            "instruction": f"Di chuyển ({verb}) theo hướng {dest_label} (tuyến nội suy dự phòng)",
             "distance_meters": total_distance_meters,
             "duration_seconds": estimated_duration_seconds,
             "maneuver_type": "depart",
@@ -301,12 +346,14 @@ async def get_walking_route(
     db: AsyncSession,
     request: WalkingRouteRequest,
 ) -> WalkingRouteResponse:
-    """Resolve walking route via DB cache -> FOSSGIS OSRM -> Goong -> Offline fallback."""
+    """Resolve multi-modal route via DB cache -> FOSSGIS OSRM -> Goong -> Offline fallback."""
+    travel_mode: TravelMode = request.travel_mode or "walking"
     cache_key = build_route_cache_key(
         request.origin_lat,
         request.origin_lng,
         request.dest_lat,
         request.dest_lng,
+        travel_mode=travel_mode,
     )
     now_utc = datetime.now(timezone.utc)
 
@@ -328,6 +375,7 @@ async def get_walking_route(
             steps=steps,
             provider=cached_row.provider if cached_row.provider in ("osrm", "goong", "fallback") else "osrm",
             cached=True,
+            travel_mode=travel_mode,
         )
 
     # 2. Try FOSSGIS OSRM -> Goong -> Fallback
@@ -337,6 +385,7 @@ async def get_walking_route(
         request.dest_lat,
         request.dest_lng,
         request.target_name,
+        travel_mode=travel_mode,
     )
     if route_data is None:
         route_data = await fetch_from_goong(
@@ -345,6 +394,7 @@ async def get_walking_route(
             request.dest_lat,
             request.dest_lng,
             request.target_name,
+            travel_mode=travel_mode,
         )
     if route_data is None:
         route_data = build_fallback_route(
@@ -353,6 +403,7 @@ async def get_walking_route(
             request.dest_lat,
             request.dest_lng,
             request.target_name,
+            travel_mode=travel_mode,
         )
 
     provider = route_data["provider"]
@@ -364,6 +415,7 @@ async def get_walking_route(
             "total_distance_meters": route_data["total_distance_meters"],
             "estimated_duration_seconds": route_data["estimated_duration_seconds"],
             "steps": route_data["steps"],
+            "travel_mode": travel_mode,
         }
         if cached_row is not None:
             cached_row.origin_lat = request.origin_lat
@@ -400,4 +452,5 @@ async def get_walking_route(
         steps=[RouteStepDTO(**s) for s in route_data["steps"]],
         provider=provider,
         cached=False,
+        travel_mode=travel_mode,
     )

@@ -15,6 +15,8 @@ from app.core.security import require_admin
 from app.models.entities import HeritageSite, Profile, Restaurant
 from app.routers.sites import _serialize_restaurant, _serialize_site
 from app.schemas.dto import (
+    AdminTranslateSiteRequest,
+    AdminTranslateSiteResponse,
     HeritageSiteCreateRequest,
     HeritageSiteOut,
     HeritageSiteUpdateRequest,
@@ -23,6 +25,7 @@ from app.schemas.dto import (
     RestaurantUpdateRequest,
 )
 from app.services.rag_service import reindex_site_chunks
+from app.services.translation_service import translate_site_content
 
 router = APIRouter(
     prefix="/admin",
@@ -163,6 +166,22 @@ async def delete_site(
     await db.delete(site)
     await db.commit()
     return {"deleted": True, "site_id": site_id}
+
+
+# ---------------------------------------------------------------------------
+# Admin AI 5-Language Content Translation Helper
+# ---------------------------------------------------------------------------
+@router.post(
+    "/translate-site",
+    response_model=AdminTranslateSiteResponse,
+    summary="[Admin] AI tự động dịch nội dung di tích sang đủ 5 ngôn ngữ (VI/EN/FR/ZH/JA)",
+)
+async def translate_site(
+    payload: AdminTranslateSiteRequest,
+    _admin: Profile = Depends(require_admin),
+) -> AdminTranslateSiteResponse:
+    """Translate site texts (name, summary, era, hours, highlights, audio script) across VI/EN/FR/ZH/JA."""
+    return await translate_site_content(payload)
 
 
 # ---------------------------------------------------------------------------

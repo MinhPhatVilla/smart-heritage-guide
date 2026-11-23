@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from contextlib import asynccontextmanager
 from typing import AsyncIterator
 
@@ -12,6 +13,7 @@ from fastapi.staticfiles import StaticFiles
 from app.core.config import settings
 from app.core.database import close_db, init_db
 from app.routers import admin, ai, auth, health, journeys, leaderboard, routing, sites
+from app.services.tts_service import warmup_tts_in_background
 from scripts.seed_supabase import ensure_seeded_if_empty
 
 OPENAPI_DESCRIPTION = """
@@ -49,12 +51,15 @@ TAGS_METADATA = [
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
-    """Initialize upload directory, database tables, and auto-seed local dev DB if empty."""
+    """Initialize upload directory, database tables, auto-seed, and background TTS warmup."""
     settings.upload_dir_path.mkdir(parents=True, exist_ok=True)
     await init_db()
     if settings.is_sqlite or settings.APP_ENV.lower() in ("development", "local", "test"):
         await ensure_seeded_if_empty()
+    tts_warmup_task = asyncio.create_task(warmup_tts_in_background())
     yield
+    if not tts_warmup_task.done():
+        tts_warmup_task.cancel()
     await close_db()
 
 

@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  AppState,
   Image,
   Linking,
   Modal,
@@ -16,7 +17,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { WebView, type WebViewMessageEvent } from 'react-native-webview';
 import {
   ArrowUp,
+  Bike,
   Box,
+  Car,
   Check,
   ChevronDown,
   ChevronUp,
@@ -39,6 +42,7 @@ import {
   Plus,
   Star,
   Sun,
+  Sunrise,
   Sunset,
   Utensils,
   Volume2,
@@ -49,6 +53,8 @@ import {
   NearbyRestaurant,
   RouteStep,
   SupportedLanguage,
+  TRAVEL_MODE_OPTIONS,
+  TravelMode,
   VisitedSiteRecord,
   WalkingRouteResult,
 } from '../types/heritage';
@@ -56,6 +62,7 @@ import {
   calculateDistanceMeters,
   estimateWalkingSeconds,
   formatDistance,
+  formatTravelDuration,
   formatWalkingDuration,
 } from '../utils/geoUtils';
 import {
@@ -66,6 +73,8 @@ import {
   buildOsmWalkingUrl,
   getAvailableMapStyles,
   getDefaultMapStyle,
+  getLightPresetLabel,
+  getRealtimeLightPreset,
   getTileConfig,
   isValidMapboxPublicToken,
   resolveMapboxAccessToken,
@@ -90,6 +99,8 @@ export interface MapExplorerProps {
   visitedRecords: VisitedSiteRecord[];
   selectedLanguage: SupportedLanguage;
   activeRoute: WalkingRouteResult | null;
+  travelMode?: TravelMode;
+  onChangeTravelMode?: (mode: TravelMode) => void;
   isRoutingLoading?: boolean;
   activeWalkSeconds: number;
   isSimulatingWalk: boolean;
@@ -160,7 +171,15 @@ type MapCommand =
   | { type: 'SET_LIGHT'; preset: MapboxLightPreset }
   | { type: 'FIT_SCOPE'; focusHcmcOnly: boolean }
   | { type: 'FLY_TO'; lat: number; lng: number; zoom?: number }
-  | { type: 'RESIZE' };
+  | { type: 'RESIZE' }
+  | {
+      type: 'UPDATE_USER';
+      userLocation: [number, number];
+      userHeading: number | null;
+      followNav: boolean;
+      isSimulatingWalk: boolean;
+      searchRadiusMeters: number;
+    };
 
 type MapBridgeIncomingMessage =
   | { source: 'shg-map'; mapId: string; type: 'MAP_READY'; engine?: string }
@@ -183,6 +202,7 @@ type MapBridgeIncomingMessage =
       placeName?: string;
       placeCategory?: string;
     }
+  | { source: 'shg-map'; mapId: string; type: 'OUTSIDE_VN_CLICK'; lat: number; lng: number }
   | { source: 'shg-map'; mapId: string; type: 'USER_DRAG'; lat: number; lng: number };
 
 /**
@@ -195,7 +215,8 @@ function buildExplorerMapHtml(
   initialCenter: [number, number],
   initialTile: MapTileConfig,
   mapboxToken: string,
-  initialFocusHcmcOnly: boolean
+  initialFocusHcmcOnly: boolean,
+  initialLightPreset: MapboxLightPreset
 ): string {
   const useMapboxEngine = Boolean(mapboxToken);
   const safeMapId = JSON.stringify(mapId);
@@ -203,6 +224,13 @@ function buildExplorerMapHtml(
   const safeTile = JSON.stringify(initialTile);
   const safeMapboxToken = JSON.stringify(mapboxToken);
   const safeInitialFocusHcmc = JSON.stringify(initialFocusHcmcOnly);
+  const safeInitialLightPreset = JSON.stringify(initialLightPreset);
+  const initialCanvasBg =
+    initialLightPreset === 'night'
+      ? '#0E121B'
+      : initialLightPreset === 'dusk'
+        ? '#ECE3D7'
+        : '#F4F2EC';
   const safeVietnamBounds = JSON.stringify(VIETNAM_MAX_BOUNDS);
   const safeVietnamFocusBounds = JSON.stringify(VIETNAM_FOCUS_BOUNDS);
   const safeVietnamMinZoom = JSON.stringify(VIETNAM_MIN_ZOOM);
@@ -232,12 +260,24 @@ function buildExplorerMapHtml(
       padding: 0;
       width: 100%;
       height: 100%;
-      background: #F4F2EC;
+      background: ${initialCanvasBg};
       overflow: hidden;
+      touch-action: none;
+      overscroll-behavior: none;
+      -webkit-user-select: none;
+      user-select: none;
       font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
     }
+    #map, .mapboxgl-canvas, .maplibregl-canvas {
+      transform: translate3d(0, 0, 0);
+      will-change: transform;
+    }
+    .mapboxgl-marker, .maplibregl-marker {
+      will-change: transform;
+      contain: layout style;
+    }
     .mapboxgl-map, .maplibregl-map, .leaflet-container {
-      background: #F4F2EC;
+      background: ${initialCanvasBg};
       font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
     }
     .mapboxgl-ctrl-attrib, .maplibregl-ctrl-attrib {
@@ -299,10 +339,10 @@ function buildExplorerMapHtml(
     }
     .shg-dest-pulse {
       position: absolute;
-      width: 26px;
-      height: 26px;
+      width: 34px;
+      height: 34px;
       border-radius: 9999px;
-      background: rgba(185, 56, 21, 0.32);
+      background: rgba(37, 99, 235, 0.34);
       animation: shgGpsPulse 1.8s ease-out infinite;
     }
     .custom-user-marker,
@@ -325,6 +365,7 @@ function buildExplorerMapHtml(
       var MAPBOX_TOKEN = ${safeMapboxToken};
       var USE_MAPBOX = Boolean(MAPBOX_TOKEN);
       var INITIAL_FOCUS_HCMC = ${safeInitialFocusHcmc};
+      var INITIAL_LIGHT_PRESET = ${safeInitialLightPreset};
       var VIETNAM_MAX_BOUNDS = ${safeVietnamBounds};
       var VIETNAM_FOCUS_BOUNDS = ${safeVietnamFocusBounds};
       var VIETNAM_MIN_ZOOM = ${safeVietnamMinZoom};
@@ -350,8 +391,8 @@ function buildExplorerMapHtml(
       }
 
       function buildInverseMaskGeoJson(rings) {
-        // Outer world veil (CCW), inner spotlight cutouts (CW) — keeps active region crisp while softly misting outside
-        var outerWorld = [[82, -8], [136, -8], [136, 36], [82, 36], [82, -8]];
+        // Outer world cover (CCW), inner cutouts (CW) — covers all surrounding regions cleanly at every zoom
+        var outerWorld = [[60, -25], [160, -25], [160, 50], [60, 50], [60, -25]];
         var holes = rings.map(function(r) { return normalizeRing(r, true); });
         return {
           type: 'FeatureCollection',
@@ -365,6 +406,33 @@ function buildExplorerMapHtml(
           }]
         };
       }
+
+      var OUTSIDE_VN_DEV_LABELS_GEOJSON = {
+        type: 'FeatureCollection',
+        features: [
+          [105.45, 11.45],
+          [104.55, 10.75],
+          [106.15, 12.75],
+          [104.60, 12.30],
+          [105.75, 15.10],
+          [104.55, 17.65],
+          [102.55, 19.70],
+          [101.20, 21.85],
+          [105.50, 23.95],
+          [108.55, 22.85],
+          [101.60, 9.20],
+          [113.40, 19.80],
+          [116.80, 13.50],
+          [109.50, 5.80],
+          [103.30, 14.00]
+        ].map(function(coord) {
+          return {
+            type: 'Feature',
+            geometry: { type: 'Point', coordinates: coord },
+            properties: { label: 'Đang phát triển' }
+          };
+        })
+      };
 
       function buildBorderGeoJson(rings) {
         return {
@@ -591,16 +659,28 @@ function buildExplorerMapHtml(
         el.style.display = 'flex';
         el.style.alignItems = 'center';
         el.style.justifyContent = 'center';
-        el.style.width = '28px';
-        el.style.height = '28px';
+        el.style.width = '34px';
+        el.style.height = '34px';
         el.innerHTML = '<span class="shg-dest-pulse"></span>'
-          + '<span style="position:relative;width:16px;height:16px;border-radius:9999px;background:#B93815;border:3px solid #FFFFFF;box-shadow:0 3px 10px rgba(185,56,21,0.55);"></span>';
+          + '<span style="position:relative;width:20px;height:20px;border-radius:9999px;background:#1D4ED8;border:3.5px solid #FFFFFF;box-shadow:0 4px 12px rgba(29,78,216,0.55);display:flex;align-items:center;justify-content:center;">'
+          + '<span style="width:6px;height:6px;border-radius:9999px;background:#FFFFFF;"></span>'
+          + '</span>';
         return el;
       }
 
-      function recolorAllRoadsAndBridges(map) {
+      function recolorAllRoadsAndBridges(map, lightPreset) {
         var style = map.getStyle();
         if (!style || !Array.isArray(style.layers)) return;
+        var isNight = lightPreset === 'night';
+        var isDusk = lightPreset === 'dusk';
+        var isDawn = lightPreset === 'dawn';
+        var fillBridge = isNight ? '#263044' : (isDusk ? '#DED5C7' : (isDawn ? '#EDE3D8' : '#E7E2D8'));
+        var caseMajor = isNight ? '#171E2C' : (isDusk ? '#C6BBA9' : (isDawn ? '#DDD3C6' : '#D6D0C4'));
+        var caseMinor = isNight ? '#1B2333' : (isDusk ? '#D4CABE' : (isDawn ? '#E9E0D4' : '#E5E0D7'));
+        var pathColor = isNight ? '#20293B' : (isDusk ? '#DDD4C7' : (isDawn ? '#EFE6DC' : '#EAE5DB'));
+        var majorColor = isNight ? '#344159' : (isDusk ? '#E2D8C9' : (isDawn ? '#F3EAE0' : '#F1EEE7'));
+        var minorColor = isNight ? '#263145' : (isDusk ? '#F2ECE2' : (isDawn ? '#FFFBF5' : '#FFFFFF'));
+
         for (var i = 0; i < style.layers.length; i++) {
           var lyr = style.layers[i];
           var id = lyr.id || '';
@@ -617,7 +697,7 @@ function buildExplorerMapHtml(
             continue;
           }
           if (lyr.type === 'fill' && lower.indexOf('bridge') !== -1) {
-            try { map.setPaintProperty(id, 'fill-color', '#E7E2D8'); } catch (e) {}
+            try { map.setPaintProperty(id, 'fill-color', fillBridge); } catch (e) {}
             continue;
           }
           if (lyr.type !== 'line') continue;
@@ -652,32 +732,35 @@ function buildExplorerMapHtml(
 
           try {
             if (isCasing) {
-              map.setPaintProperty(id, 'line-color', isMajor ? '#D6D0C4' : '#E5E0D7');
+              map.setPaintProperty(id, 'line-color', isMajor ? caseMajor : caseMinor);
             } else if (isPath) {
-              map.setPaintProperty(id, 'line-color', '#EAE5DB');
+              map.setPaintProperty(id, 'line-color', pathColor);
             } else if (isMajor) {
-              // Đồng màu kem đá trung tính cho cả đường lớn lẫn cầu vượt / cầu sông — không còn vệt vàng!
-              map.setPaintProperty(id, 'line-color', '#F1EEE7');
+              // Đồng màu trung tính cho cả đường lớn lẫn cầu vượt / cầu sông theo đúng khung giờ thực tế
+              map.setPaintProperty(id, 'line-color', majorColor);
             } else {
-              map.setPaintProperty(id, 'line-color', '#FFFFFF');
+              map.setPaintProperty(id, 'line-color', minorColor);
             }
           } catch (e) {}
         }
       }
 
       function applyMapboxOrOsmEnhancements(map, tileCfg, is3D, lightPreset) {
-        // 1. Mapbox Standard 3D (v3): bảng màu Faded hiện đại + ép đường cao tốc/quốc lộ/cầu đồng màu trung tính (không bị vàng)
+        var preset = lightPreset || 'day';
+        var isNight = preset === 'night';
+        var isDusk = preset === 'dusk';
+        var isDawn = preset === 'dawn';
+
+        // 1. Mapbox Standard 3D (v3): bảng màu Faded hiện đại + ánh sáng realtime Bình minh/Ngày/Hoàng hôn/Đêm + đường/cầu đồng màu
         if (USE_MAPBOX && tileCfg.id === 'mapbox_standard') {
-          var isNight = lightPreset === 'night';
-          var isDusk = lightPreset === 'dusk';
           var setBasemapCfg = function(prop, val) {
             try { map.setConfigProperty('basemap', prop, val); } catch (e) {}
           };
           setBasemapCfg('theme', 'faded');
-          setBasemapCfg('lightPreset', lightPreset || 'day');
-          setBasemapCfg('colorMotorways', isNight ? '#333B4C' : (isDusk ? '#D8CEC0' : '#E8E3D9'));
-          setBasemapCfg('colorTrunks', isNight ? '#2B3242' : (isDusk ? '#E2D9CC' : '#EFECE4'));
-          setBasemapCfg('colorRoads', isNight ? '#222836' : (isDusk ? '#F2ECE2' : '#FFFFFF'));
+          setBasemapCfg('lightPreset', preset);
+          setBasemapCfg('colorMotorways', isNight ? '#333B4C' : (isDusk ? '#D8CEC0' : (isDawn ? '#ECE2D6' : '#E8E3D9')));
+          setBasemapCfg('colorTrunks', isNight ? '#2B3242' : (isDusk ? '#E2D9CC' : (isDawn ? '#F3EAE0' : '#EFECE4')));
+          setBasemapCfg('colorRoads', isNight ? '#222836' : (isDusk ? '#F2ECE2' : (isDawn ? '#FFFBF5' : '#FFFFFF')));
           setBasemapCfg('showPointOfInterestLabels', true);
           setBasemapCfg('showRoadLabels', true);
           setBasemapCfg('showTransitLabels', true);
@@ -685,9 +768,9 @@ function buildExplorerMapHtml(
           try {
             if (typeof map.setFog === 'function') {
               map.setFog(is3D ? {
-                color: isNight ? '#0E121B' : (isDusk ? '#ECE1D4' : '#F4F2EC'),
-                'high-color': isNight ? '#05070D' : (isDusk ? '#D8C3AD' : '#E3E9EE'),
-                'space-color': isNight ? '#05070D' : '#DAE3EB',
+                color: isNight ? '#0E121B' : (isDusk ? '#ECE1D4' : (isDawn ? '#F3E6DC' : '#F4F2EC')),
+                'high-color': isNight ? '#05070D' : (isDusk ? '#D8C3AD' : (isDawn ? '#D9C5CE' : '#E3E9EE')),
+                'space-color': isNight ? '#05070D' : (isDusk ? '#A99282' : '#DAE3EB'),
                 'horizon-blend': 0.10,
                 range: [1.8, 12]
               } : null);
@@ -699,7 +782,7 @@ function buildExplorerMapHtml(
         // 2. Mapbox Streets / Outdoors / Satellite v12: đồng màu toàn bộ đường + cầu + khối kiến trúc 3D
         if (USE_MAPBOX && tileCfg.renderMode === 'mapbox') {
           if (tileCfg.id !== 'mapbox_satellite') {
-            recolorAllRoadsAndBridges(map);
+            recolorAllRoadsAndBridges(map, preset);
           }
           try {
             if (is3D && map.getSource('composite') && !map.getLayer('shg-mapbox-3d-buildings')) {
@@ -740,7 +823,7 @@ function buildExplorerMapHtml(
           return;
         }
 
-        // 3. OpenStreetMap Vector 3D (OpenFreeMap) — Đồng màu 100% đất, nước, đường & MỌI CÂY CẦU (bridge_*)
+        // 3. OpenStreetMap Vector 3D (OpenFreeMap) — Tự động chuyển bảng màu Bình minh / Ngày / Hoàng hôn / Đêm theo thời gian thực!
         if (tileCfg.renderMode !== 'vector') return;
         var style = map.getStyle();
         if (!style || !Array.isArray(style.layers)) return;
@@ -753,34 +836,84 @@ function buildExplorerMapHtml(
         };
 
         if (tileCfg.googleLikePalette) {
-          setPaint('background', 'background-color', '#F6F4EF');
-          setPaint('water', 'fill-color', '#D2E2EE');
-          setPaint('waterway_river', 'line-color', '#C3D9E8');
-          setPaint('waterway_other', 'line-color', '#D2E2EE');
-          setPaint('park', 'fill-color', '#DCE7D4');
-          setPaint('park_outline', 'line-color', '#CEDCC4');
-          setPaint('landcover_wood', 'fill-color', '#D4E2CB');
-          setPaint('landcover_grass', 'fill-color', '#E2ECD9');
-          setPaint('landuse_residential', 'fill-color', '#F2EFE9');
-          setPaint('landuse_commercial_area', 'fill-color', '#F4EEE4');
-          setPaint('landuse_hospital', 'fill-color', '#F5EAE8');
-          setPaint('landuse_school', 'fill-color', '#F4EFE3');
-          setPaint('building', 'fill-color', '#EBE7DF');
-          setPaint('building', 'fill-outline-color', '#DED9CF');
-          // Tô đồng màu toàn bộ road_*, bridge_*, tunnel_*, highway_* (xóa triệt để màu vàng trên mọi cây cầu!)
-          recolorAllRoadsAndBridges(map);
+          if (isNight) {
+            setPaint('background', 'background-color', '#121722');
+            setPaint('water', 'fill-color', '#0B1320');
+            setPaint('waterway_river', 'line-color', '#0D1829');
+            setPaint('waterway_other', 'line-color', '#0E192B');
+            setPaint('park', 'fill-color', '#15251E');
+            setPaint('park_outline', 'line-color', '#1A2E25');
+            setPaint('landcover_wood', 'fill-color', '#14221C');
+            setPaint('landcover_grass', 'fill-color', '#172821');
+            setPaint('landuse_residential', 'fill-color', '#151B28');
+            setPaint('landuse_commercial_area', 'fill-color', '#1A2130');
+            setPaint('landuse_hospital', 'fill-color', '#241B26');
+            setPaint('landuse_school', 'fill-color', '#1D2230');
+            setPaint('building', 'fill-color', '#1B2333');
+            setPaint('building', 'fill-outline-color', '#253046');
+          } else if (isDusk) {
+            setPaint('background', 'background-color', '#EFE7DC');
+            setPaint('water', 'fill-color', '#AFC4D6');
+            setPaint('waterway_river', 'line-color', '#A1BACF');
+            setPaint('waterway_other', 'line-color', '#AFC4D6');
+            setPaint('park', 'fill-color', '#CBD6C2');
+            setPaint('park_outline', 'line-color', '#BECBB3');
+            setPaint('landcover_wood', 'fill-color', '#C3D0B9');
+            setPaint('landcover_grass', 'fill-color', '#D2DCC8');
+            setPaint('landuse_residential', 'fill-color', '#EAE1D5');
+            setPaint('landuse_commercial_area', 'fill-color', '#EDE2D3');
+            setPaint('landuse_hospital', 'fill-color', '#EEDDD9');
+            setPaint('landuse_school', 'fill-color', '#ECE2D2');
+            setPaint('building', 'fill-color', '#E0D7C9');
+            setPaint('building', 'fill-outline-color', '#D3C9BA');
+          } else if (isDawn) {
+            setPaint('background', 'background-color', '#F6F0E9');
+            setPaint('water', 'fill-color', '#CADCEB');
+            setPaint('waterway_river', 'line-color', '#BCD2E4');
+            setPaint('waterway_other', 'line-color', '#CADCEB');
+            setPaint('park', 'fill-color', '#D7E3CF');
+            setPaint('park_outline', 'line-color', '#C9D8BF');
+            setPaint('landcover_wood', 'fill-color', '#CFDEC6');
+            setPaint('landcover_grass', 'fill-color', '#DDE8D4');
+            setPaint('landuse_residential', 'fill-color', '#F3ECE4');
+            setPaint('landuse_commercial_area', 'fill-color', '#F6ECE2');
+            setPaint('landuse_hospital', 'fill-color', '#F6E7E7');
+            setPaint('landuse_school', 'fill-color', '#F4ECE0');
+            setPaint('building', 'fill-color', '#EAE2D9');
+            setPaint('building', 'fill-outline-color', '#DDD4CA');
+          } else {
+            setPaint('background', 'background-color', '#F6F4EF');
+            setPaint('water', 'fill-color', '#D2E2EE');
+            setPaint('waterway_river', 'line-color', '#C3D9E8');
+            setPaint('waterway_other', 'line-color', '#D2E2EE');
+            setPaint('park', 'fill-color', '#DCE7D4');
+            setPaint('park_outline', 'line-color', '#CEDCC4');
+            setPaint('landcover_wood', 'fill-color', '#D4E2CB');
+            setPaint('landcover_grass', 'fill-color', '#E2ECD9');
+            setPaint('landuse_residential', 'fill-color', '#F2EFE9');
+            setPaint('landuse_commercial_area', 'fill-color', '#F4EEE4');
+            setPaint('landuse_hospital', 'fill-color', '#F5EAE8');
+            setPaint('landuse_school', 'fill-color', '#F4EFE3');
+            setPaint('building', 'fill-color', '#EBE7DF');
+            setPaint('building', 'fill-outline-color', '#DED9CF');
+          }
+          // Tô đồng màu toàn bộ road_*, bridge_*, tunnel_*, highway_* theo khung giờ hiện tại
+          recolorAllRoadsAndBridges(map, preset);
         }
 
         if (map.getLayer('building-3d')) {
           setLayout('building-3d', 'visibility', is3D ? 'visible' : 'none');
+          var extrudeColors = isNight
+            ? [0, '#1D2536', 18, '#253046', 50, '#2E3C57', 130, '#3C4D6E']
+            : isDusk
+              ? [0, '#E9DFD2', 18, '#DDD2C2', 50, '#CFC3B2', 130, '#C0B3A1']
+              : isDawn
+                ? [0, '#F5ECE4', 18, '#EAE0D6', 50, '#DDD2C6', 130, '#CFC3B6']
+                : [0, '#F5F2EC', 18, '#EAE5DC', 50, '#DDD7CC', 130, '#CFC8BC'];
           setPaint('building-3d', 'fill-extrusion-color', [
             'interpolate', ['linear'],
-            ['coalesce', ['get', 'render_height'], 10],
-            0, '#F5F2EC',
-            18, '#EAE5DC',
-            50, '#DDD7CC',
-            130, '#CFC8BC'
-          ]);
+            ['coalesce', ['get', 'render_height'], 10]
+          ].concat(extrudeColors));
           setPaint('building-3d', 'fill-extrusion-opacity', 0.88);
           setPaint('building-3d', 'fill-extrusion-vertical-gradient', true);
         }
@@ -795,7 +928,7 @@ function buildExplorerMapHtml(
         var currentTile = INITIAL_TILE;
         var currentStyleId = INITIAL_TILE.id;
         var is3DEnabled = true;
-        var currentLightPreset = 'day';
+        var currentLightPreset = INITIAL_LIGHT_PRESET || 'day';
         var prevUserCenter = INITIAL_CENTER;
         var lastSitesSignature = '';
         var lastRouteKey = '';
@@ -817,6 +950,16 @@ function buildExplorerMapHtml(
         var loadingPhotoSprites = {};
         var spriteRefreshTimer = null;
 
+        var isInteracting = false;
+        var interactCooldownTimer = null;
+        var pendingSpriteBatches = [];
+        var lastRadiusSig = '';
+        var lastRestaurantsSig = '';
+
+        var dpr = typeof window.devicePixelRatio === 'number' ? window.devicePixelRatio : 1;
+        function easeOutQuint(t) {
+          return 1 - Math.pow(1 - t, 5);
+        }
         var mapInitOpts = {
           container: 'map',
           style: resolveGlStyle(INITIAL_TILE),
@@ -828,19 +971,35 @@ function buildExplorerMapHtml(
           pitch: 50,
           bearing: -15,
           maxPitch: 70,
-          antialias: true,
-          fadeDuration: 90,
-          maxTileCacheSize: 120,
+          // Quán tính kéo mượt kiểu game 120fps (lướt nhẹ có đà, giảm tốc êm không khựng)
+          dragPan: {
+            linearity: 0.12,
+            easing: easeOutQuint,
+            maxSpeed: 2600,
+            deceleration: 1850
+          },
+          // Tắt MSAA trên màn hình HiDPI & cross-source collision để giữ ổn định 60-120fps khi zoom 3D
+          antialias: dpr < 1.25,
+          crossSourceCollisions: false,
+          fadeDuration: 0,
+          maxTileCacheSize: 320,
+          collectResourceTiming: false,
+          performanceMetricsCollection: false,
+          preserveDrawingBuffer: false,
+          refreshExpiredTiles: false,
           attributionControl: true
         };
         if (USE_MAPBOX && INITIAL_TILE.id === 'mapbox_standard') {
+          var initNight = currentLightPreset === 'night';
+          var initDusk = currentLightPreset === 'dusk';
+          var initDawn = currentLightPreset === 'dawn';
           mapInitOpts.config = {
             basemap: {
               theme: 'faded',
-              lightPreset: 'day',
-              colorMotorways: '#E8E3D9',
-              colorTrunks: '#EFECE4',
-              colorRoads: '#FFFFFF',
+              lightPreset: currentLightPreset,
+              colorMotorways: initNight ? '#333B4C' : (initDusk ? '#D8CEC0' : (initDawn ? '#ECE2D6' : '#E8E3D9')),
+              colorTrunks: initNight ? '#2B3242' : (initDusk ? '#E2D9CC' : (initDawn ? '#F3EAE0' : '#EFECE4')),
+              colorRoads: initNight ? '#222836' : (initDusk ? '#F2ECE2' : (initDawn ? '#FFFBF5' : '#FFFFFF')),
               showPointOfInterestLabels: true,
               showRoadLabels: true,
               showTransitLabels: true,
@@ -850,14 +1009,21 @@ function buildExplorerMapHtml(
         }
         var map = new gl.Map(mapInitOpts);
 
-        // Tối ưu độ nhạy & độ mượt khi lăn chuột / phóng to thu nhỏ
+        // Giới hạn pixelRatio tối đa 1.75x (giảm ~40-65% tải GPU fragment shader trên Retina/3x để khóa 90-120fps mượt mà!)
+        try {
+          if (typeof map.setPixelRatio === 'function' && dpr > 1.75) {
+            map.setPixelRatio(1.75);
+          }
+        } catch (e) {}
+
+        // Tối ưu độ nhạy & độ mượt khi lăn chuột / chụm tay phóng to thu nhỏ
         try {
           if (map.scrollZoom) {
             if (typeof map.scrollZoom.setWheelZoomRate === 'function') {
-              map.scrollZoom.setWheelZoomRate(1 / 220);
+              map.scrollZoom.setWheelZoomRate(1 / 340);
             }
             if (typeof map.scrollZoom.setZoomRate === 'function') {
-              map.scrollZoom.setZoomRate(1 / 85);
+              map.scrollZoom.setZoomRate(1 / 115);
             }
           }
         } catch (e) {}
@@ -998,6 +1164,50 @@ function buildExplorerMapHtml(
           return ctx.getImageData(0, 0, w, h);
         }
 
+        function drawOutsideVnBadgeCanvas() {
+          var w = 276;
+          var h = 60;
+          var canvas = document.createElement('canvas');
+          canvas.width = w;
+          canvas.height = h;
+          var ctx = canvas.getContext('2d');
+          var x = 8;
+          var y = 8;
+          var pw = w - 16;
+          var ph = h - 16;
+          var rad = ph / 2;
+
+          ctx.save();
+          ctx.fillStyle = '#F7F6F2';
+          ctx.beginPath();
+          ctx.moveTo(x + rad, y);
+          ctx.lineTo(x + pw - rad, y);
+          ctx.arcTo(x + pw, y, x + pw, y + rad, rad);
+          ctx.arcTo(x + pw, y + ph, x + pw - rad, y + ph, rad);
+          ctx.lineTo(x + rad, y + ph);
+          ctx.arcTo(x, y + ph, x, y + ph - rad, rad);
+          ctx.arcTo(x, y, x + rad, y, rad);
+          ctx.closePath();
+          ctx.fill();
+          ctx.strokeStyle = '#E2DFD7';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+          ctx.restore();
+
+          // Chấm nhỏ tinh tế + chữ "Đang phát triển" sắc nét chuẩn tiếng Việt
+          ctx.fillStyle = '#B93815';
+          ctx.beginPath();
+          ctx.arc(x + 26, y + ph / 2, 5, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.fillStyle = '#6B6860';
+          ctx.font = '700 22px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+          ctx.textAlign = 'left';
+          ctx.textBaseline = 'middle';
+          ctx.fillText('Đang phát triển', x + 42, y + ph / 2 + 1);
+          return ctx.getImageData(0, 0, w, h);
+        }
+
         function ensureMarkerSprites() {
           try {
             if (!map.hasImage('shg-pin-default')) {
@@ -1012,6 +1222,9 @@ function buildExplorerMapHtml(
             if (!map.hasImage('shg-res-pill-overture')) {
               map.addImage('shg-res-pill-overture', drawRestaurantPillCanvas('#B45309'), { pixelRatio: 2 });
             }
+            if (!map.hasImage('shg-outside-vn-badge')) {
+              map.addImage('shg-outside-vn-badge', drawOutsideVnBadgeCanvas(), { pixelRatio: 2 });
+            }
           } catch (e) {}
         }
 
@@ -1022,13 +1235,31 @@ function buildExplorerMapHtml(
         var directWikimediaErrors = 0;
 
         function scheduleSpriteSourceRefresh() {
-          if (spriteRefreshTimer) return;
+          if (spriteRefreshTimer || isInteracting) return;
           spriteRefreshTimer = setTimeout(function() {
             spriteRefreshTimer = null;
-            if (styleReady && lastKnownSites.length) {
-              syncGpuMarkers(lastKnownSites, lastShowRestaurants);
+            if (styleReady && !isInteracting && lastKnownSites.length) {
+              syncSitesSourceOnly(lastKnownSites);
             }
-          }, 90);
+          }, 260);
+        }
+
+        function flushPendingSpriteRegistrations() {
+          if (!styleReady || isInteracting || pendingSpriteBatches.length === 0) return;
+          var batch = pendingSpriteBatches.splice(0, 12);
+          var addedAny = false;
+          for (var i = 0; i < batch.length; i++) {
+            var item = batch[i];
+            if (registerSiteSpriteFromImgImmediate(item.site, item.spriteId, item.imgObj)) {
+              addedAny = true;
+            }
+          }
+          if (addedAny) {
+            scheduleSpriteSourceRefresh();
+          }
+          if (pendingSpriteBatches.length > 0 && !isInteracting) {
+            setTimeout(flushPendingSpriteRegistrations, 48);
+          }
         }
 
         function buildPinPhotoCandidates(rawUrl) {
@@ -1075,7 +1306,7 @@ function buildExplorerMapHtml(
           return list;
         }
 
-        function registerSiteSpriteFromImg(site, spriteId, imgObj) {
+        function registerSiteSpriteFromImgImmediate(site, spriteId, imgObj) {
           var accent = site.isVisited ? '#047857' : '#B93815';
           var badge = site.isVisited ? '✓' : String(site.index);
           try {
@@ -1083,11 +1314,22 @@ function buildExplorerMapHtml(
               map.addImage(spriteId, drawPinCanvas(imgObj, accent, badge), { pixelRatio: 2 });
             }
             loadedPhotoSprites[spriteId] = true;
-            scheduleSpriteSourceRefresh();
             return true;
           } catch (err) {
             return false;
           }
+        }
+
+        function registerSiteSpriteFromImg(site, spriteId, imgObj) {
+          if (isInteracting) {
+            pendingSpriteBatches.push({ site: site, spriteId: spriteId, imgObj: imgObj });
+            return true;
+          }
+          var ok = registerSiteSpriteFromImgImmediate(site, spriteId, imgObj);
+          if (ok) {
+            scheduleSpriteSourceRefresh();
+          }
+          return ok;
         }
 
         function prioritizePhotoQueueByViewport() {
@@ -1109,7 +1351,7 @@ function buildExplorerMapHtml(
         }
 
         function pumpPhotoLoadQueue() {
-          if (!styleReady) return;
+          if (!styleReady || isInteracting) return;
           prioritizePhotoQueueByViewport();
           while (activePhotoLoads < MAX_CONCURRENT_PHOTO_LOADS && photoLoadQueue.length > 0) {
             var job = photoLoadQueue.shift();
@@ -1202,6 +1444,7 @@ function buildExplorerMapHtml(
         function getSpotlightTheme() {
           var isDark = currentTile.id === 'mapbox_satellite' || currentTile.id === 'satellite' || currentLightPreset === 'night';
           var isDusk = !isDark && currentLightPreset === 'dusk';
+          var isDawn = !isDark && currentLightPreset === 'dawn';
           if (isDark) {
             return {
               maskColor: '#0B0F17',
@@ -1224,6 +1467,17 @@ function buildExplorerMapHtml(
               lineOpacity: 0.84
             };
           }
+          if (isDawn) {
+            return {
+              maskColor: '#F3EAE2',
+              maskOpacity: 0.76,
+              featherColor: '#9A8479',
+              featherOpacity: 0.14,
+              casingColor: '#FAF9F6',
+              lineColor: '#B93815',
+              lineOpacity: 0.82
+            };
+          }
           // Warm Alabaster Frosted Veil — harmonized 1:1 with app parchment #FAF9F6 & terracotta #B93815
           return {
             maskColor: '#F4F2EC',
@@ -1241,11 +1495,15 @@ function buildExplorerMapHtml(
           var topSlotProps = (USE_MAPBOX && currentTile.id === 'mapbox_standard') ? { slot: 'top' } : {};
           var theme = getSpotlightTheme();
 
-          // Lớp sương mờ tông kem ấm đồng bộ app (Frosted Alabaster Veil)
+          // 1. Lớp sương mờ các tỉnh Việt Nam ngoài TP.HCM (chỉ bật khi chọn chế độ Chỉ TP.HCM)
+          // maxzoom: 12 + tolerance: 0.75 giúp tránh re-tiling / re-triangulation đa giác lớn khi phóng to từ mức 12 -> 20!
           if (!map.getSource('shg-hcmc-mask')) {
             map.addSource('shg-hcmc-mask', {
               type: 'geojson',
-              data: { type: 'FeatureCollection', features: [] }
+              data: { type: 'FeatureCollection', features: [] },
+              maxzoom: 12,
+              tolerance: 0.75,
+              buffer: 32
             });
             map.addLayer(Object.assign({
               id: 'shg-hcmc-mask-fill',
@@ -1258,12 +1516,76 @@ function buildExplorerMapHtml(
             }, topSlotProps));
           }
 
+          // 2. Lớp phủ TRẮNG ĐỤC 100% ngoài lãnh thổ & lãnh hải Việt Nam (ẩn toàn bộ đường, địa danh, POI các nước khác + ghi "Đang phát triển")
+          ensureMarkerSprites();
+          if (!map.getSource('shg-outside-vn-mask')) {
+            map.addSource('shg-outside-vn-mask', {
+              type: 'geojson',
+              data: buildInverseMaskGeoJson(VIETNAM_BOUNDARY_RINGS),
+              maxzoom: 12,
+              tolerance: 0.75,
+              buffer: 32
+            });
+            map.addLayer(Object.assign({
+              id: 'shg-outside-vn-mask-fill',
+              type: 'fill',
+              source: 'shg-outside-vn-mask',
+              paint: {
+                'fill-color': '#FFFFFF',
+                'fill-opacity': 1
+              }
+            }, topSlotProps));
+          }
+
+          if (!map.getSource('shg-outside-vn-border')) {
+            map.addSource('shg-outside-vn-border', {
+              type: 'geojson',
+              data: buildBorderGeoJson(VIETNAM_BOUNDARY_RINGS),
+              maxzoom: 12,
+              tolerance: 0.75,
+              buffer: 32
+            });
+            map.addLayer(Object.assign({
+              id: 'shg-outside-vn-border-line',
+              type: 'line',
+              source: 'shg-outside-vn-border',
+              layout: { 'line-join': 'round', 'line-cap': 'round' },
+              paint: {
+                'line-color': '#B93815',
+                'line-width': 1.5,
+                'line-opacity': 0.72
+              }
+            }, topSlotProps));
+          }
+
+          if (!map.getSource('shg-outside-vn-labels')) {
+            map.addSource('shg-outside-vn-labels', {
+              type: 'geojson',
+              data: OUTSIDE_VN_DEV_LABELS_GEOJSON
+            });
+            map.addLayer(Object.assign({
+              id: 'shg-outside-vn-labels-layer',
+              type: 'symbol',
+              source: 'shg-outside-vn-labels',
+              minzoom: 4,
+              layout: {
+                'icon-image': 'shg-outside-vn-badge',
+                'icon-size': ['interpolate', ['linear'], ['zoom'], 5, 0.78, 8, 0.94, 12, 1.0],
+                'icon-allow-overlap': false,
+                'icon-padding': 18
+              }
+            }, topSlotProps));
+          }
+
           if (!map.getSource('shg-hcmc-border')) {
             map.addSource('shg-hcmc-border', {
               type: 'geojson',
-              data: { type: 'FeatureCollection', features: [] }
+              data: { type: 'FeatureCollection', features: [] },
+              maxzoom: 12,
+              tolerance: 0.75,
+              buffer: 32
             });
-            // 1. Subtle architectural drop shadow along the border (clean, never muddy)
+            // 1. Subtle lightweight halo along the border (bỏ line-blur tốn GPU fragment shader khi zoom!)
             map.addLayer(Object.assign({
               id: 'shg-hcmc-border-glow',
               type: 'line',
@@ -1271,8 +1593,7 @@ function buildExplorerMapHtml(
               layout: { 'line-join': 'round', 'line-cap': 'round' },
               paint: {
                 'line-color': theme.featherColor,
-                'line-width': 9,
-                'line-blur': 6,
+                'line-width': 5.5,
                 'line-opacity': theme.featherOpacity
               }
             }, topSlotProps));
@@ -1284,7 +1605,7 @@ function buildExplorerMapHtml(
               layout: { 'line-join': 'round', 'line-cap': 'round' },
               paint: {
                 'line-color': theme.casingColor,
-                'line-width': 3.4,
+                'line-width': 3.2,
                 'line-opacity': 0.92
               }
             }, topSlotProps));
@@ -1305,7 +1626,10 @@ function buildExplorerMapHtml(
           if (!map.getSource('shg-radius')) {
             map.addSource('shg-radius', {
               type: 'geojson',
-              data: { type: 'FeatureCollection', features: [] }
+              data: { type: 'FeatureCollection', features: [] },
+              maxzoom: 14,
+              tolerance: 0.6,
+              buffer: 32
             });
             map.addLayer(Object.assign({
               id: 'shg-radius-fill',
@@ -1330,44 +1654,68 @@ function buildExplorerMapHtml(
           }
 
           if (!map.getSource('shg-route')) {
+            var isDarkBasemap =
+              currentTile.id === 'mapbox_satellite' ||
+              currentTile.id === 'satellite' ||
+              currentLightPreset === 'night';
+            var routeOuterColor = isDarkBasemap ? '#075985' : '#1E3A8A';
+            var routeCoreColor = isDarkBasemap ? '#38BDF8' : '#2563EB';
+            var routeAccentColor = isDarkBasemap ? '#E0F2FE' : '#DBEAFE';
+
             map.addSource('shg-route', {
               type: 'geojson',
               data: { type: 'FeatureCollection', features: [] }
             });
+            // Soft outer halo so route separates crisply from roads & 3D buildings
+            map.addLayer(Object.assign({
+              id: 'shg-route-halo',
+              type: 'line',
+              source: 'shg-route',
+              layout: { 'line-join': 'round', 'line-cap': 'round' },
+              paint: {
+                'line-color': isDarkBasemap ? 'rgba(56, 189, 248, 0.28)' : 'rgba(37, 99, 235, 0.20)',
+                'line-width': ['interpolate', ['linear'], ['zoom'], 9, 13, 14, 17, 18, 22],
+                'line-blur': 3,
+                'line-opacity': 0.9
+              }
+            }, topSlotProps));
+            // Crisp dark-cobalt border casing (never blends into white/cream roads!)
             map.addLayer(Object.assign({
               id: 'shg-route-casing',
               type: 'line',
               source: 'shg-route',
               layout: { 'line-join': 'round', 'line-cap': 'round' },
               paint: {
-                'line-color': '#FAF9F6',
-                'line-width': 9,
-                'line-opacity': 0.96
+                'line-color': routeOuterColor,
+                'line-width': ['interpolate', ['linear'], ['zoom'], 9, 8.5, 14, 11.5, 18, 14.5],
+                'line-opacity': 0.98
               }
-            }, slotProps));
+            }, topSlotProps));
+            // Vibrant Google/Apple-Maps-grade navigation cobalt core
             map.addLayer(Object.assign({
               id: 'shg-route-core',
               type: 'line',
               source: 'shg-route',
               layout: { 'line-join': 'round', 'line-cap': 'round' },
               paint: {
-                'line-color': '#B93815',
-                'line-width': 5,
-                'line-opacity': 0.96
+                'line-color': routeCoreColor,
+                'line-width': ['interpolate', ['linear'], ['zoom'], 9, 5.5, 14, 7.5, 18, 9.5],
+                'line-opacity': 1
               }
-            }, slotProps));
+            }, topSlotProps));
+            // Walking breadcrumb dots (shown for walking mode; subtle centerline highlight for motorbike/car)
             map.addLayer(Object.assign({
               id: 'shg-route-dashes',
               type: 'line',
               source: 'shg-route',
               layout: { 'line-join': 'round', 'line-cap': 'round' },
               paint: {
-                'line-color': '#FDE8DF',
-                'line-width': 2,
-                'line-dasharray': [0.5, 2.8],
-                'line-opacity': 0.95
+                'line-color': routeAccentColor,
+                'line-width': ['interpolate', ['linear'], ['zoom'], 9, 1.8, 14, 2.4, 18, 3.0],
+                'line-dasharray': [0.25, 2.4],
+                'line-opacity': 0.92
               }
-            }, slotProps));
+            }, topSlotProps));
           }
 
           // =========================================================================
@@ -1381,31 +1729,33 @@ function buildExplorerMapHtml(
           if (!map.getSource('shg-restaurants-src')) {
             map.addSource('shg-restaurants-src', {
               type: 'geojson',
-              data: { type: 'FeatureCollection', features: [] }
+              data: { type: 'FeatureCollection', features: [] },
+              maxzoom: 15,
+              buffer: 32
             });
-            // District zoom (12.8 - 14.8): ultra-fast GPU dots smoothly fading & scaling in real time during zoom
+            // District zoom (12.8 - 15.2): ultra-fast GPU dots (0ms collision CPU cost during zoom!)
             map.addLayer(Object.assign({
               id: 'shg-res-dots',
               type: 'circle',
               source: 'shg-restaurants-src',
               minzoom: 12.8,
-              maxzoom: 14.9,
+              maxzoom: 15.3,
               filter: ['!=', ['get', 'isSelectedSite'], 1],
               paint: {
-                'circle-radius': ['interpolate', ['linear'], ['zoom'], 12.8, 3.2, 14.5, 5.2],
+                'circle-radius': ['interpolate', ['linear'], ['zoom'], 12.8, 3.2, 14.8, 5.2],
                 'circle-color': ['case', ['==', ['get', 'isOverture'], 1], '#B45309', '#B93815'],
                 'circle-stroke-width': 1.8,
                 'circle-stroke-color': '#FAF9F6',
-                'circle-opacity': ['interpolate', ['linear'], ['zoom'], 12.8, 0, 13.3, 0.92, 14.5, 0.92, 14.9, 0],
-                'circle-stroke-opacity': ['interpolate', ['linear'], ['zoom'], 12.8, 0, 13.3, 0.95, 14.5, 0.95, 14.9, 0]
+                'circle-opacity': ['interpolate', ['linear'], ['zoom'], 12.8, 0, 13.3, 0.92, 14.9, 0.92, 15.3, 0],
+                'circle-stroke-opacity': ['interpolate', ['linear'], ['zoom'], 12.8, 0, 13.3, 0.95, 14.9, 0.95, 15.3, 0]
               }
             }, topSlotProps));
-            // Street zoom (>= 14.5): crisp GPU Warm-Ivory Rating Pills with automatic WebGL collision detection!
+            // Street zoom (>= 15.0): crisp GPU Warm-Ivory Rating Pills with automatic WebGL collision detection
             map.addLayer(Object.assign({
               id: 'shg-res-pills',
               type: 'symbol',
               source: 'shg-restaurants-src',
-              minzoom: 14.5,
+              minzoom: 15.0,
               filter: ['!=', ['get', 'isSelectedSite'], 1],
               layout: Object.assign({
                 'icon-image': ['case', ['==', ['get', 'isOverture'], 1], 'shg-res-pill-overture', 'shg-res-pill-curated'],
@@ -1449,6 +1799,7 @@ function buildExplorerMapHtml(
             map.addSource('shg-sites-src', {
               type: 'geojson',
               data: { type: 'FeatureCollection', features: [] },
+              buffer: 64,
               cluster: true,
               clusterMaxZoom: 13,
               clusterRadius: 42,
@@ -1537,10 +1888,15 @@ function buildExplorerMapHtml(
               }
             } catch (e) {}
 
-            // Chỉ TP.HCM: làm mờ các tỉnh xung quanh; Toàn Việt Nam: làm mờ các quốc gia ngoài lãnh thổ Việt Nam
-            var activeRings = isFocusHcmcOnly ? HCMC_BOUNDARY_RINGS : VIETNAM_BOUNDARY_RINGS;
-            map.getSource('shg-hcmc-mask').setData(buildInverseMaskGeoJson(activeRings));
-            map.getSource('shg-hcmc-border').setData(buildBorderGeoJson(activeRings));
+            // Ngoài lãnh thổ Việt Nam luôn được phủ trắng đục 100% + nhãn "Đang phát triển" ở lớp shg-outside-vn-mask.
+            // Khi chọn Chỉ TP.HCM: làm mờ dịu các tỉnh Việt Nam lân cận và tô viền TP.HCM; khi chọn Việt Nam: hiển thị rõ toàn lãnh thổ VN.
+            if (isFocusHcmcOnly) {
+              map.getSource('shg-hcmc-mask').setData(buildInverseMaskGeoJson(HCMC_BOUNDARY_RINGS));
+              map.getSource('shg-hcmc-border').setData(buildBorderGeoJson(HCMC_BOUNDARY_RINGS));
+            } else {
+              map.getSource('shg-hcmc-mask').setData({ type: 'FeatureCollection', features: [] });
+              map.getSource('shg-hcmc-border').setData({ type: 'FeatureCollection', features: [] });
+            }
           }
 
           if (shouldAdjustCamera && !isFollowingNav) {
@@ -1564,12 +1920,17 @@ function buildExplorerMapHtml(
           }
         }
 
-        function syncRadiusLayer(coords, radiusMeters) {
+        function syncRadiusLayer(coords, radiusMeters, force) {
           lastRadiusMeters = radiusMeters || 0;
           if (!styleReady || !map.getSource('shg-radius')) return;
+          var nextSig = lastRadiusMeters > 0 && lastRadiusMeters <= 25000
+            ? (coords[0].toFixed(5) + ',' + coords[1].toFixed(5) + ':' + lastRadiusMeters)
+            : 'none';
+          if (!force && nextSig === lastRadiusSig) return;
+          lastRadiusSig = nextSig;
           if (lastRadiusMeters > 0 && lastRadiusMeters <= 25000) {
             map.getSource('shg-radius').setData(
-              createCircleGeoJson([coords[1], coords[0]], lastRadiusMeters, 64)
+              createCircleGeoJson([coords[1], coords[0]], lastRadiusMeters, 48)
             );
           } else {
             map.getSource('shg-radius').setData({ type: 'FeatureCollection', features: [] });
@@ -1602,6 +1963,33 @@ function buildExplorerMapHtml(
               properties: {}
             }]
           });
+
+          // Tinh chỉnh màu & nét tuyến theo phương tiện & nền bản đồ (sáng / đêm / vệ tinh)
+          try {
+            var isDarkMap =
+              currentTile.id === 'mapbox_satellite' ||
+              currentTile.id === 'satellite' ||
+              currentLightPreset === 'night';
+            var mode = route.travelMode || 'walking';
+            var coreHex = isDarkMap
+              ? (mode === 'car' ? '#60A5FA' : '#38BDF8')
+              : (mode === 'car' ? '#1D4ED8' : '#2563EB');
+            var casingHex = isDarkMap ? '#082F49' : '#1E3A8A';
+            if (map.getLayer('shg-route-core')) {
+              map.setPaintProperty('shg-route-core', 'line-color', coreHex);
+            }
+            if (map.getLayer('shg-route-casing')) {
+              map.setPaintProperty('shg-route-casing', 'line-color', casingHex);
+            }
+            if (map.getLayer('shg-route-dashes')) {
+              // Đi bộ hiển thị chấm bước chân rõ nét; xe máy/ô tô hiển thị dải liền mạch sạch mắt
+              map.setPaintProperty(
+                'shg-route-dashes',
+                'line-opacity',
+                mode === 'walking' ? 0.92 : 0.22
+              );
+            }
+          } catch (e) {}
 
           if (route.destination) {
             destMarker = new gl.Marker({
@@ -1637,25 +2025,174 @@ function buildExplorerMapHtml(
           }
         }
 
+        // =========================================================================
+        // 120 FPS VSync requestAnimationFrame Critically-Damped Game Camera Engine
+        // =========================================================================
+        var springCam = {
+          rafId: null,
+          lastTs: 0,
+          followCam: false,
+          isSim: false,
+          initialized: false,
+          curLat: INITIAL_CENTER[0],
+          curLng: INITIAL_CENTER[1],
+          tgtLat: INITIAL_CENTER[0],
+          tgtLng: INITIAL_CENTER[1],
+          curBearing: 0,
+          tgtBearing: 0,
+          hasBearing: false,
+          curZoom: 18.0,
+          tgtZoom: 18.0,
+          curPitch: 60,
+          tgtPitch: 60
+        };
+
+        function shortestAngleDelta(fromDeg, toDeg) {
+          var d = ((toDeg - fromDeg + 540) % 360) - 180;
+          return d;
+        }
+
+        function stopSpringCameraFollow() {
+          springCam.followCam = false;
+        }
+
+        function tickSpringCamera(now) {
+          springCam.rafId = null;
+          var dt = springCam.lastTs ? Math.min(0.05, Math.max(0.002, (now - springCam.lastTs) / 1000)) : 0.016;
+          springCam.lastTs = now;
+
+          // Nội suy hàm mũ bất biến theo FPS (chạy chuẩn tốc độ trên 60Hz, 90Hz, 120Hz ProMotion & 144Hz)
+          var posLambda = springCam.isSim ? 9.5 : 7.5;
+          var rotLambda = springCam.isSim ? 7.5 : 6.0;
+          var camLambda = 5.5;
+          var posAlpha = 1 - Math.exp(-posLambda * dt);
+          var rotAlpha = 1 - Math.exp(-rotLambda * dt);
+          var camAlpha = 1 - Math.exp(-camLambda * dt);
+
+          var dLat = springCam.tgtLat - springCam.curLat;
+          var dLng = springCam.tgtLng - springCam.curLng;
+          springCam.curLat += dLat * posAlpha;
+          springCam.curLng += dLng * posAlpha;
+
+          var dAng = 0;
+          if (springCam.hasBearing) {
+            dAng = shortestAngleDelta(springCam.curBearing, springCam.tgtBearing);
+            springCam.curBearing = (springCam.curBearing + dAng * rotAlpha + 360) % 360;
+          }
+
+          var dZoom = springCam.tgtZoom - springCam.curZoom;
+          var dPitch = springCam.tgtPitch - springCam.curPitch;
+          springCam.curZoom += dZoom * camAlpha;
+          springCam.curPitch += dPitch * camAlpha;
+
+          // Cập nhật vị trí & hướng mũi tên người dùng đồng bộ 1:1 với VSync GPU
+          if (userMarker) {
+            userMarker.setLngLat([springCam.curLng, springCam.curLat]);
+            if (springCam.hasBearing && typeof userMarker.setRotation === 'function') {
+              userMarker.setRotation(springCam.curBearing);
+            }
+          }
+
+          // Nếu đang theo sát dẫn đường -> jumpTo trực tiếp trong cùng frame VSync (0ms giật easeTo!)
+          if (springCam.followCam && isFollowingNav && !isInteracting) {
+            try {
+              var jumpOpts = {
+                center: [springCam.curLng, springCam.curLat],
+                zoom: springCam.curZoom,
+                pitch: springCam.curPitch,
+                padding: { top: 230, bottom: 185, left: 0, right: 0 }
+              };
+              if (springCam.hasBearing) {
+                jumpOpts.bearing = springCam.curBearing;
+              }
+              map.jumpTo(jumpOpts);
+            } catch (e) {}
+          }
+
+          var settledPos = Math.abs(dLat) < 1e-7 && Math.abs(dLng) < 1e-7;
+          var settledRot = !springCam.hasBearing || Math.abs(dAng) < 0.08;
+          var settledCam = !springCam.followCam || (Math.abs(dZoom) < 0.005 && Math.abs(dPitch) < 0.08);
+
+          if (!settledPos || !settledRot || !settledCam) {
+            springCam.rafId = window.requestAnimationFrame(tickSpringCamera);
+          } else {
+            // Chốt vị trí chính xác & tự ngủ để tiết kiệm 100% GPU khi đứng yên
+            springCam.curLat = springCam.tgtLat;
+            springCam.curLng = springCam.tgtLng;
+            if (userMarker) {
+              userMarker.setLngLat([springCam.curLng, springCam.curLat]);
+            }
+            springCam.lastTs = 0;
+          }
+        }
+
+        function feedSpringCamera(coords, heading, followCam, isSim) {
+          var lat = coords[0];
+          var lng = coords[1];
+          var jumpDist = Math.abs(lat - springCam.curLat) + Math.abs(lng - springCam.curLng);
+
+          if (!springCam.initialized || jumpDist > 0.04) {
+            springCam.initialized = true;
+            springCam.curLat = lat;
+            springCam.curLng = lng;
+            if (typeof heading === 'number' && !isNaN(heading)) {
+              springCam.curBearing = heading;
+              springCam.tgtBearing = heading;
+              springCam.hasBearing = true;
+            }
+            springCam.curZoom = map.getZoom();
+            springCam.curPitch = map.getPitch();
+          }
+
+          springCam.tgtLat = lat;
+          springCam.tgtLng = lng;
+          springCam.followCam = Boolean(followCam);
+          springCam.isSim = Boolean(isSim);
+          if (typeof heading === 'number' && !isNaN(heading)) {
+            if (!springCam.hasBearing) {
+              springCam.curBearing = heading;
+            }
+            springCam.tgtBearing = heading;
+            springCam.hasBearing = true;
+          }
+          if (followCam) {
+            springCam.curZoom = map.getZoom();
+            springCam.curPitch = map.getPitch();
+            var mode = (lastRouteData && lastRouteData.travelMode) || 'walking';
+            springCam.tgtZoom = mode === 'car' ? 16.4 : (mode === 'motorbike' ? 17.1 : 17.9);
+            springCam.tgtPitch = is3DEnabled ? 60 : 0;
+          }
+
+          if (!springCam.rafId) {
+            springCam.lastTs = 0;
+            springCam.rafId = window.requestAnimationFrame(tickSpringCamera);
+          }
+        }
+
         function engageNavCamera(coords, heading, durationMs, linear) {
           var targetBearing = (typeof heading === 'number' && !isNaN(heading))
             ? heading
             : map.getBearing();
-          var opts = {
+          if (linear) {
+            // Chế độ di chuyển liên tục -> giao toàn quyền cho vòng lặp 120 FPS VSync Spring Camera!
+            feedSpringCamera(coords, targetBearing, true, true);
+            return;
+          }
+          stopSpringCameraFollow();
+          var mode = (lastRouteData && lastRouteData.travelMode) || 'walking';
+          var targetZoom = mode === 'car' ? 16.4 : (mode === 'motorbike' ? 17.1 : 17.9);
+          map.easeTo({
             center: [coords[1], coords[0]],
-            zoom: 18.0,
-            pitch: is3DEnabled ? 62 : 0,
+            zoom: targetZoom,
+            pitch: is3DEnabled ? 60 : 0,
             bearing: targetBearing,
             padding: { top: 230, bottom: 185, left: 0, right: 0 },
-            duration: durationMs
-          };
-          if (linear) {
-            opts.easing = function(t) { return t; };
-          }
-          map.easeTo(opts);
+            duration: durationMs,
+            easing: easeOutQuint
+          });
         }
 
-        function ensureUserMarker(coords, heading, isNavigating) {
+        function ensureUserMarker(coords, heading, isNavigating, isSim) {
           if (!userMarker) {
             userMarkerEl = createUserMarkerElement();
             userMarker = new gl.Marker({
@@ -1667,31 +2204,35 @@ function buildExplorerMapHtml(
             })
               .setLngLat([coords[1], coords[0]])
               .addTo(map);
+            springCam.initialized = true;
+            springCam.curLat = coords[0];
+            springCam.curLng = coords[1];
+            springCam.tgtLat = coords[0];
+            springCam.tgtLng = coords[1];
 
             userMarker.on('dragend', function() {
               var ll = userMarker.getLngLat();
+              springCam.curLat = ll.lat;
+              springCam.curLng = ll.lng;
+              springCam.tgtLat = ll.lat;
+              springCam.tgtLng = ll.lng;
               postToHost({ type: 'USER_DRAG', lat: ll.lat, lng: ll.lng });
             });
           } else {
-            userMarker.setLngLat([coords[1], coords[0]]);
+            // Luôn trượt marker mượt theo VSync 120fps thay vì giật cục từng bước
+            feedSpringCamera(coords, heading, false, Boolean(isSim));
           }
           updateUserHeadingVisual(heading, isNavigating);
         }
 
         var lastShowRestaurants = true;
 
-        function syncGpuMarkers(sites, showRestaurants) {
-          if (!styleReady) return;
+        function syncSitesSourceOnly(sites) {
+          if (!styleReady || !map.getSource('shg-sites-src')) return;
           ensureMarkerSprites();
-
           var siteFeatures = [];
-          var resFeatures = [];
-          var selectedSiteObj = null;
-
-          sites.forEach(function(site) {
-            if (site.isSelected) {
-              selectedSiteObj = site;
-            }
+          for (var i = 0; i < sites.length; i++) {
+            var site = sites[i];
             var iconName = ensureSitePhotoSprite(site);
             siteFeatures.push({
               type: 'Feature',
@@ -1704,40 +2245,66 @@ function buildExplorerMapHtml(
                 iconName: iconName
               }
             });
-
-            if (showRestaurants && Array.isArray(site.restaurants)) {
-              site.restaurants.forEach(function(res) {
-                var ratingNum = Number(res.rating) || 4.5;
-                resFeatures.push({
-                  type: 'Feature',
-                  geometry: { type: 'Point', coordinates: [res.lng, res.lat] },
-                  properties: {
-                    id: res.id,
-                    siteId: site.id,
-                    rating: ratingNum,
-                    ratingText: ratingNum.toFixed(1),
-                    isOverture: res.source === 'overture' ? 1 : 0,
-                    isSelectedSite: site.isSelected ? 1 : 0
-                  }
-                });
-              });
-            }
-          });
-
+          }
           try {
-            if (map.getSource('shg-sites-src')) {
-              map.getSource('shg-sites-src').setData({
-                type: 'FeatureCollection',
-                features: siteFeatures
-              });
-            }
-            if (map.getSource('shg-restaurants-src')) {
-              map.getSource('shg-restaurants-src').setData({
-                type: 'FeatureCollection',
-                features: resFeatures
-              });
-            }
+            map.getSource('shg-sites-src').setData({
+              type: 'FeatureCollection',
+              features: siteFeatures
+            });
           } catch (e) {}
+        }
+
+        function syncGpuMarkers(sites, showRestaurants, forceRestaurants) {
+          if (!styleReady) return;
+          ensureMarkerSprites();
+
+          var selectedSiteObj = null;
+          for (var i = 0; i < sites.length; i++) {
+            if (sites[i].isSelected) {
+              selectedSiteObj = sites[i];
+              break;
+            }
+          }
+
+          syncSitesSourceOnly(sites);
+
+          // Chỉ cập nhật GeoJSON 250+ quán ăn khi danh sách/bộ lọc/điểm chọn thực sự thay đổi (không chạy lại khi tải ảnh!)
+          var resSig = (showRestaurants ? '1' : '0') + '|' + (selectedSiteObj ? selectedSiteObj.id : '') + '|' + sites.length;
+          if (forceRestaurants || resSig !== lastRestaurantsSig) {
+            lastRestaurantsSig = resSig;
+            var resFeatures = [];
+            if (showRestaurants) {
+              for (var sIdx = 0; sIdx < sites.length; sIdx++) {
+                var st = sites[sIdx];
+                if (!Array.isArray(st.restaurants)) continue;
+                var selFlag = st.isSelected ? 1 : 0;
+                for (var rIdx = 0; rIdx < st.restaurants.length; rIdx++) {
+                  var res = st.restaurants[rIdx];
+                  var ratingNum = Number(res.rating) || 4.5;
+                  resFeatures.push({
+                    type: 'Feature',
+                    geometry: { type: 'Point', coordinates: [res.lng, res.lat] },
+                    properties: {
+                      id: res.id,
+                      siteId: st.id,
+                      rating: ratingNum,
+                      ratingText: ratingNum.toFixed(1),
+                      isOverture: res.source === 'overture' ? 1 : 0,
+                      isSelectedSite: selFlag
+                    }
+                  });
+                }
+              }
+            }
+            try {
+              if (map.getSource('shg-restaurants-src')) {
+                map.getSource('shg-restaurants-src').setData({
+                  type: 'FeatureCollection',
+                  features: resFeatures
+                });
+              }
+            } catch (e) {}
+          }
 
           // Chỉ dùng đúng 1 DOM marker nổi duy nhất cho địa điểm đang chọn
           if (selectedSiteMarker) {
@@ -1796,21 +2363,51 @@ function buildExplorerMapHtml(
           loadedPhotoSprites = {};
           loadingPhotoSprites = {};
           photoLoadQueue = [];
+          pendingSpriteBatches = [];
+          lastRadiusSig = '';
+          lastRestaurantsSig = '';
           applyMapboxOrOsmEnhancements(map, currentTile, is3DEnabled, currentLightPreset);
           ensureCustomOverlayLayers();
           syncHcmcFocusLayer(isFocusHcmcOnly, false);
-          syncRadiusLayer(lastKnownUser, lastRadiusMeters);
+          syncRadiusLayer(lastKnownUser, lastRadiusMeters, true);
           syncRouteLayer(lastRouteData, false);
           if (lastKnownSites.length) {
-            syncGpuMarkers(lastKnownSites, lastShowRestaurants);
+            syncGpuMarkers(lastKnownSites, lastShowRestaurants, true);
           }
         });
 
-        map.on('moveend', function() {
-          if (styleReady && photoLoadQueue.length > 0) {
-            pumpPhotoLoadQueue();
+        function markInteractingStart() {
+          isInteracting = true;
+          if (interactCooldownTimer) {
+            clearTimeout(interactCooldownTimer);
+            interactCooldownTimer = null;
           }
-        });
+          if (spriteRefreshTimer) {
+            clearTimeout(spriteRefreshTimer);
+            spriteRefreshTimer = null;
+          }
+        }
+
+        function markInteractingEnd() {
+          if (interactCooldownTimer) clearTimeout(interactCooldownTimer);
+          // Đợi 150ms sau khi dừng lăn chuột / chụm tay mới giải mã ảnh & cập nhật sprite (0ms giật khung hình khi zoom!)
+          interactCooldownTimer = setTimeout(function() {
+            interactCooldownTimer = null;
+            isInteracting = false;
+            if (!styleReady) return;
+            if (pendingSpriteBatches.length > 0) {
+              flushPendingSpriteRegistrations();
+            }
+            if (photoLoadQueue.length > 0) {
+              pumpPhotoLoadQueue();
+            }
+          }, 150);
+        }
+
+        map.on('movestart', markInteractingStart);
+        map.on('zoomstart', markInteractingStart);
+        map.on('moveend', markInteractingEnd);
+        map.on('zoomend', markInteractingEnd);
 
         var fallbackTriggered = false;
         map.on('error', function(e) {
@@ -1843,14 +2440,19 @@ function buildExplorerMapHtml(
           'shg-res-dots'
         ];
 
-        map.on('mousemove', function(e) {
-          if (!styleReady || (typeof map.isMoving === 'function' && map.isMoving())) return;
-          try {
-            var activeLayers = interactiveGpuLayers.filter(function(id) { return !!map.getLayer(id); });
-            if (!activeLayers.length) return;
-            var hit = map.queryRenderedFeatures(e.point, { layers: activeLayers });
-            map.getCanvas().style.cursor = hit.length ? 'pointer' : '';
-          } catch (err) {}
+        // Dùng sự kiện cấp layer native của Mapbox thay vì queryRenderedFeatures trên từng pixel mousemove (giảm tải CPU rõ rệt)
+        var hoveredInteractiveCount = 0;
+        interactiveGpuLayers.forEach(function(layerId) {
+          map.on('mouseenter', layerId, function() {
+            hoveredInteractiveCount++;
+            map.getCanvas().style.cursor = 'pointer';
+          });
+          map.on('mouseleave', layerId, function() {
+            hoveredInteractiveCount = Math.max(0, hoveredInteractiveCount - 1);
+            if (hoveredInteractiveCount === 0) {
+              map.getCanvas().style.cursor = '';
+            }
+          });
         });
 
         map.on('click', function(e) {
@@ -1868,10 +2470,12 @@ function buildExplorerMapHtml(
                     var coords = top.geometry && top.geometry.coordinates;
                     postToHost({ type: 'SITE_CLICK', siteId: String(props.id) });
                     if (coords && coords.length >= 2) {
+                      stopSpringCameraFollow();
                       map.easeTo({
                         center: [coords[0], coords[1]],
                         zoom: Math.max(map.getZoom(), 15.8),
-                        duration: 420
+                        duration: 420,
+                        easing: easeOutQuint
                       });
                     }
                     return;
@@ -1922,6 +2526,21 @@ function buildExplorerMapHtml(
             } catch (err) {}
           }
 
+          // 2. Chặn tuyệt đối thông tin các nước ngoài lãnh thổ Việt Nam khi người dùng chạm vào vùng phủ trắng "Đang phát triển"
+          if (styleReady && map.getLayer('shg-outside-vn-mask-fill')) {
+            try {
+              var outsideHits = map.queryRenderedFeatures(e.point, { layers: ['shg-outside-vn-mask-fill'] });
+              if (outsideHits && outsideHits.length > 0) {
+                postToHost({
+                  type: 'OUTSIDE_VN_CLICK',
+                  lat: e.lngLat.lat,
+                  lng: e.lngLat.lng
+                });
+                return;
+              }
+            } catch (err) {}
+          }
+
           var placeName = '';
           var placeCategory = '';
           try {
@@ -1946,12 +2565,16 @@ function buildExplorerMapHtml(
           });
         });
 
-        map.on('dragstart', function() {
+        function handleUserGestureInterrupt() {
+          stopSpringCameraFollow();
           if (isFollowingNav) {
             isFollowingNav = false;
             postToHost({ type: 'NAV_FOLLOW_CHANGED', following: false });
           }
-        });
+        }
+        map.on('dragstart', handleUserGestureInterrupt);
+        map.on('rotatestart', handleUserGestureInterrupt);
+        map.on('pitchstart', handleUserGestureInterrupt);
 
         window.__SHG_UPDATE__ = function(state) {
           if (!state) return;
@@ -2086,9 +2709,45 @@ function buildExplorerMapHtml(
               });
             }
           } else if (cmd.type === 'ZOOM_IN') {
-            map.zoomIn({ duration: 260 });
+            map.zoomIn({ duration: 220, easing: easeOutQuint });
           } else if (cmd.type === 'ZOOM_OUT') {
-            map.zoomOut({ duration: 260 });
+            map.zoomOut({ duration: 220, easing: easeOutQuint });
+          } else if (cmd.type === 'UPDATE_USER') {
+            var hasActiveRoute = Boolean(lastRouteData && Array.isArray(lastRouteData.coordinates) && lastRouteData.coordinates.length >= 2);
+            if (typeof cmd.followNav === 'boolean') {
+              isFollowingNav = hasActiveRoute && cmd.followNav;
+            }
+            if (typeof cmd.userHeading === 'number') {
+              lastKnownHeading = cmd.userHeading;
+            } else if (!hasActiveRoute) {
+              lastKnownHeading = null;
+            }
+            if (Array.isArray(cmd.userLocation) && cmd.userLocation.length === 2) {
+              lastKnownUser = cmd.userLocation;
+              ensureUserMarker(cmd.userLocation, lastKnownHeading, hasActiveRoute, Boolean(cmd.isSimulatingWalk));
+              syncRadiusLayer(cmd.userLocation, hasActiveRoute ? 0 : (cmd.searchRadiusMeters || 0), false);
+              if (hasActiveRoute && isFollowingNav) {
+                feedSpringCamera(
+                  cmd.userLocation,
+                  lastKnownHeading,
+                  true,
+                  Boolean(cmd.isSimulatingWalk)
+                );
+              } else {
+                stopSpringCameraFollow();
+                var latD = Math.abs(prevUserCenter[0] - cmd.userLocation[0]);
+                var lngD = Math.abs(prevUserCenter[1] - cmd.userLocation[1]);
+                if (latD > 0.012 || lngD > 0.012) {
+                  map.flyTo({
+                    center: [cmd.userLocation[1], cmd.userLocation[0]],
+                    zoom: 15.6,
+                    duration: 680,
+                    easing: easeOutQuint
+                  });
+                }
+              }
+              prevUserCenter = cmd.userLocation;
+            }
           } else if (cmd.type === 'SET_3D') {
             is3DEnabled = !!cmd.enabled;
             if (styleReady) {
@@ -2097,7 +2756,8 @@ function buildExplorerMapHtml(
             map.easeTo({
               pitch: is3DEnabled ? 50 : 0,
               bearing: is3DEnabled ? -14 : 0,
-              duration: 500
+              duration: 480,
+              easing: easeOutQuint
             });
           } else if (cmd.type === 'SET_LIGHT' && cmd.preset) {
             currentLightPreset = cmd.preset;
@@ -2105,11 +2765,14 @@ function buildExplorerMapHtml(
               applyMapboxOrOsmEnhancements(map, currentTile, is3DEnabled, currentLightPreset);
             }
             syncHcmcFocusLayer(isFocusHcmcOnly, false);
+            syncRouteLayer(lastRouteData, false);
           } else if (cmd.type === 'FIT_SCOPE') {
             isFollowingNav = false;
+            stopSpringCameraFollow();
             syncHcmcFocusLayer(Boolean(cmd.focusHcmcOnly), true);
           } else if (cmd.type === 'FLY_TO' && typeof cmd.lat === 'number' && typeof cmd.lng === 'number') {
-            map.flyTo({ center: [cmd.lng, cmd.lat], zoom: cmd.zoom || 16, duration: 650 });
+            stopSpringCameraFollow();
+            map.flyTo({ center: [cmd.lng, cmd.lat], zoom: cmd.zoom || 16, duration: 600, easing: easeOutQuint });
           } else if (cmd.type === 'RESIZE') {
             try { map.resize(); } catch (e) {}
           }
@@ -2176,25 +2839,49 @@ function buildExplorerMapHtml(
             maskLayer.clearLayers();
             map.setMaxBounds(enabled ? hcmcLeafletBounds : vnLeafletBounds);
             map.setMinZoom(enabled ? 8 : 5);
-            var activeRings = enabled ? HCMC_BOUNDARY_RINGS : VIETNAM_BOUNDARY_RINGS;
-            var outer = [[-8, 82], [36, 82], [36, 136], [-8, 136]];
-            var holes = activeRings.map(function(ring) {
+            var outer = [[-25, 60], [50, 60], [50, 160], [-25, 160]];
+            if (enabled) {
+              var hcmcHoles = HCMC_BOUNDARY_RINGS.map(function(ring) {
+                return ring.map(function(pt) { return [pt[1], pt[0]]; });
+              });
+              L.polygon([outer].concat(hcmcHoles), {
+                color: '#FFFFFF',
+                weight: 3,
+                opacity: 0.9,
+                fillColor: '#F3F0E9',
+                fillOpacity: 0.72,
+                interactive: false
+              }).addTo(maskLayer);
+              hcmcHoles.forEach(function(hole) {
+                L.polyline(hole, {
+                  color: '#B93815',
+                  weight: 1.8,
+                  opacity: 0.85,
+                  interactive: false
+                }).addTo(maskLayer);
+              });
+            }
+            var vnHoles = VIETNAM_BOUNDARY_RINGS.map(function(ring) {
               return ring.map(function(pt) { return [pt[1], pt[0]]; });
             });
-            L.polygon([outer].concat(holes), {
-              color: '#FFFFFF',
-              weight: 4,
-              opacity: 0.9,
-              fillColor: '#F3F0E9',
-              fillOpacity: 0.78,
+            L.polygon([outer].concat(vnHoles), {
+              color: '#B93815',
+              weight: 1.5,
+              opacity: 0.75,
+              fillColor: '#FFFFFF',
+              fillOpacity: 1.0,
               interactive: false
             }).addTo(maskLayer);
-            holes.forEach(function(hole) {
-              L.polyline(hole, {
-                color: '#B93815',
-                weight: 1.8,
-                opacity: 0.85,
-                interactive: false
+            OUTSIDE_VN_DEV_LABELS_GEOJSON.features.forEach(function(f) {
+              var c = f.geometry.coordinates;
+              L.marker([c[1], c[0]], {
+                interactive: false,
+                icon: L.divIcon({
+                  className: 'custom-heritage-marker',
+                  html: '<div style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:999px;background:#F7F6F2;border:1px solid #E2DFD7;color:#6B6860;font-size:11px;font-weight:700;white-space:nowrap;"><span style="width:6px;height:6px;border-radius:999px;background:#B93815;"></span>Đang phát triển</div>',
+                  iconSize: [124, 26],
+                  iconAnchor: [62, 13]
+                })
               }).addTo(maskLayer);
             });
             if (shouldAdjustCamera) {
@@ -2369,6 +3056,8 @@ export const MapExplorer: React.FC<MapExplorerProps> = React.memo(({
   visitedRecords,
   selectedLanguage,
   activeRoute,
+  travelMode = 'walking',
+  onChangeTravelMode,
   isRoutingLoading = false,
   activeWalkSeconds,
   isSimulatingWalk,
@@ -2406,7 +3095,14 @@ export const MapExplorer: React.FC<MapExplorerProps> = React.memo(({
     getDefaultMapStyle()
   );
   const [is3DView, setIs3DView] = useState<boolean>(true);
-  const [lightPreset, setLightPreset] = useState<MapboxLightPreset>('day');
+  const [autoLightByTime, setAutoLightByTime] = useState<boolean>(true);
+  const [lightPreset, setLightPreset] = useState<MapboxLightPreset>(() =>
+    getRealtimeLightPreset()
+  );
+  const [clockLabel, setClockLabel] = useState<string>(() => {
+    const now = new Date();
+    return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  });
   const [showRestaurantsOnMap, setShowRestaurantsOnMap] =
     useState<boolean>(true);
   const [showStyleMenu, setShowStyleMenu] = useState<boolean>(false);
@@ -2468,7 +3164,8 @@ export const MapExplorer: React.FC<MapExplorerProps> = React.memo(({
         userLocation,
         getTileConfig(getDefaultMapStyle(activeMapboxToken)),
         activeMapboxToken,
-        focusHcmcOnly
+        focusHcmcOnly,
+        getRealtimeLightPreset()
       ),
     // Keep static HTML shell per mapId so map never reloads on minor prop updates
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -2528,9 +3225,10 @@ export const MapExplorer: React.FC<MapExplorerProps> = React.memo(({
     return cfg;
   }, [mapStyle, isMapboxActive]);
 
-  const mapStatePayload = useMemo<MapStatePayload>(() => {
+  // Tách riêng danh sách 97 địa điểm + 250+ quán ăn để KHÔNG phải serialize lại 60KB JSON khi chỉ đổi GPS hoặc góc la bàn!
+  const serializedSites = useMemo<SerializedSiteMarker[]>(() => {
     const visitedIdSet = new Set(visitedRecords.map((r) => r.siteId));
-    const serializedSites: SerializedSiteMarker[] = sites.map((site, idx) => {
+    return sites.map((site, idx) => {
       const localName =
         (site.translations[selectedLanguage] || site.translations.vi).name;
       return {
@@ -2553,27 +3251,47 @@ export const MapExplorer: React.FC<MapExplorerProps> = React.memo(({
         })),
       };
     });
+  }, [sites, visitedRecords, selectedLanguage, selectedSiteId, focusedSite?.id]);
 
+  // Ref giữ trạng thái GPS/la bàn mới nhất cho full sync đầu tiên mà không ép re-build payload nặng
+  const liveUserStateRef = useRef({
+    userLocation,
+    userHeading: userHeading ?? null,
+    followNav: isFollowingNav,
+    isSimulatingWalk,
+    searchRadiusMeters,
+  });
+  liveUserStateRef.current = {
+    userLocation,
+    userHeading: userHeading ?? null,
+    followNav: isFollowingNav,
+    isSimulatingWalk,
+    searchRadiusMeters,
+  };
+
+  const mapStatePayload = useMemo<MapStatePayload>(() => {
+    const u = liveUserStateRef.current;
     return {
       tileConfig: currentTileConfig,
       is3D: is3DView,
       lightPreset,
       selectedLanguage,
-      userLocation,
-      userHeading: userHeading ?? null,
-      followNav: isFollowingNav,
-      isSimulatingWalk,
-      searchRadiusMeters,
+      userLocation: u.userLocation,
+      userHeading: u.userHeading,
+      followNav: u.followNav,
+      isSimulatingWalk: u.isSimulatingWalk,
+      searchRadiusMeters: u.searchRadiusMeters,
       focusHcmcOnly,
       sites: serializedSites,
       showRestaurants: showRestaurantsOnMap,
       route:
         activeRoute && activeRoute.coordinates.length > 0
           ? {
-              key: `${activeRoute.targetId}:${activeRoute.coordinates.length}:${Math.round(activeRoute.totalDistanceMeters)}`,
+              key: `${activeRoute.targetId}:${activeRoute.travelMode || travelMode}:${activeRoute.coordinates.length}:${Math.round(activeRoute.totalDistanceMeters)}`,
               coordinates: activeRoute.coordinates,
               destination: activeRoute.destination,
               targetName: activeRoute.targetName,
+              travelMode: activeRoute.travelMode || travelMode,
             }
           : null,
     };
@@ -2582,18 +3300,11 @@ export const MapExplorer: React.FC<MapExplorerProps> = React.memo(({
     is3DView,
     lightPreset,
     selectedLanguage,
-    userLocation,
-    userHeading,
-    isFollowingNav,
-    isSimulatingWalk,
-    searchRadiusMeters,
     focusHcmcOnly,
-    sites,
-    visitedRecords,
-    selectedSiteId,
-    focusedSite,
+    serializedSites,
     showRestaurantsOnMap,
     activeRoute,
+    travelMode,
   ]);
 
   const hasFlushedInitialRef = useRef<boolean>(false);
@@ -2606,6 +3317,31 @@ export const MapExplorer: React.FC<MapExplorerProps> = React.memo(({
     hasFlushedInitialRef.current = true;
     sendToMap({ type: 'UPDATE_STATE', payload: mapStatePayload });
   }, [isMapReady, isVisible, mapStatePayload, sendToMap]);
+
+  // Kênh siêu nhẹ (~120 bytes) chỉ cập nhật GPS/la bàn — hoàn toàn không gửi lại 97 di tích & 250 quán ăn qua bridge!
+  useEffect(() => {
+    if (!isMapReady || !isVisible) return;
+    sendToMap({
+      type: 'CMD',
+      command: {
+        type: 'UPDATE_USER',
+        userLocation,
+        userHeading: userHeading ?? null,
+        followNav: isFollowingNav,
+        isSimulatingWalk,
+        searchRadiusMeters,
+      },
+    });
+  }, [
+    isMapReady,
+    isVisible,
+    userLocation,
+    userHeading,
+    isFollowingNav,
+    isSimulatingWalk,
+    searchRadiusMeters,
+    sendToMap,
+  ]);
 
   // Ngay khi người dùng chuyển sang tab Bản đồ -> resize tức thì + đẩy dữ liệu mới nhất (0ms reload!)
   useEffect(() => {
@@ -2688,6 +3424,16 @@ export const MapExplorer: React.FC<MapExplorerProps> = React.memo(({
           }
           onMoveUserLocation(msg.lat, msg.lng);
           break;
+        case 'OUTSIDE_VN_CLICK':
+          setShowStyleMenu(false);
+          setFocusedSite(null);
+          setFocusedRestaurant(null);
+          setTappedPlace({
+            name: 'Khu vực ngoài Việt Nam · Đang phát triển',
+            lat: msg.lat,
+            lng: msg.lng,
+          });
+          break;
         case 'USER_DRAG':
           setTappedPlace(null);
           onMoveUserLocation(msg.lat, msg.lng);
@@ -2763,14 +3509,72 @@ export const MapExplorer: React.FC<MapExplorerProps> = React.memo(({
     });
   }, [sendToMap]);
 
-  const handleCycleLightPreset = useCallback(() => {
-    const order: MapboxLightPreset[] = ['day', 'dusk', 'night'];
-    setLightPreset((prev) => {
-      const next = order[(order.indexOf(prev) + 1) % order.length];
-      sendToMap({ type: 'CMD', command: { type: 'SET_LIGHT', preset: next } });
-      return next;
+  // Tự động đồng bộ ánh sáng bản đồ realtime theo giờ thực tế (mỗi 30s + khi mở lại app/tab)
+  useEffect(() => {
+    const syncClockAndLight = () => {
+      const now = new Date();
+      const nextClock = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+      setClockLabel((prev) => (prev === nextClock ? prev : nextClock));
+      if (!autoLightByTime) return;
+      const nextPreset = getRealtimeLightPreset(now);
+      setLightPreset((prev) => {
+        if (prev === nextPreset) return prev;
+        sendToMap({ type: 'CMD', command: { type: 'SET_LIGHT', preset: nextPreset } });
+        return nextPreset;
+      });
+    };
+
+    syncClockAndLight();
+    const timer = setInterval(syncClockAndLight, 30000);
+    const appStateSub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') syncClockAndLight();
     });
+
+    let cleanupVisibility: (() => void) | undefined;
+    if (Platform.OS === 'web' && typeof document !== 'undefined') {
+      const onVis = () => {
+        if (document.visibilityState === 'visible') syncClockAndLight();
+      };
+      document.addEventListener('visibilitychange', onVis);
+      cleanupVisibility = () => document.removeEventListener('visibilitychange', onVis);
+    }
+
+    return () => {
+      clearInterval(timer);
+      appStateSub.remove();
+      cleanupVisibility?.();
+    };
+  }, [autoLightByTime, sendToMap]);
+
+  const handleResumeRealtimeLight = useCallback(() => {
+    const realtime = getRealtimeLightPreset();
+    setAutoLightByTime(true);
+    setLightPreset(realtime);
+    sendToMap({ type: 'CMD', command: { type: 'SET_LIGHT', preset: realtime } });
   }, [sendToMap]);
+
+  const handleCycleLightPreset = useCallback(() => {
+    const order: MapboxLightPreset[] = ['dawn', 'day', 'dusk', 'night'];
+    if (autoLightByTime) {
+      // Đang ở chế độ tự động theo giờ -> chuyển sang xem trước khung giờ kế tiếp
+      setAutoLightByTime(false);
+      setLightPreset((prev) => {
+        const next = order[(order.indexOf(prev) + 1) % order.length];
+        sendToMap({ type: 'CMD', command: { type: 'SET_LIGHT', preset: next } });
+        return next;
+      });
+      return;
+    }
+    const realtime = getRealtimeLightPreset();
+    const nextIdx = (order.indexOf(lightPreset) + 1) % order.length;
+    const next = order[nextIdx];
+    if (next === realtime) {
+      // Khi quay vòng đúng khung giờ thực tế -> bật lại chế độ tự động realtime
+      setAutoLightByTime(true);
+    }
+    setLightPreset(next);
+    sendToMap({ type: 'CMD', command: { type: 'SET_LIGHT', preset: next } });
+  }, [autoLightByTime, lightPreset, sendToMap]);
 
   const handleOpenTokenModal = useCallback(() => {
     setShowStyleMenu(false);
@@ -2834,8 +3638,7 @@ export const MapExplorer: React.FC<MapExplorerProps> = React.memo(({
   const is3DCapable =
     currentTileConfig.renderMode === 'mapbox' ||
     currentTileConfig.renderMode === 'vector';
-  const showLightButton =
-    isMapboxActive && currentTileConfig.supportsLightPreset;
+  const showLightButton = Boolean(currentTileConfig.supportsLightPreset);
 
   return (
     <View style={styles.root}>
@@ -2868,6 +3671,8 @@ export const MapExplorer: React.FC<MapExplorerProps> = React.memo(({
               onMessage={handleWebViewMessage}
               javaScriptEnabled
               domStorageEnabled
+              cacheEnabled
+              androidLayerType="hardware"
               scrollEnabled={false}
               bounces={false}
               overScrollMode="never"
@@ -2883,62 +3688,101 @@ export const MapExplorer: React.FC<MapExplorerProps> = React.memo(({
         )}
       </View>
 
-      {/* Top-Left Region Scope Switcher (TP.HCM · sương mờ tỉnh lân cận vs Việt Nam) + Tapped Place Pill */}
+      {/* Top-Left Region Scope Switcher (TP.HCM · sương mờ tỉnh lân cận vs Việt Nam) + Realtime Clock Pill */}
       <View style={styles.topLeftPlaceWrap} pointerEvents="box-none">
         {!activeRoute && (
-          <View style={styles.scopeSegmentedPill}>
-            <TouchableOpacity
-              activeOpacity={0.82}
-              onPress={() => {
-                onToggleFocusHcmcOnly?.(true);
-                sendToMap({ type: 'CMD', command: { type: 'FIT_SCOPE', focusHcmcOnly: true } });
-              }}
-              style={[
-                styles.scopeSegBtn,
-                focusHcmcOnly && styles.scopeSegBtnActive,
-              ]}
-              accessibilityLabel="Chỉ hiển thị TP.HCM và làm mờ các tỉnh xung quanh"
-            >
-              <MapPin
-                size={12}
-                color={focusHcmcOnly ? COLORS.white : COLORS.inkMuted}
-                strokeWidth={2.4}
-              />
-              <Text
+          <View style={styles.topLeftRow} pointerEvents="box-none">
+            <View style={styles.scopeSegmentedPill}>
+              <TouchableOpacity
+                activeOpacity={0.82}
+                onPress={() => {
+                  onToggleFocusHcmcOnly?.(true);
+                  sendToMap({ type: 'CMD', command: { type: 'FIT_SCOPE', focusHcmcOnly: true } });
+                }}
                 style={[
-                  styles.scopeSegText,
-                  focusHcmcOnly && styles.scopeSegTextActive,
+                  styles.scopeSegBtn,
+                  focusHcmcOnly && styles.scopeSegBtnActive,
                 ]}
+                accessibilityLabel="Chỉ hiển thị TP.HCM và làm mờ các tỉnh xung quanh"
               >
-                TP.HCM
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              activeOpacity={0.82}
-              onPress={() => {
-                onToggleFocusHcmcOnly?.(false);
-                sendToMap({ type: 'CMD', command: { type: 'FIT_SCOPE', focusHcmcOnly: false } });
-              }}
-              style={[
-                styles.scopeSegBtn,
-                !focusHcmcOnly && styles.scopeSegBtnActive,
-              ]}
-              accessibilityLabel="Mở bản đồ toàn lãnh thổ Việt Nam"
-            >
-              <Globe
-                size={12}
-                color={!focusHcmcOnly ? COLORS.white : COLORS.inkMuted}
-                strokeWidth={2.2}
-              />
-              <Text
+                <MapPin
+                  size={12}
+                  color={focusHcmcOnly ? COLORS.white : COLORS.inkMuted}
+                  strokeWidth={2.4}
+                />
+                <Text
+                  style={[
+                    styles.scopeSegText,
+                    focusHcmcOnly && styles.scopeSegTextActive,
+                  ]}
+                >
+                  TP.HCM
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                activeOpacity={0.82}
+                onPress={() => {
+                  onToggleFocusHcmcOnly?.(false);
+                  sendToMap({ type: 'CMD', command: { type: 'FIT_SCOPE', focusHcmcOnly: false } });
+                }}
                 style={[
-                  styles.scopeSegText,
-                  !focusHcmcOnly && styles.scopeSegTextActive,
+                  styles.scopeSegBtn,
+                  !focusHcmcOnly && styles.scopeSegBtnActive,
                 ]}
+                accessibilityLabel="Mở bản đồ toàn lãnh thổ Việt Nam"
               >
-                Việt Nam
-              </Text>
-            </TouchableOpacity>
+                <Globe
+                  size={12}
+                  color={!focusHcmcOnly ? COLORS.white : COLORS.inkMuted}
+                  strokeWidth={2.2}
+                />
+                <Text
+                  style={[
+                    styles.scopeSegText,
+                    !focusHcmcOnly && styles.scopeSegTextActive,
+                  ]}
+                >
+                  Việt Nam
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {showLightButton && (
+              <TouchableOpacity
+                activeOpacity={0.82}
+                onPress={autoLightByTime ? handleCycleLightPreset : handleResumeRealtimeLight}
+                style={[
+                  styles.realtimeClockPill,
+                  lightPreset === 'night' && styles.realtimeClockPillNight,
+                ]}
+                accessibilityLabel={
+                  autoLightByTime
+                    ? `Ánh sáng realtime theo giờ ${clockLabel} (${getLightPresetLabel(lightPreset)}). Chạm để đổi thử khung giờ`
+                    : `Đang xem trước ${getLightPresetLabel(lightPreset)}. Chạm để quay về giờ thực tế`
+                }
+              >
+                {autoLightByTime && <View style={styles.realtimeClockDot} />}
+                {lightPreset === 'dawn' ? (
+                  <Sunrise size={12} color={COLORS.accent} />
+                ) : lightPreset === 'day' ? (
+                  <Sun size={12} color="#D97706" />
+                ) : lightPreset === 'dusk' ? (
+                  <Sunset size={12} color="#C2410C" />
+                ) : (
+                  <Moon size={11.5} color="#FDE68A" />
+                )}
+                <Text
+                  style={[
+                    styles.realtimeClockText,
+                    lightPreset === 'night' && styles.realtimeClockTextNight,
+                  ]}
+                >
+                  {autoLightByTime
+                    ? `${clockLabel} · ${getLightPresetLabel(lightPreset)}`
+                    : `${getLightPresetLabel(lightPreset)} · Tự động`}
+                </Text>
+              </TouchableOpacity>
+            )}
           </View>
         )}
 
@@ -3007,15 +3851,22 @@ export const MapExplorer: React.FC<MapExplorerProps> = React.memo(({
                 activeOpacity={0.8}
                 onPress={handleCycleLightPreset}
                 style={styles.dockBtn}
-                accessibilityLabel="Đổi ánh sáng Mapbox Standard 3D"
+                accessibilityLabel={
+                  autoLightByTime
+                    ? `Ánh sáng tự động theo giờ thực tế (${getLightPresetLabel(lightPreset)})`
+                    : `Đang chọn thủ công: ${getLightPresetLabel(lightPreset)}`
+                }
               >
-                {lightPreset === 'day' ? (
-                  <Sun size={16} color={COLORS.accent} />
+                {lightPreset === 'dawn' ? (
+                  <Sunrise size={16} color={COLORS.accent} />
+                ) : lightPreset === 'day' ? (
+                  <Sun size={16} color="#D97706" />
                 ) : lightPreset === 'dusk' ? (
-                  <Sunset size={16} color={COLORS.inkSecondary} />
+                  <Sunset size={16} color="#C2410C" />
                 ) : (
                   <Moon size={15} color={COLORS.ink} />
                 )}
+                {autoLightByTime && <View style={styles.realtimeLightDot} />}
               </TouchableOpacity>
             </>
           )}
@@ -3330,9 +4181,15 @@ export const MapExplorer: React.FC<MapExplorerProps> = React.memo(({
                 <View style={styles.navStatusLine}>
                   <Text style={styles.navStatusLabel}>Đang dẫn đường</Text>
                   <View style={styles.timerBadge}>
-                    <Footprints size={11} color={COLORS.ink} />
+                    {(activeRoute.travelMode || travelMode) === 'walking' ? (
+                      <Footprints size={11} color={COLORS.ink} />
+                    ) : (activeRoute.travelMode || travelMode) === 'motorbike' ? (
+                      <Bike size={11} color={COLORS.ink} />
+                    ) : (
+                      <Car size={11} color={COLORS.ink} />
+                    )}
                     <Text style={styles.timerText}>
-                      Đã đi: {formatWalkingDuration(activeWalkSeconds)}
+                      Đã đi: {formatTravelDuration(activeWalkSeconds, activeRoute.travelMode || travelMode)}
                     </Text>
                   </View>
                 </View>
@@ -3343,7 +4200,10 @@ export const MapExplorer: React.FC<MapExplorerProps> = React.memo(({
 
                 <Text style={styles.navSubMetrics}>
                   {formatDistance(activeRoute.totalDistanceMeters)} · ~
-                  {formatWalkingDuration(activeRoute.estimatedDurationSeconds)}
+                  {formatTravelDuration(
+                    activeRoute.estimatedDurationSeconds,
+                    activeRoute.travelMode || travelMode
+                  )}
                 </Text>
               </View>
 
@@ -3357,6 +4217,43 @@ export const MapExplorer: React.FC<MapExplorerProps> = React.memo(({
               </TouchableOpacity>
             </View>
 
+            {/* Bộ chọn Phương tiện 1 chạm: Đi bộ · Xe máy · Ô tô */}
+            {onChangeTravelMode && (
+              <View style={styles.travelModeStrip}>
+                {TRAVEL_MODE_OPTIONS.map((opt) => {
+                  const active = (activeRoute.travelMode || travelMode) === opt.id;
+                  const iconColor = active ? COLORS.white : COLORS.inkSecondary;
+                  return (
+                    <TouchableOpacity
+                      key={opt.id}
+                      activeOpacity={0.82}
+                      onPress={() => onChangeTravelMode(opt.id)}
+                      style={[
+                        styles.travelModeChip,
+                        active && styles.travelModeChipActive,
+                      ]}
+                    >
+                      {opt.id === 'walking' ? (
+                        <Footprints size={12} color={iconColor} />
+                      ) : opt.id === 'motorbike' ? (
+                        <Bike size={12} color={iconColor} />
+                      ) : (
+                        <Car size={12} color={iconColor} />
+                      )}
+                      <Text
+                        style={[
+                          styles.travelModeChipText,
+                          active && styles.travelModeChipTextActive,
+                        ]}
+                      >
+                        {opt.shortLabel}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            )}
+
             <View style={styles.navActionsRow}>
               <TouchableOpacity
                 activeOpacity={0.82}
@@ -3369,7 +4266,13 @@ export const MapExplorer: React.FC<MapExplorerProps> = React.memo(({
               >
                 <Play size={13} color={COLORS.ink} fill={COLORS.ink} />
                 <Text style={styles.navSecondaryBtnText} numberOfLines={1}>
-                  {isSimulatingWalk ? 'Đang đi bộ…' : 'Mô phỏng đi bộ'}
+                  {isSimulatingWalk
+                    ? 'Đang di chuyển…'
+                    : (activeRoute.travelMode || travelMode) === 'walking'
+                      ? 'Mô phỏng đi bộ'
+                      : (activeRoute.travelMode || travelMode) === 'motorbike'
+                        ? 'Mô phỏng xe máy'
+                        : 'Mô phỏng ô tô'}
                 </Text>
               </TouchableOpacity>
 
@@ -3663,6 +4566,58 @@ const styles = StyleSheet.create({
     height: 38,
     alignItems: 'center',
     justifyContent: 'center',
+    position: 'relative',
+  },
+  realtimeLightDot: {
+    position: 'absolute',
+    top: 7,
+    right: 7,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#10B981',
+    borderWidth: 1,
+    borderColor: '#FAF9F6',
+  },
+  topLeftRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  realtimeClockPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: 'rgba(250, 249, 246, 0.92)',
+    borderWidth: 1,
+    borderColor: 'rgba(20, 20, 19, 0.09)',
+    ...(Platform.OS === 'web'
+      ? ({ backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)' } as object)
+      : {}),
+    ...SHADOWS.floating,
+  },
+  realtimeClockPillNight: {
+    backgroundColor: 'rgba(18, 23, 34, 0.88)',
+    borderColor: 'rgba(253, 230, 138, 0.24)',
+  },
+  realtimeClockDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#10B981',
+  },
+  realtimeClockText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: COLORS.ink,
+    letterSpacing: -0.1,
+  },
+  realtimeClockTextNight: {
+    color: '#FAF9F6',
   },
   dockBtnActive: {
     backgroundColor: COLORS.ink,
@@ -4023,7 +4978,9 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surface,
     borderRadius: RADII.xl,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: '#BFDBFE',
+    borderTopWidth: 3,
+    borderTopColor: COLORS.gpsBlue,
     padding: SPACING.md,
     ...SHADOWS.floating,
   },
@@ -4077,9 +5034,11 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   navSubMetrics: {
-    fontSize: 12,
-    color: COLORS.inkSecondary,
-    marginTop: 1,
+    fontSize: 12.5,
+    fontWeight: '700',
+    color: '#1D4ED8',
+    marginTop: 2,
+    fontVariant: ['tabular-nums'],
   },
   cancelNavBtn: {
     width: 32,
@@ -4122,7 +5081,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 5,
-    backgroundColor: COLORS.ink,
+    backgroundColor: '#2563EB',
     borderRadius: RADII.md,
     paddingVertical: 9,
     paddingHorizontal: 10,
@@ -4153,10 +5112,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: SPACING.sm,
-    backgroundColor: COLORS.bg,
+    backgroundColor: '#EFF6FF',
     borderRadius: RADII.md,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: '#BFDBFE',
     paddingHorizontal: 10,
     paddingVertical: 7,
   },
@@ -4315,6 +5274,37 @@ const styles = StyleSheet.create({
     fontSize: 12.5,
     fontWeight: '700',
     color: COLORS.white,
+  },
+  travelModeStrip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 8,
+  },
+  travelModeChip: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+    height: 30,
+    borderRadius: RADII.pill,
+    backgroundColor: COLORS.bg,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  travelModeChipActive: {
+    backgroundColor: '#2563EB',
+    borderColor: '#1D4ED8',
+  },
+  travelModeChipText: {
+    fontSize: 11.5,
+    fontWeight: '600',
+    color: COLORS.inkSecondary,
+  },
+  travelModeChipTextActive: {
+    color: COLORS.white,
+    fontWeight: '700',
   },
 });
 

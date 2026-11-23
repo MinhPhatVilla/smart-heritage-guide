@@ -13,6 +13,8 @@ import { HeritageSite, NearbyRestaurant } from '../types/heritage';
 import {
   MAPBOX_TOKEN_STORAGE_KEY,
   MapTileConfig,
+  MapboxLightPreset,
+  getRealtimeLightPreset,
   getTileConfig,
   isValidMapboxPublicToken,
   resolveMapboxAccessToken,
@@ -59,7 +61,8 @@ function buildMiniMapHtml(
   center: [number, number],
   primaryTile: MapTileConfig,
   fallbackTile: MapTileConfig,
-  mapboxToken: string
+  mapboxToken: string,
+  initialLightPreset: MapboxLightPreset
 ): string {
   const useMapbox = Boolean(mapboxToken);
   const safeMapId = JSON.stringify(mapId);
@@ -67,6 +70,8 @@ function buildMiniMapHtml(
   const safePrimary = JSON.stringify(primaryTile);
   const safeFallback = JSON.stringify(fallbackTile);
   const safeToken = JSON.stringify(mapboxToken);
+  const safeLightPreset = JSON.stringify(initialLightPreset);
+  const initialBg = initialLightPreset === 'night' ? '#0E121B' : '#F4F2EC';
 
   const glCss = useMapbox
     ? 'https://api.mapbox.com/mapbox-gl-js/v3.10.0/mapbox-gl.css'
@@ -88,12 +93,12 @@ function buildMiniMapHtml(
       padding: 0;
       width: 100%;
       height: 100%;
-      background: #F4F2EC;
+      background: ${initialBg};
       overflow: hidden;
       font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
     }
     .mapboxgl-map, .maplibregl-map, .leaflet-container {
-      background: #F4F2EC;
+      background: ${initialBg};
       font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
     }
     .mapboxgl-ctrl-attrib, .maplibregl-ctrl-attrib {
@@ -118,6 +123,7 @@ function buildMiniMapHtml(
       var INITIAL_CENTER = ${safeCenter};
       var PRIMARY_TILE = ${safePrimary};
       var FALLBACK_TILE = ${safeFallback};
+      var INITIAL_LIGHT_PRESET = ${safeLightPreset};
       var MAPBOX_TOKEN = ${safeToken};
       var USE_MAPBOX = Boolean(MAPBOX_TOKEN);
 
@@ -166,24 +172,27 @@ function buildMiniMapHtml(
       }
 
       function applyStylePolish(map) {
+        var isNight = INITIAL_LIGHT_PRESET === 'night';
+        var isDusk = INITIAL_LIGHT_PRESET === 'dusk';
+        var isDawn = INITIAL_LIGHT_PRESET === 'dawn';
         if (USE_MAPBOX) {
           var setCfg = function(k, v) { try { map.setConfigProperty('basemap', k, v); } catch (e) {} };
           setCfg('theme', 'faded');
-          setCfg('lightPreset', 'day');
-          setCfg('colorMotorways', '#E8E3D9');
-          setCfg('colorTrunks', '#EFECE4');
-          setCfg('colorRoads', '#FFFFFF');
+          setCfg('lightPreset', INITIAL_LIGHT_PRESET || 'day');
+          setCfg('colorMotorways', isNight ? '#333B4C' : (isDusk ? '#D8CEC0' : (isDawn ? '#ECE2D6' : '#E8E3D9')));
+          setCfg('colorTrunks', isNight ? '#2B3242' : (isDusk ? '#E2D9CC' : (isDawn ? '#F3EAE0' : '#EFECE4')));
+          setCfg('colorRoads', isNight ? '#222836' : (isDusk ? '#F2ECE2' : (isDawn ? '#FFFBF5' : '#FFFFFF')));
           setCfg('show3dObjects', true);
           return;
         }
         var setPaint = function(id, prop, val) {
           try { if (map.getLayer(id)) map.setPaintProperty(id, prop, val); } catch (e) {}
         };
-        setPaint('background', 'background-color', '#F6F4EF');
-        setPaint('water', 'fill-color', '#D2E2EE');
-        setPaint('park', 'fill-color', '#DCE7D4');
-        setPaint('building', 'fill-color', '#EBE7DF');
-        setPaint('building-3d', 'fill-extrusion-color', '#E0DBD1');
+        setPaint('background', 'background-color', isNight ? '#131823' : (isDusk ? '#EDE4D8' : (isDawn ? '#F6EFE8' : '#F6F4EF')));
+        setPaint('water', 'fill-color', isNight ? '#0B1320' : (isDusk ? '#A9C2D6' : '#D2E2EE'));
+        setPaint('park', 'fill-color', isNight ? '#16241E' : (isDusk ? '#C4D2BC' : '#DCE7D4'));
+        setPaint('building', 'fill-color', isNight ? '#1B2231' : (isDusk ? '#DFD6C9' : '#EBE7DF'));
+        setPaint('building-3d', 'fill-extrusion-color', isNight ? '#263147' : (isDusk ? '#D2C7B8' : '#E0DBD1'));
         setPaint('building-3d', 'fill-extrusion-opacity', 0.88);
         var style = map.getStyle();
         if (style && Array.isArray(style.layers)) {
@@ -194,7 +203,10 @@ function buildMiniMapHtml(
             if (lower.indexOf('road') === -1 && lower.indexOf('bridge') === -1 && lower.indexOf('tunnel') === -1) continue;
             var isCase = lower.indexOf('case') !== -1 || lower.indexOf('casing') !== -1;
             var isMajor = lower.indexOf('motorway') !== -1 || lower.indexOf('trunk') !== -1 || lower.indexOf('primary') !== -1;
-            setPaint(lyr.id, 'line-color', isCase ? '#D6D0C4' : (isMajor ? '#F1EEE7' : '#FFFFFF'));
+            var roadColor = isNight
+              ? (isCase ? '#182030' : (isMajor ? '#334057' : '#253043'))
+              : (isDusk ? (isCase ? '#C9BFAF' : (isMajor ? '#E2D8CA' : '#F2EBE0')) : (isCase ? '#D6D0C4' : (isMajor ? '#F1EEE7' : '#FFFFFF')));
+            setPaint(lyr.id, 'line-color', roadColor);
           }
         }
       }
@@ -508,7 +520,8 @@ export const SiteMiniMap: React.FC<SiteMiniMapProps> = ({
         [site.lat, site.lng],
         getTileConfig(activeToken ? 'mapbox_standard' : 'osm_3d'),
         getTileConfig('osm_hot'),
-        activeToken
+        activeToken,
+        getRealtimeLightPreset()
       ),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [mapId]

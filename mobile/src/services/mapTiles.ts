@@ -23,7 +23,35 @@ export type MapEngine = 'mapbox' | 'maplibre';
 
 export type MapRenderMode = 'mapbox' | 'vector' | 'raster' | 'hybrid';
 
-export type MapboxLightPreset = 'day' | 'dusk' | 'night';
+export type MapboxLightPreset = 'dawn' | 'day' | 'dusk' | 'night';
+
+/**
+ * Tự động xác định ánh sáng bản đồ theo thời gian thực (giờ địa phương của thiết bị):
+ * - 05:00 – 06:59: Bình minh (`dawn`)
+ * - 07:00 – 16:59: Ban ngày (`day`)
+ * - 17:00 – 18:59: Hoàng hôn (`dusk`)
+ * - 19:00 – 04:59: Ban đêm (`night`)
+ */
+export function getRealtimeLightPreset(date: Date = new Date()): MapboxLightPreset {
+  const hour = date.getHours();
+  if (hour >= 5 && hour < 7) return 'dawn';
+  if (hour >= 7 && hour < 17) return 'day';
+  if (hour >= 17 && hour < 19) return 'dusk';
+  return 'night';
+}
+
+export function getLightPresetLabel(preset: MapboxLightPreset): string {
+  switch (preset) {
+    case 'dawn':
+      return 'Bình minh';
+    case 'day':
+      return 'Ban ngày';
+    case 'dusk':
+      return 'Hoàng hôn';
+    case 'night':
+      return 'Ban đêm';
+  }
+}
 
 export interface MapTileConfig {
   id: BaseMapStyle;
@@ -140,6 +168,7 @@ export function getMapTileStyles(): Record<BaseMapStyle, MapTileConfig> {
       label: 'OSM Chi tiết 3D',
       engine: 'maplibre',
       renderMode: 'vector',
+      supportsLightPreset: true,
       vectorStyleUrl: 'https://tiles.openfreemap.org/styles/liberty',
       googleLikePalette: true,
       url: OSM_HOT_URL,

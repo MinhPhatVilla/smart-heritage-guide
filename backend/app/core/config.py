@@ -61,6 +61,13 @@ class Settings(BaseSettings):
     LOCAL_UPLOAD_DIR: str = "uploads"
     PUBLIC_BASE_URL: str = "http://localhost:8000"
 
+    # Dual-Engine TTS (Zero-Disk RAM Streaming + Open-Source Offline Piper/sherpa-onnx)
+    TTS_DEFAULT_PROVIDER: str = "auto"  # auto | neural | offline
+    TTS_MODELS_DIR: str = "models/tts"
+    TTS_RAM_CACHE_MAX_ITEMS: int = 64
+    TTS_AUTO_DOWNLOAD_OFFLINE: bool = True
+    TTS_PRELOAD_OFFLINE_LANGS: str = "vi"
+
     # Seed default accounts
     DEFAULT_ADMIN_EMAIL: str = "admin@smartheritage.vn"
     DEFAULT_ADMIN_PASSWORD: str = "AdminHeritage@2026"
@@ -136,6 +143,13 @@ class Settings(BaseSettings):
     @property
     def upload_dir_path(self) -> Path:
         p = Path(self.LOCAL_UPLOAD_DIR)
+        if not p.is_absolute():
+            p = BACKEND_ROOT / p
+        return p
+
+    @property
+    def tts_models_dir_path(self) -> Path:
+        p = Path(self.TTS_MODELS_DIR)
         if not p.is_absolute():
             p = BACKEND_ROOT / p
         return p

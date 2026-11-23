@@ -14,5 +14,6 @@ services:
       PUBLIC_BASE_URL: http://localhost:8000
     volumes:
       - ./uploads:/app/uploads
+      - ./models:/app/models
       - ./local_dev.db:/app/local_dev.db
     restart: unless-stopped

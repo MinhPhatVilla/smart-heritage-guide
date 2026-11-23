@@ -34,7 +34,7 @@ export interface SpeechCallbacks {
   onStateChange?: (state: SpeechPlayState) => void;
   onEngineChange?: (engine: SpeechEngineMode, voiceLabel?: string) => void;
   onLoadingChange?: (loading: boolean) => void;
-  /** Tiến độ đọc thời gian thực trong đoạn hiện tại (0..1) kèm giây hiện tại & tổng giây ước tính */
+  /** Tiến độ đọc thời gian thực trong đoạn hiện tại (0..1) kèm giây hiện tại & tổng giây */
   onProgress?: (
     segmentProgress: number,
     currentSeconds: number,
@@ -46,6 +46,17 @@ export interface SpeechCallbacks {
   onError?: (errorMessage: string) => void;
 }
 
+interface SegmentBound {
+  startRatio: number;
+  endRatio: number;
+}
+
+interface ContinuousScriptBundle {
+  fullText: string;
+  normalizedSegments: string[];
+  bounds: SegmentBound[];
+}
+
 interface WebAudioLike {
   src: string;
   currentTime: number;
@@ -55,10 +66,44 @@ interface WebAudioLike {
   mozPreservesPitch?: boolean;
   webkitPreservesPitch?: boolean;
   ontimeupdate: (() => void) | null;
+  onloadedmetadata?: (() => void) | null;
   onended: (() => void) | null;
   onerror: (() => void) | null;
   play: () => Promise<void>;
   pause: () => void;
+}
+
+const MAX_CONTINUOUS_TTS_CHARS = 3800;
+const NEURAL_FETCH_TIMEOUT_MS = 5500;
+const NEURAL_COOLDOWN_MS = 45_000;
+
+function buildContinuousScript(
+  segments: string[],
+  lang: SupportedLanguage
+): ContinuousScriptBundle {
+  const normalizedSegments = segments.map((raw) => {
+    const clean = preprocessTextForSpeech(raw, lang) || (raw || '').trim();
+    if (!clean) return '';
+    return /[.!?。！？]$/.test(clean) ? clean : `${clean}.`;
+  });
+
+  const weights = normalizedSegments.map((s) => Math.max(16, s.length));
+  const totalWeight = weights.reduce((sum, w) => sum + w, 0) || 1;
+  let cursor = 0;
+  const bounds: SegmentBound[] = weights.map((w) => {
+    const startRatio = cursor / totalWeight;
+    cursor += w;
+    const endRatio = cursor / totalWeight;
+    return { startRatio, endRatio };
+  });
+
+  const fullText = normalizedSegments
+    .filter(Boolean)
+    .join(' ')
+    .slice(0, MAX_CONTINUOUS_TTS_CHARS)
+    .trim();
+
+  return { fullText, normalizedSegments, bounds };
 }
 
 class MultiLingualSpeechService {
@@ -66,6 +111,8 @@ class MultiLingualSpeechService {
   private progressTimer: ReturnType<typeof setInterval> | null = null;
   private activeFetchAbort: AbortController | null = null;
   private currentSegments: string[] = [];
+  private currentBundle: ContinuousScriptBundle | null = null;
+  private isContinuousMode = false;
   private currentIndex = 0;
   private currentLang: SupportedLanguage = 'vi';
   private currentRate = 1.0;
@@ -82,6 +129,7 @@ class MultiLingualSpeechService {
   private nativeSubscription: { remove: () => void } | null = null;
   private webBlobCache = new Map<string, string>();
   private webBlobFetchInflight = new Map<string, Promise<string | null>>();
+  private nativeWarmupKeys = new Set<string>();
   private neuralDisabledUntil = 0;
   private audioModeConfigured = false;
 
@@ -121,12 +169,17 @@ class MultiLingualSpeechService {
       }
       const elapsedSec = (Date.now() - startedAt) / 1000;
       const ratio = Math.min(0.97, elapsedSec / estDurationSec);
-      this.callbacks.onProgress?.(ratio, Math.min(elapsedSec, estDurationSec), estDurationSec);
+      this.callbacks.onProgress?.(
+        ratio,
+        Math.min(elapsedSec, estDurationSec),
+        estDurationSec
+      );
     }, 180);
   }
 
   private cleanupAudioPlayers(): void {
     this.clearProgressTimer();
+    this.isContinuousMode = false;
     if (this.activeFetchAbort) {
       try {
         this.activeFetchAbort.abort();
@@ -138,12 +191,13 @@ class MultiLingualSpeechService {
     if (this.webAudio) {
       try {
         this.webAudio.ontimeupdate = null;
+        this.webAudio.onloadedmetadata = null;
         this.webAudio.onended = null;
         this.webAudio.onerror = null;
         this.webAudio.pause();
         this.webAudio.src = '';
       } catch {
-        // Bỏ qua lỗi cleanup trình duyệt
+        // Ignore browser cleanup error
       }
       this.webAudio = null;
     }
@@ -151,7 +205,7 @@ class MultiLingualSpeechService {
       try {
         this.nativeSubscription.remove();
       } catch {
-        // Bỏ qua
+        // Ignore
       }
       this.nativeSubscription = null;
     }
@@ -160,7 +214,7 @@ class MultiLingualSpeechService {
         this.nativePlayer.pause();
         this.nativePlayer.remove();
       } catch {
-        // Bỏ qua
+        // Ignore
       }
       this.nativePlayer = null;
     }
@@ -188,6 +242,27 @@ class MultiLingualSpeechService {
   private notifyEnd(): void {
     this.callbacks.onEnd?.();
     this.callbacks.onComplete?.();
+  }
+
+  private syncContinuousProgress(curSec: number, durSec: number): void {
+    if (!this.currentBundle || durSec <= 0) return;
+    const overallRatio = Math.max(0, Math.min(1, curSec / durSec));
+    const bounds = this.currentBundle.bounds;
+    let idx = bounds.length - 1;
+    for (let i = 0; i < bounds.length; i += 1) {
+      if (overallRatio <= bounds[i].endRatio || i === bounds.length - 1) {
+        idx = i;
+        break;
+      }
+    }
+    if (idx !== this.currentIndex) {
+      this.currentIndex = idx;
+      this.notifySegmentChange(idx);
+    }
+    const b = bounds[idx];
+    const span = Math.max(0.001, b.endRatio - b.startRatio);
+    const segRatio = Math.max(0, Math.min(1, (overallRatio - b.startRatio) / span));
+    this.callbacks.onProgress?.(segRatio, curSec, durSec);
   }
 
   public async getAvailableVoices(): Promise<Speech.Voice[]> {
@@ -224,6 +299,50 @@ class MultiLingualSpeechService {
     return { identifier: best.identifier, name: best.name };
   }
 
+  /**
+   * Tiền tải (Pre-warm) toàn bộ bài thuyết minh liên mạch ngay khi mở chi tiết di tích
+   * để khi người dùng bấm "Nghe thuyết minh" âm thanh phát gần như tức thì (<50ms) và không bị ngắt đoạn!
+   */
+  public prefetchScript(
+    segments: string[],
+    lang: SupportedLanguage,
+    gender: SpeechVoiceGender = this.voiceGender
+  ): void {
+    if (!segments.length || !shouldTryBackendProxy() || Date.now() < this.neuralDisabledUntil) {
+      return;
+    }
+    const bundle = buildContinuousScript(segments, lang);
+    if (!bundle.fullText) return;
+
+    if (Platform.OS === 'web') {
+      void this.fetchWebNeuralBlobUrl(bundle.fullText, lang, gender, true);
+      return;
+    }
+
+    // Native: kích hoạt warm RAM LRU cache trên Backend để expo-audio tải về tức thì khi bấm Play
+    const key = this.makeCacheKey(bundle.fullText, lang, gender);
+    if (this.nativeWarmupKeys.has(key)) return;
+    this.nativeWarmupKeys.add(key);
+    const controller = new AbortController();
+    const tid = setTimeout(() => controller.abort(), NEURAL_FETCH_TIMEOUT_MS);
+    void fetch(`${getApiBaseUrl()}/api/v1/ai/tts`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        text: bundle.fullText,
+        language: lang,
+        voice_gender: gender,
+      }),
+      signal: controller.signal,
+    })
+      .catch(() => {
+        this.nativeWarmupKeys.delete(key);
+      })
+      .finally(() => {
+        clearTimeout(tid);
+      });
+  }
+
   public speakScript(
     segments: string[],
     lang: SupportedLanguage,
@@ -235,6 +354,7 @@ class MultiLingualSpeechService {
     this.stopInternal(false);
     if (!segments.length) {
       this.currentSegments = [];
+      this.currentBundle = null;
       this.currentIndex = 0;
       this.notifyStateChange('idle');
       return;
@@ -246,11 +366,12 @@ class MultiLingualSpeechService {
     if (voiceGender) {
       this.voiceGender = voiceGender;
     }
+    this.currentBundle = buildContinuousScript(this.currentSegments, this.currentLang);
     this.currentIndex = Math.max(0, Math.min(startIndex, segments.length - 1));
     this.callbacks = callbacks;
 
     this.notifyStateChange('playing');
-    void this.speakCurrentSegment();
+    void this.startPlaybackPipeline(this.currentIndex);
   }
 
   private clampRate(rate: number): number {
@@ -274,7 +395,8 @@ class MultiLingualSpeechService {
   private async fetchWebNeuralBlobUrl(
     text: string,
     lang: SupportedLanguage,
-    gender: SpeechVoiceGender
+    gender: SpeechVoiceGender,
+    isPrefetch = false
   ): Promise<string | null> {
     if (!shouldTryBackendProxy() || Date.now() < this.neuralDisabledUntil) {
       return null;
@@ -288,8 +410,10 @@ class MultiLingualSpeechService {
 
     const promise = (async (): Promise<string | null> => {
       const controller = new AbortController();
-      this.activeFetchAbort = controller;
-      const timeoutId = setTimeout(() => controller.abort(), 7000);
+      if (!isPrefetch) {
+        this.activeFetchAbort = controller;
+      }
+      const timeoutId = setTimeout(() => controller.abort(), NEURAL_FETCH_TIMEOUT_MS);
       try {
         const res = await fetch(`${getApiBaseUrl()}/api/v1/ai/tts`, {
           method: 'POST',
@@ -303,21 +427,23 @@ class MultiLingualSpeechService {
         });
         if (!res.ok) {
           if (res.status >= 500 || res.status === 404) {
-            this.neuralDisabledUntil = Date.now() + 20_000;
+            this.neuralDisabledUntil = Date.now() + NEURAL_COOLDOWN_MS;
           }
           return null;
         }
         const blob = await res.blob();
         if (!blob || blob.size < 256) return null;
-        const urlCreator = (globalThis as unknown as { URL?: { createObjectURL?: (b: Blob) => string } }).URL;
+        const urlCreator = (
+          globalThis as unknown as { URL?: { createObjectURL?: (b: Blob) => string } }
+        ).URL;
         if (!urlCreator?.createObjectURL) return null;
         const blobUrl = urlCreator.createObjectURL(blob);
         this.webBlobCache.set(key, blobUrl);
         return blobUrl;
       } catch {
-        if (!controller.signal.aborted) {
-          // Backend offline -> tạm dừng thử Neural TTS 20s để tránh delay mỗi đoạn
-          this.neuralDisabledUntil = Date.now() + 20_000;
+        if (!isPrefetch) {
+          // Backend offline hoặc chậm -> tạm bỏ qua Neural TTS 45s để chuyển giọng thiết bị ngay lập tức
+          this.neuralDisabledUntil = Date.now() + NEURAL_COOLDOWN_MS;
         }
         return null;
       } finally {
@@ -333,26 +459,24 @@ class MultiLingualSpeechService {
     return promise;
   }
 
-  private prefetchNextWebSegment(nextIndex: number): void {
-    if (Platform.OS !== 'web') return;
-    if (nextIndex >= this.currentSegments.length) return;
-    const nextText = preprocessTextForSpeech(
-      this.currentSegments[nextIndex],
-      this.currentLang
-    );
-    if (!nextText) return;
-    void this.fetchWebNeuralBlobUrl(nextText, this.currentLang, this.voiceGender);
-  }
-
-  private async tryPlayNeuralAudio(
-    normalizedText: string,
-    token: number,
-    onDone: () => void
+  /**
+   * Ưu tiên 1: Phát 1 luồng AI Neural liên mạch duy nhất cho toàn bộ bài thuyết minh.
+   * Không ngắt quãng giữa các đoạn, seek tức thì 0ms khi bấm chọn đoạn bất kỳ!
+   */
+  private async tryPlayContinuousNeuralAudio(
+    bundle: ContinuousScriptBundle,
+    startIndex: number,
+    token: number
   ): Promise<boolean> {
-    if (!shouldTryBackendProxy() || Date.now() < this.neuralDisabledUntil) {
+    if (
+      !bundle.fullText ||
+      !shouldTryBackendProxy() ||
+      Date.now() < this.neuralDisabledUntil
+    ) {
       return false;
     }
 
+    const startRatio = bundle.bounds[startIndex]?.startRatio ?? 0;
     const voiceLabel =
       this.currentLang === 'vi'
         ? this.voiceGender === 'female'
@@ -360,16 +484,27 @@ class MultiLingualSpeechService {
           : 'AI · Nam Minh'
         : `AI Neural (${this.currentLang.toUpperCase()})`;
 
-    // 1. Web: HTML5 Audio + Blob cache + Prefetch đoạn kế tiếp
+    // 1. Web: HTML5 Audio + Blob Cache 1 file liên mạch
     if (Platform.OS === 'web') {
-      const AudioCtor = (globalThis as unknown as { Audio?: new (src?: string) => WebAudioLike }).Audio;
+      const AudioCtor = (
+        globalThis as unknown as { Audio?: new (src?: string) => WebAudioLike }
+      ).Audio;
       if (!AudioCtor) return false;
 
-      this.callbacks.onLoadingChange?.(true);
-      const blobUrl = await this.fetchWebNeuralBlobUrl(
-        normalizedText,
+      const cacheKey = this.makeCacheKey(
+        bundle.fullText,
         this.currentLang,
         this.voiceGender
+      );
+      const isAlreadyCached = this.webBlobCache.has(cacheKey);
+      if (!isAlreadyCached) {
+        this.callbacks.onLoadingChange?.(true);
+      }
+      const blobUrl = await this.fetchWebNeuralBlobUrl(
+        bundle.fullText,
+        this.currentLang,
+        this.voiceGender,
+        false
       );
       this.callbacks.onLoadingChange?.(false);
 
@@ -385,26 +520,59 @@ class MultiLingualSpeechService {
           audio.mozPreservesPitch = true;
           audio.webkitPreservesPitch = true;
           this.webAudio = audio;
+          this.isContinuousMode = true;
 
           let resolved = false;
-          const emitWebProgress = () => {
-            if (token !== this.playbackId || this.state !== 'playing') return;
-            const dur = Number.isFinite(audio.duration) && audio.duration > 0 ? audio.duration : 0;
-            const cur = Number.isFinite(audio.currentTime) ? audio.currentTime : 0;
-            if (dur > 0) {
-              this.callbacks.onProgress?.(Math.min(1, cur / dur), cur, dur);
+          let appliedInitialSeek = startRatio <= 0.005;
+
+          const applySeekIfReady = () => {
+            if (
+              !appliedInitialSeek &&
+              Number.isFinite(audio.duration) &&
+              audio.duration > 0
+            ) {
+              appliedInitialSeek = true;
+              try {
+                audio.currentTime = Math.min(
+                  Math.max(0, startRatio * audio.duration),
+                  Math.max(0, audio.duration - 0.25)
+                );
+              } catch {
+                // Ignore seek error
+              }
             }
           };
+
+          const emitWebProgress = () => {
+            if (token !== this.playbackId || this.state !== 'playing') return;
+            applySeekIfReady();
+            const dur =
+              Number.isFinite(audio.duration) && audio.duration > 0
+                ? audio.duration
+                : 0;
+            const cur = Number.isFinite(audio.currentTime) ? audio.currentTime : 0;
+            if (dur > 0) {
+              this.syncContinuousProgress(cur, dur);
+            }
+          };
+
+          audio.onloadedmetadata = applySeekIfReady;
           audio.ontimeupdate = emitWebProgress;
           audio.onended = () => {
             this.clearProgressTimer();
             if (token !== this.playbackId || this.state !== 'playing') return;
-            const dur = Number.isFinite(audio.duration) && audio.duration > 0 ? audio.duration : 0;
+            const dur =
+              Number.isFinite(audio.duration) && audio.duration > 0
+                ? audio.duration
+                : 0;
             this.callbacks.onProgress?.(1, dur, dur);
-            onDone();
+            this.isContinuousMode = false;
+            this.notifyStateChange('idle');
+            this.notifyEnd();
           };
           audio.onerror = () => {
             this.clearProgressTimer();
+            this.isContinuousMode = false;
             if (!resolved) {
               resolved = true;
               resolve(false);
@@ -422,28 +590,30 @@ class MultiLingualSpeechService {
                 }
                 return;
               }
+              applySeekIfReady();
               this.notifyEngineChange('neural', voiceLabel);
               this.clearProgressTimer();
               this.progressTimer = setInterval(emitWebProgress, 150);
-              this.prefetchNextWebSegment(this.currentIndex + 1);
               if (!resolved) {
                 resolved = true;
                 resolve(true);
               }
             })
             .catch(() => {
+              this.isContinuousMode = false;
               if (!resolved) {
                 resolved = true;
                 resolve(false);
               }
             });
         } catch {
+          this.isContinuousMode = false;
           resolve(false);
         }
       });
     }
 
-    // 2. iOS / Android Native: expo-audio streaming từ Backend Neural TTS
+    // 2. iOS / Android Native: expo-audio phát 1 luồng liên mạch từ Backend RAM stream
     try {
       if (!this.audioModeConfigured) {
         await setAudioModeAsync({
@@ -452,9 +622,8 @@ class MultiLingualSpeechService {
         this.audioModeConfigured = true;
       }
 
-      // Kiểm tra nhanh backend còn online với HEAD/GET nhẹ bằng URL trực tiếp
       const ttsUrl = this.buildGetTtsUrl(
-        normalizedText.slice(0, 1400),
+        bundle.fullText,
         this.currentLang,
         this.voiceGender
       );
@@ -462,24 +631,30 @@ class MultiLingualSpeechService {
       this.callbacks.onLoadingChange?.(true);
       const player = createAudioPlayer(
         { uri: ttsUrl },
-        { updateInterval: 250, downloadFirst: true }
+        { updateInterval: 200, downloadFirst: false }
       );
-      player.shouldCorrectPitch = true;
-      player.setPlaybackRate(this.currentRate);
+      try {
+        player.shouldCorrectPitch = true;
+      } catch {
+        // Ignore on devices that do not support pitch correction before load
+      }
       this.nativePlayer = player;
+      this.isContinuousMode = true;
 
       return await new Promise<boolean>((resolve) => {
         let started = false;
         let finished = false;
+        let appliedInitialSeek = startRatio <= 0.005;
+
         const guardTimer = setTimeout(() => {
           if (!started && !finished) {
             finished = true;
             this.callbacks.onLoadingChange?.(false);
             this.cleanupAudioPlayers();
-            this.neuralDisabledUntil = Date.now() + 20_000;
+            this.neuralDisabledUntil = Date.now() + NEURAL_COOLDOWN_MS;
             resolve(false);
           }
-        }, 7000);
+        }, NEURAL_FETCH_TIMEOUT_MS);
 
         this.nativeSubscription = player.addListener(
           'playbackStatusUpdate',
@@ -490,7 +665,7 @@ class MultiLingualSpeechService {
               clearTimeout(guardTimer);
               this.callbacks.onLoadingChange?.(false);
               this.cleanupAudioPlayers();
-              this.neuralDisabledUntil = Date.now() + 20_000;
+              this.neuralDisabledUntil = Date.now() + NEURAL_COOLDOWN_MS;
               if (!started && !finished) {
                 finished = true;
                 resolve(false);
@@ -502,28 +677,62 @@ class MultiLingualSpeechService {
               started = true;
               clearTimeout(guardTimer);
               this.callbacks.onLoadingChange?.(false);
+              try {
+                player.setPlaybackRate(this.currentRate);
+              } catch {
+                // Ignore unsupported rate before playback starts
+              }
+              if (!appliedInitialSeek && status.duration > 0) {
+                appliedInitialSeek = true;
+                try {
+                  void player.seekTo(startRatio * status.duration);
+                } catch {
+                  // Ignore
+                }
+              }
+              if (!status.playing && this.state === 'playing') {
+                try {
+                  player.play();
+                } catch {
+                  // Already starting
+                }
+              }
               this.notifyEngineChange('neural', voiceLabel);
               resolve(true);
             }
 
             if (status.duration > 0) {
-              this.callbacks.onProgress?.(
-                Math.min(1, status.currentTime / status.duration),
-                status.currentTime,
-                status.duration
-              );
+              if (!appliedInitialSeek) {
+                appliedInitialSeek = true;
+                try {
+                  void player.seekTo(startRatio * status.duration);
+                } catch {
+                  // Ignore
+                }
+              }
+              this.syncContinuousProgress(status.currentTime, status.duration);
             }
 
             if (status.didJustFinish && !finished) {
               finished = true;
               clearTimeout(guardTimer);
-              this.callbacks.onProgress?.(1, status.duration || 0, status.duration || 0);
-              onDone();
+              this.callbacks.onProgress?.(
+                1,
+                status.duration || 0,
+                status.duration || 0
+              );
+              this.isContinuousMode = false;
+              this.notifyStateChange('idle');
+              this.notifyEnd();
             }
           }
         );
 
-        player.play();
+        try {
+          player.play();
+        } catch {
+          // Will start automatically on isLoaded
+        }
       });
     } catch {
       this.callbacks.onLoadingChange?.(false);
@@ -532,64 +741,72 @@ class MultiLingualSpeechService {
     }
   }
 
-  private async speakCurrentSegment(): Promise<void> {
+  private async startPlaybackPipeline(startIndex: number): Promise<void> {
     this.clearFallbackTimer();
     this.cleanupAudioPlayers();
 
-    if (this.currentIndex >= this.currentSegments.length) {
+    if (startIndex >= this.currentSegments.length) {
       this.notifyStateChange('idle');
       this.notifyEnd();
       return;
     }
 
     const token = ++this.playbackId;
-    const rawText = this.currentSegments[this.currentIndex];
-    const spokenText = preprocessTextForSpeech(rawText, this.currentLang) || rawText;
-    const bcp47 = this.getBcp47(this.currentLang);
-
-    this.notifySegmentChange(this.currentIndex);
+    this.currentIndex = startIndex;
+    this.notifySegmentChange(startIndex);
 
     try {
       await Speech.stop();
     } catch {
-      // Bỏ qua lỗi stop khi chưa phát
+      // Ignore stop error when idle
     }
 
     if (token !== this.playbackId || this.state !== 'playing') {
       return;
     }
 
-    let settled = false;
-    const advanceToNext = () => {
-      if (settled || token !== this.playbackId || this.state !== 'playing') {
+    // Ưu tiên 1: 1 luồng AI Neural liên mạch (0 độ trễ giữa các đoạn!)
+    if (this.currentBundle && this.currentBundle.fullText) {
+      const playedNeural = await this.tryPlayContinuousNeuralAudio(
+        this.currentBundle,
+        startIndex,
+        token
+      );
+      if (playedNeural) {
         return;
       }
-      settled = true;
-      this.currentIndex += 1;
-      void this.speakCurrentSegment();
-    };
-
-    // Ưu tiên 1: Giọng AI Neural (Microsoft HoaiMy / NamMinh + 5 ngôn ngữ) qua Backend có cache MP3
-    const playedNeural = await this.tryPlayNeuralAudio(
-      spokenText,
-      token,
-      advanceToNext
-    );
-    if (playedNeural) {
-      return;
     }
 
     if (token !== this.playbackId || this.state !== 'playing') {
       return;
     }
 
-    // Ưu tiên 2 (Offline Fallback): Giọng thiết bị chất lượng cao nhất + tiền xử lý tiếng Việt mượt mà
+    // Ưu tiên 2 (Offline Fallback): Giọng thiết bị chất lượng cao + chuẩn hóa phát âm số & tên nước ngoài
+    await this.speakSegmentWithDeviceTts(token);
+  }
+
+  private async speakSegmentWithDeviceTts(token: number): Promise<void> {
+    if (token !== this.playbackId || this.state !== 'playing') return;
+    if (this.currentIndex >= this.currentSegments.length) {
+      this.notifyStateChange('idle');
+      this.notifyEnd();
+      return;
+    }
+
+    const rawText = this.currentSegments[this.currentIndex];
+    const spokenText =
+      this.currentBundle?.normalizedSegments[this.currentIndex] ||
+      preprocessTextForSpeech(rawText, this.currentLang) ||
+      rawText;
+    const bcp47 = this.getBcp47(this.currentLang);
+
+    this.notifySegmentChange(this.currentIndex);
+
     const bestVoice = await this.selectBestVoice(bcp47);
     if (token !== this.playbackId || this.state !== 'playing') {
       return;
     }
 
-    // Tốc độ đọc thiết bị tiếng Việt chậm hơn nhẹ 6% để tròn chữ, bớt gấp gáp
     const deviceRate =
       this.currentLang === 'vi'
         ? this.clampRate(this.currentRate * 0.94)
@@ -600,6 +817,16 @@ class MultiLingualSpeechService {
       bestVoice.name ? bestVoice.name.slice(0, 26) : 'Giọng thiết bị'
     );
     this.startEstimatedProgressTicker(spokenText, deviceRate, token);
+
+    let settled = false;
+    const advanceToNext = () => {
+      if (settled || token !== this.playbackId || this.state !== 'playing') {
+        return;
+      }
+      settled = true;
+      this.currentIndex += 1;
+      void this.speakSegmentWithDeviceTts(token);
+    };
 
     try {
       Speech.speak(spokenText, {
@@ -613,7 +840,7 @@ class MultiLingualSpeechService {
           advanceToNext();
         },
         onStopped: () => {
-          // Được xử lý chủ động qua pause()/stop()/chuyển câu
+          // Handled via pause/stop/jump
         },
         onError: (err) => {
           if (settled || token !== this.playbackId || this.state !== 'playing') {
@@ -654,11 +881,11 @@ class MultiLingualSpeechService {
         return;
       }
       this.currentIndex += 1;
-      void this.speakCurrentSegment();
+      void this.speakSegmentWithDeviceTts(token);
     }, durationMs);
   }
 
-  /** Tạm dừng phát: giữ nguyên vị trí nếu đang phát MP3 Neural, hoặc lưu chỉ mục câu với expo-speech */
+  /** Tạm dừng phát: giữ nguyên vị trí chính xác nếu đang phát MP3 Neural */
   public pause(): void {
     if (this.state !== 'playing') return;
     this.clearFallbackTimer();
@@ -706,15 +933,18 @@ class MultiLingualSpeechService {
               this.clearProgressTimer();
               return;
             }
-            const dur = Number.isFinite(audio.duration) && audio.duration > 0 ? audio.duration : 0;
+            const dur =
+              Number.isFinite(audio.duration) && audio.duration > 0
+                ? audio.duration
+                : 0;
             const cur = Number.isFinite(audio.currentTime) ? audio.currentTime : 0;
             if (dur > 0) {
-              this.callbacks.onProgress?.(Math.min(1, cur / dur), cur, dur);
+              this.syncContinuousProgress(cur, dur);
             }
           }, 150);
         })
         .catch(() => {
-          void this.speakCurrentSegment();
+          void this.startPlaybackPipeline(this.currentIndex);
         });
       return;
     }
@@ -723,12 +953,12 @@ class MultiLingualSpeechService {
       try {
         this.nativePlayer.play();
       } catch {
-        void this.speakCurrentSegment();
+        void this.startPlaybackPipeline(this.currentIndex);
       }
       return;
     }
     this.notifyStateChange('playing');
-    void this.speakCurrentSegment();
+    void this.startPlaybackPipeline(this.currentIndex);
   }
 
   public nextSegment(): number {
@@ -746,6 +976,11 @@ class MultiLingualSpeechService {
     return this.jumpToSegment(prevIdx, this.state === 'playing');
   }
 
+  /**
+   * Nhảy tới đoạn bất kỳ:
+   * - Nếu đang ở chế độ Continuous Neural: tua (seek) tức thì 0ms không cần tải lại!
+   * - Nếu đang ở chế độ Device TTS: đọc ngay đoạn mới.
+   */
   public jumpToSegment(index: number, autoPlay = true): number {
     if (!this.currentSegments.length) return 0;
     const clamped = Math.max(
@@ -755,16 +990,57 @@ class MultiLingualSpeechService {
     this.currentIndex = clamped;
     this.notifySegmentChange(clamped);
 
+    const targetRatio = this.currentBundle?.bounds[clamped]?.startRatio ?? 0;
+
+    if (this.isContinuousMode && this.webAudio) {
+      const dur = this.webAudio.duration;
+      if (Number.isFinite(dur) && dur > 0) {
+        try {
+          this.webAudio.currentTime = Math.min(
+            Math.max(0, targetRatio * dur),
+            Math.max(0, dur - 0.25)
+          );
+          this.callbacks.onProgress?.(0, this.webAudio.currentTime, dur);
+        } catch {
+          // Ignore seek error
+        }
+        if (autoPlay && this.state !== 'playing') {
+          this.resume();
+        } else if (!autoPlay && this.state === 'playing') {
+          this.pause();
+        }
+        return clamped;
+      }
+    }
+
+    if (this.isContinuousMode && this.nativePlayer) {
+      const dur = this.nativePlayer.duration || 0;
+      if (dur > 0) {
+        try {
+          void this.nativePlayer.seekTo(targetRatio * dur);
+          this.callbacks.onProgress?.(0, targetRatio * dur, dur);
+        } catch {
+          // Ignore seek error
+        }
+        if (autoPlay && this.state !== 'playing') {
+          this.resume();
+        } else if (!autoPlay && this.state === 'playing') {
+          this.pause();
+        }
+        return clamped;
+      }
+    }
+
     if (autoPlay) {
       this.notifyStateChange('playing');
-      void this.speakCurrentSegment();
+      void this.startPlaybackPipeline(clamped);
     } else if (this.state === 'playing') {
       this.pause();
     }
     return clamped;
   }
 
-  /** Đổi tốc độ đọc mượt tức thì (0.75x, 1.0x, 1.25x, 1.5x) mà không cần tải lại MP3 */
+  /** Đổi tốc độ đọc mượt tức thì (0.75x, 1.0x, 1.25x, 1.5x) mà không cần tải lại audio */
   public setRate(rate: SpeechRate | number): void {
     this.currentRate = this.clampRate(rate);
     if (this.webAudio) {
@@ -780,7 +1056,7 @@ class MultiLingualSpeechService {
       }
     }
     if (this.state === 'playing' && this.currentSegments.length > 0) {
-      void this.speakCurrentSegment();
+      void this.startPlaybackPipeline(this.currentIndex);
     }
   }
 
@@ -788,9 +1064,9 @@ class MultiLingualSpeechService {
   public setVoiceGender(gender: SpeechVoiceGender): void {
     if (this.voiceGender === gender) return;
     this.voiceGender = gender;
-    this.neuralDisabledUntil = 0; // Thử lại Neural voice khi đổi giọng
+    this.neuralDisabledUntil = 0;
     if (this.state === 'playing' && this.currentSegments.length > 0) {
-      void this.speakCurrentSegment();
+      void this.startPlaybackPipeline(this.currentIndex);
     }
   }
 
@@ -806,13 +1082,14 @@ class MultiLingualSpeechService {
     this.currentLang = lang;
     if (updatedSegments && updatedSegments.length > 0) {
       this.currentSegments = [...updatedSegments];
+      this.currentBundle = buildContinuousScript(this.currentSegments, lang);
       this.currentIndex = Math.min(
         this.currentIndex,
         updatedSegments.length - 1
       );
     }
     if (this.state === 'playing' && this.currentSegments.length > 0) {
-      void this.speakCurrentSegment();
+      void this.startPlaybackPipeline(this.currentIndex);
     }
   }
 

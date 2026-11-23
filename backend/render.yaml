@@ -30,5 +30,11 @@ services:
         sync: false
       - key: GOONG_API_KEY
         sync: false
+      - key: TTS_DEFAULT_PROVIDER
+        value: auto
+      - key: TTS_AUTO_DOWNLOAD_OFFLINE
+        value: "true"
+      - key: TTS_PRELOAD_OFFLINE_LANGS
+        value: vi
       - key: CORS_ORIGINS
         value: "*"
