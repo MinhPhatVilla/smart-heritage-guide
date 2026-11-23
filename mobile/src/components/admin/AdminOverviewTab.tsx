@@ -276,7 +276,7 @@ export const AdminOverviewTab: React.FC<AdminOverviewTabProps> = ({
             <Database size={15} color={isOnline ? COLORS.visited : COLORS.amber} />
             <Text style={styles.qaText}>
               {isOnline
-                ? `Backend FastAPI trực tuyến (${health?.database.dialect.toUpperCase()} · ${health?.ai.chat_model}).`
+                ? `Backend FastAPI trực tuyến (${(health?.database?.dialect || 'DB').toUpperCase()} · ${health?.ai?.chat_model || 'AI Ready'}).`
                 : 'Đang chạy ở chế độ Local Demo — thay đổi hiển thị tức thì trên bản đồ.'}
             </Text>
           </View>

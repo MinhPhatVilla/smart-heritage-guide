@@ -116,38 +116,49 @@ export const AdminSystemTab: React.FC<AdminSystemTabProps> = ({
             <View style={styles.row}>
               <Text style={styles.rowKey}>Cơ sở dữ liệu</Text>
               <Text style={styles.rowVal}>
-                {health.database.dialect.toUpperCase()} ·{' '}
-                {health.database.connected ? 'Connected' : 'Error'}
+                {(health.database?.dialect || 'DB').toUpperCase()} ·{' '}
+                {health.database?.connected ? 'Connected' : 'Error'}
               </Text>
             </View>
             <View style={styles.row}>
               <Text style={styles.rowKey}>Extensions</Text>
               <Text style={styles.rowVal}>
-                {health.database.postgis_enabled ? 'PostGIS ✓' : 'PostGIS –'} ·{' '}
-                {health.database.pgvector_enabled ? 'pgvector ✓' : 'pgvector –'}
+                {health.database?.postgis_enabled ? 'PostGIS ✓' : 'PostGIS –'} ·{' '}
+                {health.database?.pgvector_enabled ? 'pgvector ✓' : 'pgvector –'}
               </Text>
             </View>
             <View style={styles.row}>
               <Text style={styles.rowKey}>Gemini AI (RAG & Vision)</Text>
               <Text style={styles.rowVal}>
-                {health.ai.gemini_configured
-                  ? health.ai.chat_model
+                {health.ai?.gemini_configured
+                  ? health.ai?.chat_model || 'gemini-2.5-flash'
                   : 'Smart Fallback'}
               </Text>
             </View>
             <View style={styles.row}>
               <Text style={styles.rowKey}>Supabase Auth / Storage</Text>
               <Text style={styles.rowVal}>
-                {health.auth.supabase_configured ? 'Auth ✓' : 'Local JWT'} ·{' '}
-                {health.auth.storage_configured ? 'Storage ✓' : 'Local'}
+                {health.auth?.supabase_configured ? 'Auth ✓' : 'Local JWT'} ·{' '}
+                {health.auth?.storage_configured ? 'Storage ✓' : 'Local'}
               </Text>
             </View>
             <View style={styles.row}>
               <Text style={styles.rowKey}>OSRM Walking Routing</Text>
               <Text style={styles.rowVal} numberOfLines={1}>
-                {health.routing.osrm_base_url}
+                {health.routing?.osrm_base_url || 'FOSSGIS OSRM'}
               </Text>
             </View>
+            {health.tts && (
+              <View style={styles.row}>
+                <Text style={styles.rowKey}>Giọng đọc TTS (RAM)</Text>
+                <Text style={styles.rowVal} numberOfLines={1}>
+                  {health.tts.provider.toUpperCase()} ·{' '}
+                  {health.tts.offline_engine_ready
+                    ? `ONNX (${health.tts.offline_models.length} model)`
+                    : 'Stream 142+ ngôn ngữ'}
+                </Text>
+              </View>
+            )}
           </View>
         ) : (
           <View style={styles.offlineBox}>

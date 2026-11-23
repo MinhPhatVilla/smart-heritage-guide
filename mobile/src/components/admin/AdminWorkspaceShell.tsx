@@ -712,7 +712,8 @@ const styles = StyleSheet.create({
     zIndex: 4,
   },
   auditMapHidden: {
-    display: 'none',
+    opacity: 0,
+    zIndex: -1,
   },
   fallbackBox: {
     flex: 1,

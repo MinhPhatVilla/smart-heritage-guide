@@ -31,6 +31,98 @@ export interface BackendHealthStatus {
     osrm_base_url: string;
     goong_configured: boolean;
   };
+  tts?: {
+    provider: string;
+    storage_mode: string;
+    offline_engine_ready: boolean;
+    offline_models: string[];
+  };
+}
+
+interface RawBackendHealthResponse {
+  status?: string;
+  app_name?: string;
+  version?: string;
+  environment?: string;
+  database?: Partial<BackendHealthStatus['database']>;
+  services?: {
+    auth_provider?: string;
+    storage_provider?: string;
+    gemini_enabled?: boolean;
+    gemini_chat_model?: string;
+    routing_primary?: string;
+    routing_goong_fallback?: boolean;
+    tts_provider?: string;
+    tts_storage_mode?: string;
+    tts_offline_engine_ready?: boolean;
+    tts_offline_models?: string[];
+  };
+  ai?: Partial<BackendHealthStatus['ai']>;
+  auth?: Partial<BackendHealthStatus['auth']>;
+  routing?: Partial<BackendHealthStatus['routing']>;
+}
+
+function normalizeBackendHealth(raw: RawBackendHealthResponse): BackendHealthStatus {
+  const db = raw.database || {};
+  const svc = raw.services || {};
+  const legacyAi = raw.ai || {};
+  const legacyAuth = raw.auth || {};
+  const legacyRouting = raw.routing || {};
+
+  return {
+    status: raw.status || 'degraded',
+    app_name: raw.app_name || 'Smart Heritage Guide API',
+    version: raw.version || '1.0.0',
+    environment: raw.environment || 'development',
+    database: {
+      connected: Boolean(db.connected),
+      dialect: String(db.dialect || 'unknown'),
+      postgis_enabled: Boolean(db.postgis_enabled),
+      pgvector_enabled: Boolean(db.pgvector_enabled),
+      error: db.error,
+    },
+    ai: {
+      gemini_configured: Boolean(
+        legacyAi.gemini_configured ?? svc.gemini_enabled
+      ),
+      chat_model: String(
+        legacyAi.chat_model || svc.gemini_chat_model || 'gemini-2.5-flash'
+      ),
+      vision_model: String(
+        legacyAi.vision_model || svc.gemini_chat_model || 'gemini-2.5-flash'
+      ),
+      embedding_model: String(
+        legacyAi.embedding_model || 'text-embedding-004'
+      ),
+    },
+    auth: {
+      supabase_configured: Boolean(
+        legacyAuth.supabase_configured ?? svc.auth_provider === 'supabase'
+      ),
+      storage_configured: Boolean(
+        legacyAuth.storage_configured ?? svc.storage_provider === 'supabase'
+      ),
+    },
+    routing: {
+      osrm_base_url: String(
+        legacyRouting.osrm_base_url ||
+          (svc.routing_primary === 'osrm'
+            ? 'FOSSGIS OSRM (Primary)'
+            : svc.routing_primary || 'OSRM')
+      ),
+      goong_configured: Boolean(
+        legacyRouting.goong_configured ?? svc.routing_goong_fallback
+      ),
+    },
+    tts: {
+      provider: String(svc.tts_provider || 'auto'),
+      storage_mode: String(svc.tts_storage_mode || 'ram_stream_only'),
+      offline_engine_ready: Boolean(svc.tts_offline_engine_ready),
+      offline_models: Array.isArray(svc.tts_offline_models)
+        ? svc.tts_offline_models
+        : [],
+    },
+  };
 }
 
 export interface AdminSiteFormInput {
@@ -223,11 +315,16 @@ export function buildRestaurantFromForm(
 }
 
 export async function fetchBackendHealth(): Promise<ApiResult<BackendHealthStatus>> {
-  return apiRequest<BackendHealthStatus>('/api/v1/health', {
+  const res = await apiRequest<RawBackendHealthResponse>('/api/v1/health', {
     method: 'GET',
     skipAuth: true,
     timeoutMs: 4000,
   });
+  if (!res.ok) return res;
+  return {
+    ...res,
+    data: normalizeBackendHealth(res.data || {}),
+  };
 }
 
 export async function adminCreateSite(
