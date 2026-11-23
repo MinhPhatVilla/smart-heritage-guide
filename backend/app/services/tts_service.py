@@ -30,12 +30,19 @@ from collections import OrderedDict
 from dataclasses import dataclass
 import hashlib
 import io
+import logging
+import os
 from pathlib import Path
 import re
+import tarfile
+import threading
 from typing import Any, Literal
+import urllib.request
 import wave
 
 from app.core.config import settings
+
+logger = logging.getLogger(__name__)
 
 VoiceGender = Literal["female", "male"]
 TtsProviderMode = Literal["auto", "neural", "offline"]
@@ -202,6 +209,88 @@ _synthesis_locks: dict[str, asyncio.Lock] = {}
 _dynamic_voices_cache: list[dict[str, Any]] | None = None
 _dynamic_voices_lock = asyncio.Lock()
 _offline_tts_instances: dict[str, Any] = {}
+_model_download_lock = threading.Lock()
+
+
+def _resolve_catalog_key_for_language(language: str) -> str | None:
+    base = _base_lang(language)
+    if base in OFFLINE_ONNX_CATALOG:
+        return base
+    if base in OFFLINE_ONNX_CATALOG["kokoro"]["languages"]:
+        return "kokoro"
+    return None
+
+
+def ensure_offline_model_installed_sync(catalog_or_lang_key: str) -> Path:
+    """Download & extract an open-source ONNX model directly inside Backend (idempotent, thread-safe)."""
+    key = _base_lang(catalog_or_lang_key)
+    resolved_key = key if key in OFFLINE_ONNX_CATALOG else _resolve_catalog_key_for_language(key)
+    if not resolved_key:
+        valid = ", ".join(sorted(OFFLINE_ONNX_CATALOG.keys()))
+        raise RuntimeError(f"Không có model offline cho '{catalog_or_lang_key}'. Hỗ trợ: {valid}")
+
+    entry = OFFLINE_ONNX_CATALOG[resolved_key]
+    target_root = settings.tts_models_dir_path
+    dest_dir = target_root / str(entry["name"])
+
+    def _is_ready(d: Path) -> bool:
+        if not d.is_dir():
+            return False
+        onnx_files = list(d.glob("*.onnx"))
+        if not onnx_files:
+            return False
+        if entry["kind"] == "kokoro":
+            return (d / "tokens.txt").is_file() and (d / "voices.bin").is_file()
+        return Path(f"{onnx_files[0]}.json").is_file() or (d / "tokens.txt").is_file()
+
+    if _is_ready(dest_dir):
+        return dest_dir
+
+    with _model_download_lock:
+        if _is_ready(dest_dir):
+            return dest_dir
+
+        url = str(entry["url"])
+        logger.info("Downloading offline ONNX TTS model '%s' (~%s MB)...", entry["name"], entry["size_mb"])
+        target_root.mkdir(parents=True, exist_ok=True)
+        req = urllib.request.Request(url, headers={"User-Agent": "SmartHeritageGuide/1.0"})
+        with urllib.request.urlopen(req, timeout=180) as resp:
+            raw = resp.read()
+
+        with tarfile.open(fileobj=io.BytesIO(raw), mode="r:bz2") as tar:
+            tar.extractall(path=target_root)
+
+        if not _is_ready(dest_dir):
+            raise RuntimeError(f"Tải model offline '{entry['name']}' hoàn tất nhưng thiếu file ONNX trong {dest_dir}.")
+
+        logger.info("Offline ONNX TTS model ready: %s", dest_dir)
+        return dest_dir
+
+
+def preload_offline_models_sync(langs_csv: str | None = None) -> list[str]:
+    """Preload configured offline ONNX models (used by Dockerfile build & Backend startup warmup)."""
+    raw = langs_csv if langs_csv is not None else settings.TTS_PRELOAD_OFFLINE_LANGS
+    keys = [item.strip().lower() for item in (raw or "").split(",") if item.strip()]
+    loaded: list[str] = []
+    for k in keys:
+        try:
+            dest = ensure_offline_model_installed_sync(k)
+            loaded.append(dest.name)
+        except Exception as exc:
+            logger.warning("Skipping offline TTS preload for '%s': %s", k, exc)
+    return loaded
+
+
+async def warmup_tts_in_background() -> None:
+    """Non-blocking startup warmup executed by FastAPI lifespan (skipped during pytest)."""
+    if os.environ.get("PYTEST_CURRENT_TEST") or settings.APP_ENV.lower() == "test":
+        return
+    if not settings.TTS_AUTO_DOWNLOAD_OFFLINE or not is_offline_onnx_available():
+        return
+    raw = (settings.TTS_PRELOAD_OFFLINE_LANGS or "").strip()
+    if not raw:
+        return
+    await asyncio.to_thread(preload_offline_models_sync, raw)
 
 
 def clear_ram_cache() -> None:
@@ -564,11 +653,21 @@ def _synthesize_offline_sync(
     gender: VoiceGender,
 ) -> tuple[bytes, str]:
     found = _find_offline_model_dir(language)
+    if (
+        not found
+        and settings.TTS_AUTO_DOWNLOAD_OFFLINE
+        and not os.environ.get("PYTEST_CURRENT_TEST")
+        and settings.APP_ENV.lower() != "test"
+        and _resolve_catalog_key_for_language(language) is not None
+    ):
+        # Tự động tải model offline theo yêu cầu ngay trong Backend khi deploy lên Cloud
+        ensure_offline_model_installed_sync(language)
+        found = _find_offline_model_dir(language)
+
     if not found:
         base = _base_lang(language)
         raise RuntimeError(
-            f"Chưa cài model offline ONNX cho ngôn ngữ '{base}'. "
-            f"Chạy: python -m scripts.download_tts_models --langs {base}"
+            f"Chưa có model offline ONNX cho ngôn ngữ '{base}'."
         )
     model_dir, kind = found
     onnx_file = sorted(model_dir.glob("*.onnx"))[0]
@@ -731,8 +830,16 @@ async def synthesize_speech_stream(
             if effective_provider == "neural":
                 raise RuntimeError(str(exc)) from exc
 
-        # Chế độ `auto`: tự động chuyển sang Engine 2 (Piper/sherpa-onnx offline ONNX WAV trong RAM)
-        if is_offline_onnx_available() and _find_offline_model_dir(norm_lang) is not None:
+        # Chế độ `auto`: tự động chuyển sang Engine 2 (Piper/sherpa-onnx offline ONNX WAV trong RAM, tự tải model nếu cần)
+        can_auto_fetch = (
+            settings.TTS_AUTO_DOWNLOAD_OFFLINE
+            and not os.environ.get("PYTEST_CURRENT_TEST")
+            and settings.APP_ENV.lower() != "test"
+            and _resolve_catalog_key_for_language(norm_lang) is not None
+        )
+        if is_offline_onnx_available() and (
+            _find_offline_model_dir(norm_lang) is not None or can_auto_fetch
+        ):
             wav_bytes, voice_id = await asyncio.to_thread(
                 _synthesize_offline_sync, normalized, norm_lang, gender
             )
