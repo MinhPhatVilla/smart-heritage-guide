@@ -195,6 +195,7 @@ type MapBridgeIncomingMessage =
       placeName?: string;
       placeCategory?: string;
     }
+  | { source: 'shg-map'; mapId: string; type: 'OUTSIDE_VN_CLICK'; lat: number; lng: number }
   | { source: 'shg-map'; mapId: string; type: 'USER_DRAG'; lat: number; lng: number };
 
 /**
@@ -371,8 +372,8 @@ function buildExplorerMapHtml(
       }
 
       function buildInverseMaskGeoJson(rings) {
-        // Outer world veil (CCW), inner spotlight cutouts (CW) — keeps active region crisp while softly misting outside
-        var outerWorld = [[82, -8], [136, -8], [136, 36], [82, 36], [82, -8]];
+        // Outer world cover (CCW), inner cutouts (CW) — covers all surrounding regions cleanly at every zoom
+        var outerWorld = [[60, -25], [160, -25], [160, 50], [60, 50], [60, -25]];
         var holes = rings.map(function(r) { return normalizeRing(r, true); });
         return {
           type: 'FeatureCollection',
@@ -386,6 +387,33 @@ function buildExplorerMapHtml(
           }]
         };
       }
+
+      var OUTSIDE_VN_DEV_LABELS_GEOJSON = {
+        type: 'FeatureCollection',
+        features: [
+          [105.45, 11.45],
+          [104.55, 10.75],
+          [106.15, 12.75],
+          [104.60, 12.30],
+          [105.75, 15.10],
+          [104.55, 17.65],
+          [102.55, 19.70],
+          [101.20, 21.85],
+          [105.50, 23.95],
+          [108.55, 22.85],
+          [101.60, 9.20],
+          [113.40, 19.80],
+          [116.80, 13.50],
+          [109.50, 5.80],
+          [103.30, 14.00]
+        ].map(function(coord) {
+          return {
+            type: 'Feature',
+            geometry: { type: 'Point', coordinates: coord },
+            properties: { label: 'Đang phát triển' }
+          };
+        })
+      };
 
       function buildBorderGeoJson(rings) {
         return {
@@ -1103,6 +1131,50 @@ function buildExplorerMapHtml(
           return ctx.getImageData(0, 0, w, h);
         }
 
+        function drawOutsideVnBadgeCanvas() {
+          var w = 276;
+          var h = 60;
+          var canvas = document.createElement('canvas');
+          canvas.width = w;
+          canvas.height = h;
+          var ctx = canvas.getContext('2d');
+          var x = 8;
+          var y = 8;
+          var pw = w - 16;
+          var ph = h - 16;
+          var rad = ph / 2;
+
+          ctx.save();
+          ctx.fillStyle = '#F7F6F2';
+          ctx.beginPath();
+          ctx.moveTo(x + rad, y);
+          ctx.lineTo(x + pw - rad, y);
+          ctx.arcTo(x + pw, y, x + pw, y + rad, rad);
+          ctx.arcTo(x + pw, y + ph, x + pw - rad, y + ph, rad);
+          ctx.lineTo(x + rad, y + ph);
+          ctx.arcTo(x, y + ph, x, y + ph - rad, rad);
+          ctx.arcTo(x, y, x + rad, y, rad);
+          ctx.closePath();
+          ctx.fill();
+          ctx.strokeStyle = '#E2DFD7';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+          ctx.restore();
+
+          // Chấm nhỏ tinh tế + chữ "Đang phát triển" sắc nét chuẩn tiếng Việt
+          ctx.fillStyle = '#B93815';
+          ctx.beginPath();
+          ctx.arc(x + 26, y + ph / 2, 5, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.fillStyle = '#6B6860';
+          ctx.font = '700 22px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+          ctx.textAlign = 'left';
+          ctx.textBaseline = 'middle';
+          ctx.fillText('Đang phát triển', x + 42, y + ph / 2 + 1);
+          return ctx.getImageData(0, 0, w, h);
+        }
+
         function ensureMarkerSprites() {
           try {
             if (!map.hasImage('shg-pin-default')) {
@@ -1116,6 +1188,9 @@ function buildExplorerMapHtml(
             }
             if (!map.hasImage('shg-res-pill-overture')) {
               map.addImage('shg-res-pill-overture', drawRestaurantPillCanvas('#B45309'), { pixelRatio: 2 });
+            }
+            if (!map.hasImage('shg-outside-vn-badge')) {
+              map.addImage('shg-outside-vn-badge', drawOutsideVnBadgeCanvas(), { pixelRatio: 2 });
             }
           } catch (e) {}
         }
@@ -1387,7 +1462,7 @@ function buildExplorerMapHtml(
           var topSlotProps = (USE_MAPBOX && currentTile.id === 'mapbox_standard') ? { slot: 'top' } : {};
           var theme = getSpotlightTheme();
 
-          // Lớp sương mờ tông kem ấm đồng bộ app (Frosted Alabaster Veil)
+          // 1. Lớp sương mờ các tỉnh Việt Nam ngoài TP.HCM (chỉ bật khi chọn chế độ Chỉ TP.HCM)
           // maxzoom: 12 + tolerance: 0.75 giúp tránh re-tiling / re-triangulation đa giác lớn khi phóng to từ mức 12 -> 20!
           if (!map.getSource('shg-hcmc-mask')) {
             map.addSource('shg-hcmc-mask', {
@@ -1404,6 +1479,67 @@ function buildExplorerMapHtml(
               paint: {
                 'fill-color': theme.maskColor,
                 'fill-opacity': theme.maskOpacity
+              }
+            }, topSlotProps));
+          }
+
+          // 2. Lớp phủ TRẮNG ĐỤC 100% ngoài lãnh thổ & lãnh hải Việt Nam (ẩn toàn bộ đường, địa danh, POI các nước khác + ghi "Đang phát triển")
+          ensureMarkerSprites();
+          if (!map.getSource('shg-outside-vn-mask')) {
+            map.addSource('shg-outside-vn-mask', {
+              type: 'geojson',
+              data: buildInverseMaskGeoJson(VIETNAM_BOUNDARY_RINGS),
+              maxzoom: 12,
+              tolerance: 0.75,
+              buffer: 32
+            });
+            map.addLayer(Object.assign({
+              id: 'shg-outside-vn-mask-fill',
+              type: 'fill',
+              source: 'shg-outside-vn-mask',
+              paint: {
+                'fill-color': '#FFFFFF',
+                'fill-opacity': 1
+              }
+            }, topSlotProps));
+          }
+
+          if (!map.getSource('shg-outside-vn-border')) {
+            map.addSource('shg-outside-vn-border', {
+              type: 'geojson',
+              data: buildBorderGeoJson(VIETNAM_BOUNDARY_RINGS),
+              maxzoom: 12,
+              tolerance: 0.75,
+              buffer: 32
+            });
+            map.addLayer(Object.assign({
+              id: 'shg-outside-vn-border-line',
+              type: 'line',
+              source: 'shg-outside-vn-border',
+              layout: { 'line-join': 'round', 'line-cap': 'round' },
+              paint: {
+                'line-color': '#B93815',
+                'line-width': 1.5,
+                'line-opacity': 0.72
+              }
+            }, topSlotProps));
+          }
+
+          if (!map.getSource('shg-outside-vn-labels')) {
+            map.addSource('shg-outside-vn-labels', {
+              type: 'geojson',
+              data: OUTSIDE_VN_DEV_LABELS_GEOJSON
+            });
+            map.addLayer(Object.assign({
+              id: 'shg-outside-vn-labels-layer',
+              type: 'symbol',
+              source: 'shg-outside-vn-labels',
+              minzoom: 4,
+              layout: {
+                'icon-image': 'shg-outside-vn-badge',
+                'icon-size': ['interpolate', ['linear'], ['zoom'], 5, 0.78, 8, 0.94, 12, 1.0],
+                'icon-allow-overlap': false,
+                'icon-padding': 18
               }
             }, topSlotProps));
           }
@@ -1695,10 +1831,15 @@ function buildExplorerMapHtml(
               }
             } catch (e) {}
 
-            // Chỉ TP.HCM: làm mờ các tỉnh xung quanh; Toàn Việt Nam: làm mờ các quốc gia ngoài lãnh thổ Việt Nam
-            var activeRings = isFocusHcmcOnly ? HCMC_BOUNDARY_RINGS : VIETNAM_BOUNDARY_RINGS;
-            map.getSource('shg-hcmc-mask').setData(buildInverseMaskGeoJson(activeRings));
-            map.getSource('shg-hcmc-border').setData(buildBorderGeoJson(activeRings));
+            // Ngoài lãnh thổ Việt Nam luôn được phủ trắng đục 100% + nhãn "Đang phát triển" ở lớp shg-outside-vn-mask.
+            // Khi chọn Chỉ TP.HCM: làm mờ dịu các tỉnh Việt Nam lân cận và tô viền TP.HCM; khi chọn Việt Nam: hiển thị rõ toàn lãnh thổ VN.
+            if (isFocusHcmcOnly) {
+              map.getSource('shg-hcmc-mask').setData(buildInverseMaskGeoJson(HCMC_BOUNDARY_RINGS));
+              map.getSource('shg-hcmc-border').setData(buildBorderGeoJson(HCMC_BOUNDARY_RINGS));
+            } else {
+              map.getSource('shg-hcmc-mask').setData({ type: 'FeatureCollection', features: [] });
+              map.getSource('shg-hcmc-border').setData({ type: 'FeatureCollection', features: [] });
+            }
           }
 
           if (shouldAdjustCamera && !isFollowingNav) {
@@ -2140,6 +2281,21 @@ function buildExplorerMapHtml(
             } catch (err) {}
           }
 
+          // 2. Chặn tuyệt đối thông tin các nước ngoài lãnh thổ Việt Nam khi người dùng chạm vào vùng phủ trắng "Đang phát triển"
+          if (styleReady && map.getLayer('shg-outside-vn-mask-fill')) {
+            try {
+              var outsideHits = map.queryRenderedFeatures(e.point, { layers: ['shg-outside-vn-mask-fill'] });
+              if (outsideHits && outsideHits.length > 0) {
+                postToHost({
+                  type: 'OUTSIDE_VN_CLICK',
+                  lat: e.lngLat.lat,
+                  lng: e.lngLat.lng
+                });
+                return;
+              }
+            } catch (err) {}
+          }
+
           var placeName = '';
           var placeCategory = '';
           try {
@@ -2428,25 +2584,49 @@ function buildExplorerMapHtml(
             maskLayer.clearLayers();
             map.setMaxBounds(enabled ? hcmcLeafletBounds : vnLeafletBounds);
             map.setMinZoom(enabled ? 8 : 5);
-            var activeRings = enabled ? HCMC_BOUNDARY_RINGS : VIETNAM_BOUNDARY_RINGS;
-            var outer = [[-8, 82], [36, 82], [36, 136], [-8, 136]];
-            var holes = activeRings.map(function(ring) {
+            var outer = [[-25, 60], [50, 60], [50, 160], [-25, 160]];
+            if (enabled) {
+              var hcmcHoles = HCMC_BOUNDARY_RINGS.map(function(ring) {
+                return ring.map(function(pt) { return [pt[1], pt[0]]; });
+              });
+              L.polygon([outer].concat(hcmcHoles), {
+                color: '#FFFFFF',
+                weight: 3,
+                opacity: 0.9,
+                fillColor: '#F3F0E9',
+                fillOpacity: 0.72,
+                interactive: false
+              }).addTo(maskLayer);
+              hcmcHoles.forEach(function(hole) {
+                L.polyline(hole, {
+                  color: '#B93815',
+                  weight: 1.8,
+                  opacity: 0.85,
+                  interactive: false
+                }).addTo(maskLayer);
+              });
+            }
+            var vnHoles = VIETNAM_BOUNDARY_RINGS.map(function(ring) {
               return ring.map(function(pt) { return [pt[1], pt[0]]; });
             });
-            L.polygon([outer].concat(holes), {
-              color: '#FFFFFF',
-              weight: 4,
-              opacity: 0.9,
-              fillColor: '#F3F0E9',
-              fillOpacity: 0.78,
+            L.polygon([outer].concat(vnHoles), {
+              color: '#B93815',
+              weight: 1.5,
+              opacity: 0.75,
+              fillColor: '#FFFFFF',
+              fillOpacity: 1.0,
               interactive: false
             }).addTo(maskLayer);
-            holes.forEach(function(hole) {
-              L.polyline(hole, {
-                color: '#B93815',
-                weight: 1.8,
-                opacity: 0.85,
-                interactive: false
+            OUTSIDE_VN_DEV_LABELS_GEOJSON.features.forEach(function(f) {
+              var c = f.geometry.coordinates;
+              L.marker([c[1], c[0]], {
+                interactive: false,
+                icon: L.divIcon({
+                  className: 'custom-heritage-marker',
+                  html: '<div style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:999px;background:#F7F6F2;border:1px solid #E2DFD7;color:#6B6860;font-size:11px;font-weight:700;white-space:nowrap;"><span style="width:6px;height:6px;border-radius:999px;background:#B93815;"></span>Đang phát triển</div>',
+                  iconSize: [124, 26],
+                  iconAnchor: [62, 13]
+                })
               }).addTo(maskLayer);
             });
             if (shouldAdjustCamera) {
@@ -2984,6 +3164,16 @@ export const MapExplorer: React.FC<MapExplorerProps> = React.memo(({
             setTappedPlace(null);
           }
           onMoveUserLocation(msg.lat, msg.lng);
+          break;
+        case 'OUTSIDE_VN_CLICK':
+          setShowStyleMenu(false);
+          setFocusedSite(null);
+          setFocusedRestaurant(null);
+          setTappedPlace({
+            name: 'Khu vực ngoài Việt Nam · Đang phát triển',
+            lat: msg.lat,
+            lng: msg.lng,
+          });
           break;
         case 'USER_DRAG':
           setTappedPlace(null);
