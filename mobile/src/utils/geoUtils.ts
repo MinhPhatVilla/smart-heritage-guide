@@ -2,12 +2,18 @@ import {
   HeritageSite,
   NearbyRestaurant,
   RankedVisitedSite,
+  TravelMode,
   VisitedSiteRecord,
 } from '../types/heritage';
 
 const EARTH_RADIUS_METERS = 6371000;
 /** Vận tốc đi bộ tham quan trung bình: ~4.5 km/h = 1.25 m/s */
 const AVERAGE_WALKING_SPEED_MPS = 1.25;
+const TRAVEL_MODE_SPEED_MPS: Record<TravelMode, number> = {
+  walking: AVERAGE_WALKING_SPEED_MPS,
+  motorbike: 8.5, // ~30.6 km/h
+  car: 11.0,      // ~39.6 km/h
+};
 
 function toRadians(degrees: number): number {
   return (degrees * Math.PI) / 180;
@@ -105,6 +111,32 @@ export function estimateWalkingSeconds(distanceMeters: number): number {
 }
 
 /**
+ * Ước tính thời gian di chuyển theo phương tiện (đi bộ / xe máy / ô tô)
+ */
+export function estimateTravelSeconds(
+  distanceMeters: number,
+  travelMode: TravelMode = 'walking'
+): number {
+  if (travelMode === 'walking') {
+    return estimateWalkingSeconds(distanceMeters);
+  }
+  const roadDistance = distanceMeters * 1.3;
+  const speed = TRAVEL_MODE_SPEED_MPS[travelMode] || AVERAGE_WALKING_SPEED_MPS;
+  return Math.max(30, Math.round(roadDistance / speed));
+}
+
+/**
+ * Gợi ý phương tiện tối ưu theo khoảng cách: > 3.5 km tự gợi ý xe máy
+ */
+export function suggestTravelModeForDistance(
+  distanceMeters: number,
+  currentMode: TravelMode = 'walking'
+): TravelMode {
+  if (currentMode !== 'walking') return currentMode;
+  return distanceMeters > 3500 ? 'motorbike' : 'walking';
+}
+
+/**
  * Định dạng khoảng cách hiển thị thân thiện (m hoặc km)
  */
 export function formatDistance(meters: number): string {
@@ -131,6 +163,31 @@ export function formatWalkingDuration(seconds: number): string {
   const hours = Math.floor(totalMinutes / 60);
   const mins = totalMinutes % 60;
   return mins > 0 ? `${hours} giờ ${mins} phút` : `${hours} giờ`;
+}
+
+/**
+ * Định dạng thời gian di chuyển theo phương tiện (đi bộ / xe máy / ô tô)
+ */
+export function formatTravelDuration(
+  seconds: number,
+  travelMode: TravelMode = 'walking'
+): string {
+  if (travelMode === 'walking') {
+    return formatWalkingDuration(seconds);
+  }
+  const suffix = travelMode === 'motorbike' ? 'xe máy' : 'ô tô';
+  if (seconds < 60) {
+    return `${Math.max(1, Math.round(seconds))} giây (${suffix})`;
+  }
+  const totalMinutes = Math.round(seconds / 60);
+  if (totalMinutes < 60) {
+    return `${totalMinutes} phút ${suffix}`;
+  }
+  const hours = Math.floor(totalMinutes / 60);
+  const mins = totalMinutes % 60;
+  return mins > 0
+    ? `${hours} giờ ${mins} phút (${suffix})`
+    : `${hours} giờ (${suffix})`;
 }
 
 /**

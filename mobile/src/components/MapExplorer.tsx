@@ -17,7 +17,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { WebView, type WebViewMessageEvent } from 'react-native-webview';
 import {
   ArrowUp,
+  Bike,
   Box,
+  Car,
   Check,
   ChevronDown,
   ChevronUp,
@@ -51,6 +53,8 @@ import {
   NearbyRestaurant,
   RouteStep,
   SupportedLanguage,
+  TRAVEL_MODE_OPTIONS,
+  TravelMode,
   VisitedSiteRecord,
   WalkingRouteResult,
 } from '../types/heritage';
@@ -58,6 +62,7 @@ import {
   calculateDistanceMeters,
   estimateWalkingSeconds,
   formatDistance,
+  formatTravelDuration,
   formatWalkingDuration,
 } from '../utils/geoUtils';
 import {
@@ -94,6 +99,8 @@ export interface MapExplorerProps {
   visitedRecords: VisitedSiteRecord[];
   selectedLanguage: SupportedLanguage;
   activeRoute: WalkingRouteResult | null;
+  travelMode?: TravelMode;
+  onChangeTravelMode?: (mode: TravelMode) => void;
   isRoutingLoading?: boolean;
   activeWalkSeconds: number;
   isSimulatingWalk: boolean;
@@ -2801,6 +2808,8 @@ export const MapExplorer: React.FC<MapExplorerProps> = React.memo(({
   visitedRecords,
   selectedLanguage,
   activeRoute,
+  travelMode = 'walking',
+  onChangeTravelMode,
   isRoutingLoading = false,
   activeWalkSeconds,
   isSimulatingWalk,
@@ -3922,9 +3931,15 @@ export const MapExplorer: React.FC<MapExplorerProps> = React.memo(({
                 <View style={styles.navStatusLine}>
                   <Text style={styles.navStatusLabel}>Đang dẫn đường</Text>
                   <View style={styles.timerBadge}>
-                    <Footprints size={11} color={COLORS.ink} />
+                    {(activeRoute.travelMode || travelMode) === 'walking' ? (
+                      <Footprints size={11} color={COLORS.ink} />
+                    ) : (activeRoute.travelMode || travelMode) === 'motorbike' ? (
+                      <Bike size={11} color={COLORS.ink} />
+                    ) : (
+                      <Car size={11} color={COLORS.ink} />
+                    )}
                     <Text style={styles.timerText}>
-                      Đã đi: {formatWalkingDuration(activeWalkSeconds)}
+                      Đã đi: {formatTravelDuration(activeWalkSeconds, activeRoute.travelMode || travelMode)}
                     </Text>
                   </View>
                 </View>
@@ -3935,7 +3950,10 @@ export const MapExplorer: React.FC<MapExplorerProps> = React.memo(({
 
                 <Text style={styles.navSubMetrics}>
                   {formatDistance(activeRoute.totalDistanceMeters)} · ~
-                  {formatWalkingDuration(activeRoute.estimatedDurationSeconds)}
+                  {formatTravelDuration(
+                    activeRoute.estimatedDurationSeconds,
+                    activeRoute.travelMode || travelMode
+                  )}
                 </Text>
               </View>
 
@@ -3949,6 +3967,43 @@ export const MapExplorer: React.FC<MapExplorerProps> = React.memo(({
               </TouchableOpacity>
             </View>
 
+            {/* Bộ chọn Phương tiện 1 chạm: Đi bộ · Xe máy · Ô tô */}
+            {onChangeTravelMode && (
+              <View style={styles.travelModeStrip}>
+                {TRAVEL_MODE_OPTIONS.map((opt) => {
+                  const active = (activeRoute.travelMode || travelMode) === opt.id;
+                  const iconColor = active ? COLORS.white : COLORS.inkSecondary;
+                  return (
+                    <TouchableOpacity
+                      key={opt.id}
+                      activeOpacity={0.82}
+                      onPress={() => onChangeTravelMode(opt.id)}
+                      style={[
+                        styles.travelModeChip,
+                        active && styles.travelModeChipActive,
+                      ]}
+                    >
+                      {opt.id === 'walking' ? (
+                        <Footprints size={12} color={iconColor} />
+                      ) : opt.id === 'motorbike' ? (
+                        <Bike size={12} color={iconColor} />
+                      ) : (
+                        <Car size={12} color={iconColor} />
+                      )}
+                      <Text
+                        style={[
+                          styles.travelModeChipText,
+                          active && styles.travelModeChipTextActive,
+                        ]}
+                      >
+                        {opt.shortLabel}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            )}
+
             <View style={styles.navActionsRow}>
               <TouchableOpacity
                 activeOpacity={0.82}
@@ -3961,7 +4016,13 @@ export const MapExplorer: React.FC<MapExplorerProps> = React.memo(({
               >
                 <Play size={13} color={COLORS.ink} fill={COLORS.ink} />
                 <Text style={styles.navSecondaryBtnText} numberOfLines={1}>
-                  {isSimulatingWalk ? 'Đang đi bộ…' : 'Mô phỏng đi bộ'}
+                  {isSimulatingWalk
+                    ? 'Đang di chuyển…'
+                    : (activeRoute.travelMode || travelMode) === 'walking'
+                      ? 'Mô phỏng đi bộ'
+                      : (activeRoute.travelMode || travelMode) === 'motorbike'
+                        ? 'Mô phỏng xe máy'
+                        : 'Mô phỏng ô tô'}
                 </Text>
               </TouchableOpacity>
 
@@ -4959,6 +5020,37 @@ const styles = StyleSheet.create({
     fontSize: 12.5,
     fontWeight: '700',
     color: COLORS.white,
+  },
+  travelModeStrip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 8,
+  },
+  travelModeChip: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+    height: 30,
+    borderRadius: RADII.pill,
+    backgroundColor: COLORS.bg,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  travelModeChipActive: {
+    backgroundColor: COLORS.ink,
+    borderColor: COLORS.ink,
+  },
+  travelModeChipText: {
+    fontSize: 11.5,
+    fontWeight: '600',
+    color: COLORS.inkSecondary,
+  },
+  travelModeChipTextActive: {
+    color: COLORS.white,
+    fontWeight: '700',
   },
 });
 

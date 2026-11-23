@@ -34,8 +34,10 @@ from app.schemas.dto import (
     TourPlanRequest,
     TourPlanResponse,
     TourStopItem,
+    TravelMode,
 )
 from app.services.geo_service import (
+    estimate_travel_minutes,
     estimate_walking_minutes,
     filter_and_sort_by_distance,
     haversine_meters,
@@ -692,8 +694,9 @@ def _simulate_tour_minutes(
     origin: tuple[float, float],
     stops: Sequence[Any],
     stay_overrides: Optional[dict[str, int]] = None,
+    travel_mode: TravelMode = "walking",
 ) -> tuple[int, int, float]:
-    """Return `(total_walk_minutes, total_visit_minutes, total_walk_meters)` for a stop sequence."""
+    """Return `(total_travel_minutes, total_visit_minutes, total_travel_meters)` for a stop sequence."""
     curr_lat, curr_lng = origin
     walk_m_total = 0.0
     walk_min_total = 0
@@ -702,7 +705,7 @@ def _simulate_tour_minutes(
     for stop in stops:
         d = haversine_meters(curr_lat, curr_lng, float(stop.lat), float(stop.lng))
         walk_m_total += d
-        walk_min_total += estimate_walking_minutes(d)
+        walk_min_total += estimate_travel_minutes(d, travel_mode)
         sid = str(getattr(stop, "site_id", getattr(stop, "id", "")))
         visit_min_total += overrides.get(sid, int(getattr(stop, "recommended_visit_minutes", 45) or 45))
         curr_lat, curr_lng = float(stop.lat), float(stop.lng)
@@ -752,6 +755,7 @@ def build_walking_tour(
     """
     origin = (float(req.lat), float(req.lng))
     language: SupportedLanguage = req.language
+    travel_mode: TravelMode = req.travel_mode or "walking"
     budget = int(req.available_minutes)
     start_min = float(req.start_hour * 60)
 
@@ -784,7 +788,8 @@ def build_walking_tour(
             optimization_method="nearest_neighbor_2opt",
             route_polyline=[[req.lat, req.lng]],
             meal_stop_included=False,
-            summary=_build_tour_summary(0, 0, 0.0, 0.0, False, language),
+            travel_mode=travel_mode,
+            summary=_build_tour_summary(0, 0, 0.0, 0.0, False, language, travel_mode),
         )
 
     # Check if meal stop is requested AND time window overlaps a meal window with matching restaurants
@@ -810,7 +815,7 @@ def build_walking_tour(
         best_choice: Optional[tuple[float, RecommendedSiteItem, int]] = None
         for cand in remaining:
             d = haversine_meters(curr_lat, curr_lng, cand.lat, cand.lng)
-            w_min = estimate_walking_minutes(d)
+            w_min = estimate_travel_minutes(d, travel_mode)
             v_min = cand.recommended_visit_minutes
             step_cost = w_min + v_min
             if used_minutes + step_cost > heritage_budget:
@@ -831,9 +836,9 @@ def build_walking_tour(
     # If budget is very tight and nothing fit with default visit time (e.g. 30-40 min),
     # select the closest high-scoring site and cap its visit duration to fit strictly within budget.
     if not selected:
-        closest = min(scored_candidates, key=lambda c: (c.estimated_walk_minutes, -c.score))
+        closest = min(scored_candidates, key=lambda c: (c.distance_meters, -c.score))
         walk_m = closest.distance_meters
-        walk_min = estimate_walking_minutes(walk_m)
+        walk_min = estimate_travel_minutes(walk_m, travel_mode)
         if walk_min < budget:
             stay_overrides[closest.site_id] = max(10, min(closest.recommended_visit_minutes, budget - walk_min))
             selected.append(closest)
@@ -851,7 +856,7 @@ def build_walking_tour(
 
     # Ensure optimized heritage route strictly fits within total `budget`
     while len(opt_route) > 1:
-        w_min, v_min, _ = _simulate_tour_minutes(origin, opt_route, stay_overrides)
+        w_min, v_min, _ = _simulate_tour_minutes(origin, opt_route, stay_overrides, travel_mode)
         if w_min + v_min <= budget:
             break
         opt_route.pop()
@@ -888,7 +893,7 @@ def build_walking_tour(
 
         for idx, (_, site_obj, stay_min, _) in enumerate(mixed_plan):
             leg_d = haversine_meters(prev_lat, prev_lng, site_obj.lat, site_obj.lng)
-            arrival = curr_clock + estimate_walking_minutes(leg_d)
+            arrival = curr_clock + estimate_travel_minutes(leg_d, travel_mode)
             departure = arrival + stay_min
 
             # Check if arrival or departure lands inside a meal window
@@ -921,7 +926,7 @@ def build_walking_tour(
                         + [("meal", meal_rest, meal_stay, chosen_slot)]
                         + mixed_plan[insert_idx:]
                     )
-                    trial_dur = _compute_mixed_plan_duration(origin, trial_plan)
+                    trial_dur = _compute_mixed_plan_duration(origin, trial_plan, travel_mode)
                     if trial_dur <= budget:
                         mixed_plan = trial_plan
                         meal_included = True
@@ -941,7 +946,7 @@ def build_walking_tour(
         stop_lat = float(obj.lat)
         stop_lng = float(obj.lng)
         leg_m = round(haversine_meters(prev_lat, prev_lng, stop_lat, stop_lng), 2)
-        leg_min = estimate_walking_minutes(leg_m)
+        leg_min = estimate_travel_minutes(leg_m, travel_mode)
 
         arrival_min = curr_clock + leg_min
         departure_min = arrival_min + stay_min
@@ -1017,6 +1022,7 @@ def build_walking_tour(
         distance_saved,
         meal_included,
         language,
+        travel_mode,
     )
 
     return TourPlanResponse(
@@ -1032,6 +1038,7 @@ def build_walking_tour(
         optimization_method="nearest_neighbor_2opt",
         route_polyline=polyline,
         meal_stop_included=meal_included,
+        travel_mode=travel_mode,
         summary=summary,
     )
 
@@ -1039,12 +1046,13 @@ def build_walking_tour(
 def _compute_mixed_plan_duration(
     origin: tuple[float, float],
     mixed_plan: Sequence[tuple[str, Any, int, Optional[str]]],
+    travel_mode: TravelMode = "walking",
 ) -> int:
     prev_lat, prev_lng = origin
     total_min = 0
     for _, obj, stay_min, _ in mixed_plan:
         d = haversine_meters(prev_lat, prev_lng, float(obj.lat), float(obj.lng))
-        total_min += estimate_walking_minutes(d) + stay_min
+        total_min += estimate_travel_minutes(d, travel_mode) + stay_min
         prev_lat, prev_lng = float(obj.lat), float(obj.lng)
     return total_min
 
@@ -1056,6 +1064,7 @@ def _build_tour_summary(
     saved_m: float,
     meal_included: bool,
     language: SupportedLanguage,
+    travel_mode: TravelMode = "walking",
 ) -> str:
     if site_count == 0:
         return {
@@ -1069,13 +1078,15 @@ def _build_tour_summary(
     dist_str = _format_distance(walk_m, language)
     saved_str = _format_distance(saved_m, language)
     if language == "vi":
+        mode_vi = {"walking": "đi bộ", "motorbike": "xe máy", "car": "ô tô"}.get(travel_mode, "đi bộ")
         meal_txt = " (đã chèn điểm dừng ẩm thực)" if meal_included else ""
         save_txt = f", thuật toán 2-Opt giúp rút ngắn {saved_str}" if saved_m >= 10 else ""
-        return f"Lịch trình {site_count} di tích trong {duration_min} phút{meal_txt} — tổng đi bộ {dist_str}{save_txt}."
+        return f"Lịch trình {site_count} di tích trong {duration_min} phút{meal_txt} — tổng {mode_vi} {dist_str}{save_txt}."
     if language == "en":
+        mode_en = {"walking": "walking", "motorbike": "motorbike", "car": "driving"}.get(travel_mode, "walking")
         meal_txt = " including a curated meal stop" if meal_included else ""
         save_txt = f" (2-Opt saved {saved_str})" if saved_m >= 10 else ""
-        return f"Optimized {site_count}-site walking tour ({duration_min} min{meal_txt}) — {dist_str} walking{save_txt}."
+        return f"Optimized {site_count}-site {mode_en} tour ({duration_min} min{meal_txt}) — {dist_str} {mode_en}{save_txt}."
     if language == "fr":
         meal_txt = " avec pause gourmande" if meal_included else ""
         save_txt = f" (2-Opt économise {saved_str})" if saved_m >= 10 else ""

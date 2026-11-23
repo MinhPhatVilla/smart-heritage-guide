@@ -1,4 +1,8 @@
-import { HeritageCategory, SupportedLanguage } from '../types/heritage';
+import {
+  HeritageCategory,
+  SupportedLanguage,
+  TravelMode,
+} from '../types/heritage';
 import { ApiResult, apiRequest } from './apiClient';
 import { UserProfile } from './authService';
 import { WeatherContextPayload } from './weatherService';
@@ -80,6 +84,7 @@ export interface TourPlanRequest {
   include_meal_stop?: boolean;
   language?: SupportedLanguage;
   max_stops?: number;
+  travel_mode?: TravelMode;
   weather_context?: WeatherContextPayload;
 }
 
@@ -116,6 +121,7 @@ export interface TourPlanResponse {
   optimization_method: string;
   route_polyline: [number, number][];
   meal_stop_included: boolean;
+  travel_mode?: TravelMode;
   summary: string;
 }
 

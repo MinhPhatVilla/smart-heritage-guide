@@ -1,5 +1,18 @@
 export type SupportedLanguage = 'vi' | 'en' | 'fr' | 'zh' | 'ja';
 
+export type TravelMode = 'walking' | 'motorbike' | 'car';
+
+export const TRAVEL_MODE_OPTIONS: Array<{
+  id: TravelMode;
+  label: string;
+  shortLabel: string;
+  verb: string;
+}> = [
+  { id: 'walking', label: 'Đi bộ', shortLabel: 'Đi bộ', verb: 'đi bộ' },
+  { id: 'motorbike', label: 'Xe máy', shortLabel: 'Xe máy', verb: 'chạy xe máy' },
+  { id: 'car', label: 'Ô tô', shortLabel: 'Ô tô', verb: 'lái ô tô' },
+];
+
 export interface LanguageMetadata {
   code: SupportedLanguage;
   label: string;
@@ -106,6 +119,8 @@ export interface VisitedSiteRecord {
   photos: CapturedPhoto[];
   userNote: string;
   userRating: number;
+  /** Phương tiện di chuyển của hành trình (mặc định 'walking') */
+  travelMode?: TravelMode;
   /** Trạng thái xác thực chống gian lận từ Backend (tùy chọn, offline-first) */
   verificationStatus?: 'verified' | 'simulated' | 'flagged';
   verificationScore?: number;
@@ -129,6 +144,7 @@ export interface WalkingRouteResult {
   totalDistanceMeters: number;
   estimatedDurationSeconds: number;
   steps: RouteStep[];
+  travelMode?: TravelMode;
 }
 
 export interface RankedVisitedSite {

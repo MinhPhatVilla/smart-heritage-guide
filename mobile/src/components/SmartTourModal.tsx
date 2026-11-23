@@ -11,6 +11,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
+  Bike,
+  Car,
   Clock,
   CloudSun,
   Droplets,
@@ -27,6 +29,8 @@ import {
   HeritageCategory,
   HeritageSite,
   SupportedLanguage,
+  TRAVEL_MODE_OPTIONS,
+  TravelMode,
 } from '../types/heritage';
 import {
   TourPlanResponse,
@@ -47,8 +51,9 @@ export interface SmartTourModalProps {
   visitedSiteIds: string[];
   allSites: HeritageSite[];
   weather?: WeatherSnapshot | null;
+  initialTravelMode?: TravelMode;
   onClose: () => void;
-  onStartNavigateStop: (site: HeritageSite) => void;
+  onStartNavigateStop: (site: HeritageSite, travelMode?: TravelMode) => void;
   onSelectSite: (site: HeritageSite) => void;
 }
 
@@ -69,10 +74,12 @@ export const SmartTourModal: React.FC<SmartTourModalProps> = ({
   visitedSiteIds,
   allSites,
   weather = null,
+  initialTravelMode = 'walking',
   onClose,
   onStartNavigateStop,
   onSelectSite,
 }) => {
+  const [travelMode, setTravelMode] = useState<TravelMode>(initialTravelMode);
   const [availableMinutes, setAvailableMinutes] = useState<number>(120);
   const [selectedCategories, setSelectedCategories] = useState<
     HeritageCategory[]
@@ -104,6 +111,7 @@ export const SmartTourModal: React.FC<SmartTourModalProps> = ({
       include_meal_stop: includeMealStop,
       language: selectedLanguage,
       max_stops: availableMinutes >= 150 ? 6 : 4,
+      travel_mode: travelMode,
       weather_context: toWeatherContextPayload(weather),
     });
 
@@ -127,8 +135,13 @@ export const SmartTourModal: React.FC<SmartTourModalProps> = ({
   const handleStartFirstStop = () => {
     if (!firstHeritageSite) return;
     onClose();
-    onStartNavigateStop(firstHeritageSite);
+    onStartNavigateStop(firstHeritageSite, plan?.travel_mode || travelMode);
   };
+
+  const activePlanMode: TravelMode = plan?.travel_mode || travelMode;
+  const activeModeMeta =
+    TRAVEL_MODE_OPTIONS.find((m) => m.id === activePlanMode) ||
+    TRAVEL_MODE_OPTIONS[0];
 
   const handleOpenStopDetail = (stop: TourStopItem) => {
     const matched = allSites.find((s) => s.id === stop.site_id);
@@ -154,7 +167,7 @@ export const SmartTourModal: React.FC<SmartTourModalProps> = ({
                 SMART AI · EXPLAINABLE + 2-OPT TOUR PLANNER
               </Text>
             </View>
-            <Text style={styles.headerTitle}>Lập Lịch Trình Đi Bộ AI</Text>
+            <Text style={styles.headerTitle}>Lập Lịch Trình AI</Text>
           </View>
           <TouchableOpacity
             onPress={onClose}
@@ -202,7 +215,39 @@ export const SmartTourModal: React.FC<SmartTourModalProps> = ({
 
           {/* Configuration Card */}
           <View style={styles.configCard}>
-            <Text style={styles.sectionLabel}>1. Quỹ thời gian rảnh của bạn</Text>
+            <Text style={styles.sectionLabel}>1. Phương tiện di chuyển</Text>
+            <View style={styles.budgetRow}>
+              {TRAVEL_MODE_OPTIONS.map((opt) => {
+                const active = travelMode === opt.id;
+                const iconColor = active ? COLORS.white : COLORS.inkSecondary;
+                return (
+                  <TouchableOpacity
+                    key={opt.id}
+                    onPress={() => setTravelMode(opt.id)}
+                    style={[styles.budgetChip, active && styles.budgetChipActive]}
+                    activeOpacity={0.8}
+                  >
+                    {opt.id === 'walking' ? (
+                      <Footprints size={13} color={iconColor} />
+                    ) : opt.id === 'motorbike' ? (
+                      <Bike size={13} color={iconColor} />
+                    ) : (
+                      <Car size={13} color={iconColor} />
+                    )}
+                    <Text
+                      style={[
+                        styles.budgetChipText,
+                        active && styles.budgetChipTextActive,
+                      ]}
+                    >
+                      {opt.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            <Text style={styles.sectionLabel}>2. Quỹ thời gian rảnh của bạn</Text>
             <View style={styles.budgetRow}>
               {TIME_BUDGET_OPTIONS.map((mins) => {
                 const active = availableMinutes === mins;
@@ -231,7 +276,7 @@ export const SmartTourModal: React.FC<SmartTourModalProps> = ({
             </View>
 
             <Text style={styles.sectionLabel}>
-              2. Sở thích di sản (để trống = chọn cân bằng)
+              3. Sở thích di sản (để trống = chọn cân bằng)
             </Text>
             <View style={styles.categoryWrap}>
               {CATEGORY_OPTIONS.map((cat) => {
@@ -291,7 +336,7 @@ export const SmartTourModal: React.FC<SmartTourModalProps> = ({
               <Text style={styles.generateBtnText}>
                 {isLoading
                   ? 'Đang tối ưu lộ trình 2-Opt...'
-                  : 'Tạo lịch trình đi bộ tối ưu'}
+                  : `Tạo lịch trình (${TRAVEL_MODE_OPTIONS.find((m) => m.id === travelMode)?.label || 'Đi bộ'})`}
               </Text>
             </TouchableOpacity>
           </View>
@@ -329,7 +374,7 @@ export const SmartTourModal: React.FC<SmartTourModalProps> = ({
                     </Text>
                   </View>
                   <View style={styles.kpiPill}>
-                    <Text style={styles.kpiLabel}>Đi bộ</Text>
+                    <Text style={styles.kpiLabel}>{activeModeMeta.label}</Text>
                     <Text style={styles.kpiValue}>
                       {formatDistance(plan.total_walking_meters)} ·{' '}
                       {plan.total_walking_minutes}p
@@ -343,7 +388,7 @@ export const SmartTourModal: React.FC<SmartTourModalProps> = ({
                     {plan.distance_saved_meters > 0
                       ? `Thuật toán 2-Opt giúp rút ngắn ${formatDistance(
                           plan.distance_saved_meters
-                        )} quãng đường đi bộ.`
+                        )} quãng đường di chuyển.`
                       : `Thứ tự di chuyển đã đạt tối ưu bằng Nearest-Neighbor + 2-Opt.`}
                   </Text>
                 </View>
@@ -394,9 +439,15 @@ export const SmartTourModal: React.FC<SmartTourModalProps> = ({
                           <Text style={styles.stopName}>{stop.name}</Text>
 
                           <View style={styles.walkLegRow}>
-                            <Footprints size={12} color={COLORS.accent} />
+                            {activePlanMode === 'walking' ? (
+                              <Footprints size={12} color={COLORS.accent} />
+                            ) : activePlanMode === 'motorbike' ? (
+                              <Bike size={12} color={COLORS.accent} />
+                            ) : (
+                              <Car size={12} color={COLORS.accent} />
+                            )}
                             <Text style={styles.walkLegText}>
-                              Đi bộ chặng này:{' '}
+                              {activeModeMeta.label} chặng này:{' '}
                               {formatDistance(stop.walk_from_prev_meters)} (~
                               {stop.walk_from_prev_minutes} phút)
                             </Text>

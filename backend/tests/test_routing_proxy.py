@@ -216,3 +216,15 @@ async def test_expired_cache_entry_is_refreshed(async_db: AsyncSession) -> None:
         res = await get_walking_route(async_db, req)
         assert res.cached is False
         assert res.total_distance_meters == 710.0
+
+
+def test_multimodal_cache_keys_and_fallback_durations() -> None:
+    k_walk = build_route_cache_key(10.7769, 106.6953, 10.3460, 107.0843, "walking")
+    k_moto = build_route_cache_key(10.7769, 106.6953, 10.3460, 107.0843, "motorbike")
+    k_car = build_route_cache_key(10.7769, 106.6953, 10.3460, 107.0843, "car")
+    assert len({k_walk, k_moto, k_car}) == 3
+
+    r_walk = build_fallback_route(10.7769, 106.6953, 10.8069, 106.7253, "Điểm A", "walking")
+    r_moto = build_fallback_route(10.7769, 106.6953, 10.8069, 106.7253, "Điểm A", "motorbike")
+    r_car = build_fallback_route(10.7769, 106.6953, 10.8069, 106.7253, "Điểm A", "car")
+    assert r_car["estimated_duration_seconds"] < r_moto["estimated_duration_seconds"] < r_walk["estimated_duration_seconds"]

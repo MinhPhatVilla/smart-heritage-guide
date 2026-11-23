@@ -66,6 +66,8 @@ import {
   NearbyRestaurant,
   SUPPORTED_LANGUAGES,
   SupportedLanguage,
+  TRAVEL_MODE_OPTIONS,
+  TravelMode,
   VisitedSiteRecord,
   WalkingRouteResult,
 } from './src/types/heritage';
@@ -78,6 +80,7 @@ import {
   formatWalkingDuration,
   getNearbySitesWithMetrics,
   interpolateRouteForSmoothWalk,
+  suggestTravelModeForDistance,
 } from './src/utils/geoUtils';
 import { fetchWalkingRoute } from './src/services/routingService';
 import {
@@ -202,6 +205,7 @@ function SmartHeritageAppContent() {
   const [activeRoute, setActiveRoute] = useState<WalkingRouteResult | null>(
     null
   );
+  const [travelMode, setTravelMode] = useState<TravelMode>('walking');
   const [isRoutingLoading, setIsRoutingLoading] = useState<boolean>(false);
   const [activeWalkSeconds, setActiveWalkSeconds] = useState<number>(0);
   const [isSimulatingWalk, setIsSimulatingWalk] = useState<boolean>(false);
@@ -533,11 +537,28 @@ function SmartHeritageAppContent() {
   );
 
   const handleStartNavigationToSite = useCallback(
-    async (site: HeritageSite) => {
+    async (site: HeritageSite, explicitMode?: TravelMode) => {
       stopWalkSimulation();
       const localName = (
         site.translations[selectedLanguage] || site.translations.vi
       ).name;
+      const straightDist = calculateDistanceMeters(
+        userLocation[0],
+        userLocation[1],
+        site.lat,
+        site.lng
+      );
+      const nextMode: TravelMode =
+        explicitMode ?? suggestTravelModeForDistance(straightDist, travelMode);
+      if (nextMode !== travelMode) {
+        setTravelMode(nextMode);
+        if (!explicitMode && nextMode === 'motorbike') {
+          setToastMessage(
+            `Khoảng cách ${formatDistance(straightDist)} — tự chọn Xe máy (đổi phương tiện ngay trên bản đồ).`
+          );
+        }
+      }
+
       setSelectedSite(null);
       setActiveTab('map');
       setIsRoutingLoading(true);
@@ -548,7 +569,8 @@ function SmartHeritageAppContent() {
         [site.lat, site.lng],
         localName,
         'heritage',
-        site.id
+        site.id,
+        nextMode
       );
       setIsRoutingLoading(false);
       setActiveRoute(route);
@@ -562,12 +584,23 @@ function SmartHeritageAppContent() {
       setActiveWalkSeconds(0);
       usedSimulatedWalkRef.current = false;
     },
-    [selectedLanguage, stopWalkSimulation, userLocation]
+    [selectedLanguage, stopWalkSimulation, travelMode, userLocation]
   );
 
   const handleNavigateToRestaurant = useCallback(
     async (restaurant: NearbyRestaurant, _parentSite: HeritageSite) => {
       stopWalkSimulation();
+      const straightDist = calculateDistanceMeters(
+        userLocation[0],
+        userLocation[1],
+        restaurant.lat,
+        restaurant.lng
+      );
+      const nextMode = suggestTravelModeForDistance(straightDist, travelMode);
+      if (nextMode !== travelMode) {
+        setTravelMode(nextMode);
+      }
+
       setSelectedSite(null);
       setActiveTab('map');
       setIsRoutingLoading(true);
@@ -578,7 +611,8 @@ function SmartHeritageAppContent() {
         [restaurant.lat, restaurant.lng],
         `${restaurant.name} (${restaurant.rating.toFixed(1)}★)`,
         'restaurant',
-        restaurant.id
+        restaurant.id,
+        nextMode
       );
       setIsRoutingLoading(false);
       setActiveRoute(route);
@@ -593,7 +627,33 @@ function SmartHeritageAppContent() {
       }
       setActiveWalkSeconds(0);
     },
-    [stopWalkSimulation, userLocation]
+    [stopWalkSimulation, travelMode, userLocation]
+  );
+
+  const handleChangeTravelMode = useCallback(
+    async (nextMode: TravelMode) => {
+      setTravelMode(nextMode);
+      triggerHaptic('selection');
+      if (!activeRoute) return;
+
+      stopWalkSimulation();
+      setIsRoutingLoading(true);
+      const recalculated = await fetchWalkingRoute(
+        userLocation,
+        activeRoute.destination,
+        activeRoute.targetName,
+        activeRoute.targetType,
+        activeRoute.targetId,
+        nextMode
+      );
+      setIsRoutingLoading(false);
+      setActiveRoute(recalculated);
+      setActiveWalkSeconds(0);
+      const modeLabel =
+        TRAVEL_MODE_OPTIONS.find((m) => m.id === nextMode)?.label || nextMode;
+      setToastMessage(`Đã cập nhật lộ trình sang chế độ ${modeLabel}.`);
+    },
+    [activeRoute, stopWalkSimulation, userLocation]
   );
 
   const handleSimulateWalkAlongRoute = useCallback(() => {
@@ -603,8 +663,13 @@ function SmartHeritageAppContent() {
     setIsSimulatingWalk(true);
     triggerHaptic('light');
 
-    // Nội suy đều ~10m mỗi bước dọc tuyến OSRM để camera 3D lướt êm qua mọi khúc cua
-    const coords = interpolateRouteForSmoothWalk(activeRoute.coordinates, 10);
+    const routeMode: TravelMode = activeRoute.travelMode || travelMode;
+    const stepMeters =
+      routeMode === 'car' ? 80 : routeMode === 'motorbike' ? 45 : 10;
+    const coords = interpolateRouteForSmoothWalk(
+      activeRoute.coordinates,
+      stepMeters
+    );
     let stepIdx = 0;
     const stepDurationIncrement = Math.max(
       6,
@@ -639,8 +704,14 @@ function SmartHeritageAppContent() {
           );
           if (targetSite) {
             lastAutoTriggeredSiteIdRef.current = targetSite.id;
+            const arriveVerb =
+              routeMode === 'walking'
+                ? 'đi bộ đến'
+                : routeMode === 'motorbike'
+                  ? 'chạy xe máy đến'
+                  : 'lái ô tô đến';
             setToastMessage(
-              `Đã đi bộ đến ${targetSite.translations.vi.name}! Bạn có thể check-in lưu ảnh ngay.`
+              `Đã ${arriveVerb} ${targetSite.translations.vi.name}! Bạn có thể check-in lưu ảnh ngay.`
             );
             if (autoAudioGuide) {
               setQuickAudioSite(targetSite);
@@ -661,7 +732,7 @@ function SmartHeritageAppContent() {
       setUserLocation(nextCoord);
       setActiveWalkSeconds((prev) => prev + stepDurationIncrement);
     }, 260);
-  }, [activeRoute, autoAudioGuide, isSimulatingWalk, stopGpsWatch]);
+  }, [activeRoute, autoAudioGuide, catalogSites, isSimulatingWalk, stopGpsWatch, travelMode]);
 
   const handleCancelRoute = useCallback(() => {
     stopWalkSimulation();
@@ -703,6 +774,7 @@ function SmartHeritageAppContent() {
         [photoCaptureSite.lat, photoCaptureSite.lng],
       ];
       const wasSimulated = usedSimulatedWalkRef.current;
+      const checkInMode: TravelMode = activeRoute?.travelMode || travelMode;
 
       const updated = await upsertSiteVisitRecord(visitedRecords, {
         siteId: photoCaptureSite.id,
@@ -715,6 +787,7 @@ function SmartHeritageAppContent() {
         photo: data.photo,
         userNote: data.userNote,
         userRating: data.userRating,
+        travelMode: checkInMode,
       });
       setVisitedRecords(updated);
       setActiveRoute(null);
@@ -740,6 +813,7 @@ function SmartHeritageAppContent() {
         userNote: data.userNote,
         userRating: data.userRating,
         isSimulated: wasSimulated,
+        travelMode: checkInMode,
         visionVerifiedSiteId: data.visionDetectedSiteId ?? null,
         visionConfidence: data.visionConfidence ?? null,
       });
@@ -1801,6 +1875,8 @@ function SmartHeritageAppContent() {
               visitedRecords={visitedRecords}
               selectedLanguage={selectedLanguage}
               activeRoute={activeRoute}
+              travelMode={travelMode}
+              onChangeTravelMode={handleChangeTravelMode}
               isRoutingLoading={isRoutingLoading}
               activeWalkSeconds={activeWalkSeconds}
               isSimulatingWalk={isSimulatingWalk}
@@ -2451,6 +2527,7 @@ function SmartHeritageAppContent() {
         visitedSiteIds={visitedRecords.map((r) => r.siteId)}
         allSites={catalogSites}
         weather={weather}
+        initialTravelMode={travelMode}
         onClose={() => setSmartTourVisible(false)}
         onStartNavigateStop={handleStartNavigationToSite}
         onSelectSite={(site) => setSelectedSite(site)}

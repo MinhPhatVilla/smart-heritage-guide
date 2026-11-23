@@ -153,3 +153,41 @@ def test_verify_checkin_request_wrapper():
     res = verify_checkin_request(req, site)  # type: ignore[arg-type]
     assert res.status == "verified"
     assert res.score >= 70.0
+
+
+def test_motorbike_travel_mode_is_verified_without_walking_leaderboard_credit():
+    # 5 km in 500s = 10 m/s (36 km/h motorbike pace) -> valid for motorbike!
+    res = verify_walking_checkin(
+        target_site_id="dinh-doc-lap",
+        target_lat=TARGET_LAT,
+        target_lng=TARGET_LNG,
+        checkin_lat=10.7769,
+        checkin_lng=106.6953,
+        walking_duration_seconds=500,
+        walking_distance_meters=5000,
+        route_coordinates=_smooth_walk_route(),
+        is_simulated=False,
+        travel_mode="motorbike",
+    )
+    assert res.status == "verified"
+    assert res.score >= 85.0
+    assert res.details["travel_mode"] == "motorbike"
+    assert res.details["counts_for_walking_leaderboard"] is False
+
+
+def test_car_extreme_teleport_speed_is_still_flagged():
+    # 20 km in 100s = 200 m/s (720 km/h) -> still flagged even in car mode
+    res = verify_walking_checkin(
+        target_site_id="dinh-doc-lap",
+        target_lat=TARGET_LAT,
+        target_lng=TARGET_LNG,
+        checkin_lat=10.7769,
+        checkin_lng=106.6953,
+        walking_duration_seconds=100,
+        walking_distance_meters=20000,
+        route_coordinates=_smooth_walk_route(),
+        is_simulated=False,
+        travel_mode="car",
+    )
+    assert res.status == "flagged"
+    assert "motorized_or_teleport_speed" in res.flags

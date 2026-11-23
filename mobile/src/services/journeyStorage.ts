@@ -1,5 +1,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { CapturedPhoto, VisitedSiteRecord } from '../types/heritage';
+import {
+  CapturedPhoto,
+  TravelMode,
+  VisitedSiteRecord,
+} from '../types/heritage';
 import { ApiResult, apiRequest, getAuthToken } from './apiClient';
 import { BadgeOut } from './aiService';
 
@@ -120,6 +124,7 @@ export interface JourneyRecordInput {
   photo?: CapturedPhoto;
   userNote?: string;
   userRating?: number;
+  travelMode?: TravelMode;
 }
 
 export interface AddPhotoFallbackMeta {
@@ -131,6 +136,7 @@ export interface AddPhotoFallbackMeta {
   routeCoordinates?: [number, number][];
   userNote?: string;
   userRating?: number;
+  travelMode?: TravelMode;
 }
 
 function cloneSeedJourneys(): VisitedSiteRecord[] {
@@ -171,6 +177,7 @@ function mergeJourneyRecord(
       userNote: input.userNote !== undefined ? input.userNote : existing.userNote,
       userRating:
         input.userRating !== undefined ? input.userRating : existing.userRating,
+      travelMode: input.travelMode ?? existing.travelMode ?? 'walking',
     };
     const next = [...records];
     next[existingIdx] = updated;
@@ -189,8 +196,9 @@ function mergeJourneyRecord(
     routeCoordinates: input.routeCoordinates || [],
     photos: input.photo ? [input.photo] : [],
     userNote:
-      input.userNote || `Đã đi bộ khám phá và check-in tại ${input.siteName}.`,
+      input.userNote || `Đã khám phá và check-in tại ${input.siteName}.`,
     userRating: input.userRating || 5,
+    travelMode: input.travelMode || 'walking',
   };
 
   return [created, ...records];
@@ -378,6 +386,7 @@ export interface CloudCheckInInput {
   userNote?: string;
   userRating?: number;
   isSimulated?: boolean;
+  travelMode?: TravelMode;
   visionVerifiedSiteId?: string | null;
   visionConfidence?: number | null;
   visitedAt?: string;
@@ -439,6 +448,7 @@ export async function syncCheckInToCloud(
       user_note: input.userNote || '',
       user_rating: Math.min(5, Math.max(1, Math.round(input.userRating ?? 5))),
       is_simulated: Boolean(input.isSimulated),
+      travel_mode: input.travelMode || 'walking',
       vision_verified_site_id: input.visionVerifiedSiteId ?? null,
       vision_confidence: input.visionConfidence ?? null,
       visited_at: input.visitedAt || new Date().toISOString(),
@@ -558,6 +568,7 @@ export async function syncAllOfflineJourneys(
       user_note: rec.userNote || '',
       user_rating: Math.min(5, Math.max(1, Math.round(rec.userRating || 5))),
       is_simulated: rec.verificationStatus === 'simulated',
+      travel_mode: rec.travelMode || 'walking',
       visited_at: rec.visitedAt,
     };
   });
