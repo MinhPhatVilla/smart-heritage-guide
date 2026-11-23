@@ -274,7 +274,8 @@ class MultiLingualSpeechService {
   private async fetchWebNeuralBlobUrl(
     text: string,
     lang: SupportedLanguage,
-    gender: SpeechVoiceGender
+    gender: SpeechVoiceGender,
+    isPrefetch = false
   ): Promise<string | null> {
     if (!shouldTryBackendProxy() || Date.now() < this.neuralDisabledUntil) {
       return null;
@@ -288,8 +289,10 @@ class MultiLingualSpeechService {
 
     const promise = (async (): Promise<string | null> => {
       const controller = new AbortController();
-      this.activeFetchAbort = controller;
-      const timeoutId = setTimeout(() => controller.abort(), 7000);
+      if (!isPrefetch) {
+        this.activeFetchAbort = controller;
+      }
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
       try {
         const res = await fetch(`${getApiBaseUrl()}/api/v1/ai/tts`, {
           method: 'POST',
@@ -303,7 +306,7 @@ class MultiLingualSpeechService {
         });
         if (!res.ok) {
           if (res.status >= 500 || res.status === 404) {
-            this.neuralDisabledUntil = Date.now() + 20_000;
+            this.neuralDisabledUntil = Date.now() + 15_000;
           }
           return null;
         }
@@ -315,9 +318,9 @@ class MultiLingualSpeechService {
         this.webBlobCache.set(key, blobUrl);
         return blobUrl;
       } catch {
-        if (!controller.signal.aborted) {
-          // Backend offline -> tạm dừng thử Neural TTS 20s để tránh delay mỗi đoạn
-          this.neuralDisabledUntil = Date.now() + 20_000;
+        if (!controller.signal.aborted && !isPrefetch) {
+          // Backend offline -> tạm dừng thử Neural TTS 15s để tránh delay mỗi đoạn
+          this.neuralDisabledUntil = Date.now() + 15_000;
         }
         return null;
       } finally {
@@ -341,7 +344,7 @@ class MultiLingualSpeechService {
       this.currentLang
     );
     if (!nextText) return;
-    void this.fetchWebNeuralBlobUrl(nextText, this.currentLang, this.voiceGender);
+    void this.fetchWebNeuralBlobUrl(nextText, this.currentLang, this.voiceGender, true);
   }
 
   private async tryPlayNeuralAudio(
@@ -464,8 +467,11 @@ class MultiLingualSpeechService {
         { uri: ttsUrl },
         { updateInterval: 250, downloadFirst: true }
       );
-      player.shouldCorrectPitch = true;
-      player.setPlaybackRate(this.currentRate);
+      try {
+        player.shouldCorrectPitch = true;
+      } catch {
+        // Ignore on devices that do not support pitch correction before load
+      }
       this.nativePlayer = player;
 
       return await new Promise<boolean>((resolve) => {
@@ -476,10 +482,10 @@ class MultiLingualSpeechService {
             finished = true;
             this.callbacks.onLoadingChange?.(false);
             this.cleanupAudioPlayers();
-            this.neuralDisabledUntil = Date.now() + 20_000;
+            this.neuralDisabledUntil = Date.now() + 15_000;
             resolve(false);
           }
-        }, 7000);
+        }, 10000);
 
         this.nativeSubscription = player.addListener(
           'playbackStatusUpdate',
@@ -490,7 +496,7 @@ class MultiLingualSpeechService {
               clearTimeout(guardTimer);
               this.callbacks.onLoadingChange?.(false);
               this.cleanupAudioPlayers();
-              this.neuralDisabledUntil = Date.now() + 20_000;
+              this.neuralDisabledUntil = Date.now() + 15_000;
               if (!started && !finished) {
                 finished = true;
                 resolve(false);
@@ -502,6 +508,18 @@ class MultiLingualSpeechService {
               started = true;
               clearTimeout(guardTimer);
               this.callbacks.onLoadingChange?.(false);
+              try {
+                player.setPlaybackRate(this.currentRate);
+              } catch {
+                // Ignore unsupported rate before playback starts
+              }
+              if (!status.playing && this.state === 'playing') {
+                try {
+                  player.play();
+                } catch {
+                  // Already starting
+                }
+              }
               this.notifyEngineChange('neural', voiceLabel);
               resolve(true);
             }
@@ -523,7 +541,11 @@ class MultiLingualSpeechService {
           }
         );
 
-        player.play();
+        try {
+          player.play();
+        } catch {
+          // Will start automatically on isLoaded
+        }
       });
     } catch {
       this.callbacks.onLoadingChange?.(false);

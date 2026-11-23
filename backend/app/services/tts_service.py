@@ -27,27 +27,27 @@ NEURAL_VOICES: dict[str, dict[str, dict[str, str]]] = {
         "female": {
             "id": "vi-VN-HoaiMyNeural",
             "label": "Hoài My (Nữ · Truyền cảm)",
-            "rate": "-4%",
+            "rate": "+0%",
             "pitch": "+0Hz",
         },
         "male": {
             "id": "vi-VN-NamMinhNeural",
             "label": "Nam Minh (Nam · Trầm ấm)",
-            "rate": "-4%",
-            "pitch": "-1Hz",
+            "rate": "+0%",
+            "pitch": "+0Hz",
         },
     },
     "en": {
         "female": {
             "id": "en-US-AriaNeural",
             "label": "Aria (Female · Expressive)",
-            "rate": "-3%",
+            "rate": "+0%",
             "pitch": "+0Hz",
         },
         "male": {
             "id": "en-US-GuyNeural",
             "label": "Guy (Male · Warm)",
-            "rate": "-3%",
+            "rate": "+0%",
             "pitch": "+0Hz",
         },
     },
@@ -55,13 +55,13 @@ NEURAL_VOICES: dict[str, dict[str, dict[str, str]]] = {
         "female": {
             "id": "fr-FR-DeniseNeural",
             "label": "Denise (Femme · Naturelle)",
-            "rate": "-3%",
+            "rate": "+0%",
             "pitch": "+0Hz",
         },
         "male": {
             "id": "fr-FR-HenriNeural",
             "label": "Henri (Homme · Posé)",
-            "rate": "-3%",
+            "rate": "+0%",
             "pitch": "+0Hz",
         },
     },
@@ -69,13 +69,13 @@ NEURAL_VOICES: dict[str, dict[str, dict[str, str]]] = {
         "female": {
             "id": "zh-CN-XiaoxiaoNeural",
             "label": "晓晓 (女声 · 自然)",
-            "rate": "-3%",
+            "rate": "+0%",
             "pitch": "+0Hz",
         },
         "male": {
             "id": "zh-CN-YunxiNeural",
             "label": "云希 (男声 · 沉稳)",
-            "rate": "-3%",
+            "rate": "+0%",
             "pitch": "+0Hz",
         },
     },
@@ -83,13 +83,13 @@ NEURAL_VOICES: dict[str, dict[str, dict[str, str]]] = {
         "female": {
             "id": "ja-JP-NanamiNeural",
             "label": "七海 (女性 · 丁寧)",
-            "rate": "-3%",
+            "rate": "+0%",
             "pitch": "+0Hz",
         },
         "male": {
             "id": "ja-JP-KeitaNeural",
             "label": "圭太 (男性 · 落ち着き)",
-            "rate": "-3%",
+            "rate": "+0%",
             "pitch": "+0Hz",
         },
     },
@@ -185,7 +185,7 @@ async def synthesize_speech_mp3(
     pitch = voice_cfg["pitch"]
 
     cache_key = hashlib.sha256(
-        f"v1|{voice_id}|{rate}|{pitch}|{normalized}".encode("utf-8")
+        f"v2|{voice_id}|{rate}|{pitch}|{normalized}".encode("utf-8")
     ).hexdigest()[:28]
     cache_path = get_tts_cache_dir() / f"{cache_key}.mp3"
 
@@ -202,20 +202,35 @@ async def synthesize_speech_mp3(
         except ImportError as exc:  # pragma: no cover
             raise RuntimeError("Thư viện edge-tts chưa được cài đặt trên máy chủ.") from exc
 
-        communicator = edge_tts.Communicate(
-            text=normalized,
-            voice=voice_id,
-            rate=rate,
-            pitch=pitch,
-        )
-        audio_chunks: list[bytes] = []
-        async for chunk in communicator.stream():
-            if chunk.get("type") == "audio" and chunk.get("data"):
-                audio_chunks.append(chunk["data"])
+        async def _stream_once(target_text: str) -> bytes:
+            # Dùng tham số mặc định của Microsoft Neural TTS (tránh lỗi NoAudioReceived khi gửi custom rate/pitch SSML)
+            communicator = edge_tts.Communicate(
+                text=target_text,
+                voice=voice_id,
+            )
+            chunks: list[bytes] = []
+            async for chunk in communicator.stream():
+                if chunk.get("type") == "audio" and chunk.get("data"):
+                    chunks.append(chunk["data"])
+            return b"".join(chunks)
 
-        audio_bytes = b"".join(audio_chunks)
+        audio_bytes = b""
+        last_error: Exception | None = None
+        for attempt in range(2):
+            try:
+                audio_bytes = await _stream_once(normalized)
+                if len(audio_bytes) >= 256:
+                    break
+            except Exception as exc:
+                last_error = exc
+                if attempt == 0:
+                    await asyncio.sleep(0.25)
+
         if len(audio_bytes) < 256:
-            raise RuntimeError("Không thể tạo âm thanh Neural TTS cho đoạn văn bản này.")
+            detail = f" ({type(last_error).__name__}: {last_error})" if last_error else ""
+            raise RuntimeError(
+                f"Không thể tạo âm thanh Neural TTS cho đoạn văn bản này.{detail}"
+            ) from last_error
 
         tmp_path = cache_path.with_suffix(".tmp")
         tmp_path.write_bytes(audio_bytes)
