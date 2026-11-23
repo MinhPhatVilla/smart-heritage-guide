@@ -22,8 +22,9 @@ local_dev.db
 *.sqlite3
 *.db
 
-# Local uploads & test artifacts
+# Local uploads, offline AI/TTS models & test artifacts
 uploads/
+models/
 .pytest_cache/
 .coverage
 htmlcov/

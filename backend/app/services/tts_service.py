@@ -1,101 +1,212 @@
-"""Natural Neural Text-to-Speech (TTS) service with persistent MP3 caching.
+"""Dual-Engine Zero-Disk Streaming Text-to-Speech (TTS) Service.
 
-Uses Microsoft Azure Neural voices via `edge-tts` (free, zero API key required)
-with curated warm storytelling voices across all 5 supported languages
-(`vi`, `en`, `fr`, `zh`, `ja`) in both Female and Male personas, plus natural
-Vietnamese/multilingual speech text preprocessing so abbreviations, years, and
-punctuation sound effortless and human-like.
+Thiết kế theo 2 hướng song song — **KHÔNG sinh / KHÔNG lưu bất kỳ file `.mp3` nào ra ổ đĩa**:
+
+1. **Engine 1 — Universal RAM Streaming (`edge-neural`, 140+ ngôn ngữ, >300 giọng Neural):**
+   - Ánh xạ tức thì 5 ngôn ngữ cốt lõi (`vi`, `en`, `fr`, `zh`, `ja`) và tự động tra cứu
+     mọi ngôn ngữ khác trên thế giới (`ko`, `th`, `de`, `es`, `ru`, `it`, `pt`, `id`, `ar`, `hi`...)
+     qua danh mục giọng động `edge_tts.list_voices()`.
+   - Stream trực tiếp trong RAM kèm bộ đệm LRU giới hạn nhẹ trong RAM (tắt server = 0 file rác).
+
+2. **Engine 2 — Open-Source 100% Offline ONNX (`sherpa-onnx`, WAV thuần trong RAM):**
+   - Chạy mô hình mã nguồn mở cục bộ trên CPU không cần Internet, không cần API key:
+     - Piper VITS ONNX (`vits-piper-vi_VN-vais1000-medium`, `en`, `fr`, `zh`, `de`, `es`, `ru`...)
+     - Kokoro-82M Multi-Lang ONNX (`kokoro-multi-lang-v1_0` cho `en/fr/zh/ja/es/it/pt/hi`)
+     - Tự động nhận diện mọi thư mục model `.onnx` + `tokens.txt` đặt trong `backend/models/tts/<lang>/`.
+   - Tổng hợp PCM và đóng gói `audio/wav` hoàn toàn trong `io.BytesIO` (0 file tạm trên đĩa).
+
+Chế độ `provider="auto"` (mặc định):
+- Ưu tiên Engine 1 (`edge-neural` 140+ ngôn ngữ trong RAM) → nếu mất mạng hoặc bị chặn,
+  tự động chuyển sang Engine 2 (`sherpa-onnx` offline ONNX trong RAM).
+- Hỗ trợ chỉ định tường minh `provider="offline"` (ép chạy 100% open-source cục bộ)
+  hoặc `provider="neural"` (ép chạy Neural RAM stream).
 """
 
 from __future__ import annotations
 
+import array
 import asyncio
+from collections import OrderedDict
+from dataclasses import dataclass
 import hashlib
-import re
+import io
 from pathlib import Path
-from typing import Literal
+import re
+from typing import Any, Literal
+import wave
 
 from app.core.config import settings
-from app.schemas.dto import SupportedLanguage
 
 VoiceGender = Literal["female", "male"]
+TtsProviderMode = Literal["auto", "neural", "offline"]
 
 MAX_TTS_TEXT_LENGTH = 1800
 
+# 5 ngôn ngữ cốt lõi của ứng dụng được ánh xạ sẵn (0ms lookup)
 NEURAL_VOICES: dict[str, dict[str, dict[str, str]]] = {
     "vi": {
         "female": {
             "id": "vi-VN-HoaiMyNeural",
             "label": "Hoài My (Nữ · Truyền cảm)",
-            "rate": "+0%",
-            "pitch": "+0Hz",
+            "locale": "vi-VN",
         },
         "male": {
             "id": "vi-VN-NamMinhNeural",
             "label": "Nam Minh (Nam · Trầm ấm)",
-            "rate": "+0%",
-            "pitch": "+0Hz",
+            "locale": "vi-VN",
         },
     },
     "en": {
         "female": {
             "id": "en-US-AriaNeural",
             "label": "Aria (Female · Expressive)",
-            "rate": "+0%",
-            "pitch": "+0Hz",
+            "locale": "en-US",
         },
         "male": {
             "id": "en-US-GuyNeural",
             "label": "Guy (Male · Warm)",
-            "rate": "+0%",
-            "pitch": "+0Hz",
+            "locale": "en-US",
         },
     },
     "fr": {
         "female": {
             "id": "fr-FR-DeniseNeural",
             "label": "Denise (Femme · Naturelle)",
-            "rate": "+0%",
-            "pitch": "+0Hz",
+            "locale": "fr-FR",
         },
         "male": {
             "id": "fr-FR-HenriNeural",
             "label": "Henri (Homme · Posé)",
-            "rate": "+0%",
-            "pitch": "+0Hz",
+            "locale": "fr-FR",
         },
     },
     "zh": {
         "female": {
             "id": "zh-CN-XiaoxiaoNeural",
             "label": "晓晓 (女声 · 自然)",
-            "rate": "+0%",
-            "pitch": "+0Hz",
+            "locale": "zh-CN",
         },
         "male": {
             "id": "zh-CN-YunxiNeural",
             "label": "云希 (男声 · 沉稳)",
-            "rate": "+0%",
-            "pitch": "+0Hz",
+            "locale": "zh-CN",
         },
     },
     "ja": {
         "female": {
             "id": "ja-JP-NanamiNeural",
             "label": "七海 (女性 · 丁寧)",
-            "rate": "+0%",
-            "pitch": "+0Hz",
+            "locale": "ja-JP",
         },
         "male": {
             "id": "ja-JP-KeitaNeural",
             "label": "圭太 (男性 · 落ち着き)",
-            "rate": "+0%",
-            "pitch": "+0Hz",
+            "locale": "ja-JP",
         },
     },
 }
 
+# Danh mục model Open-Source Offline (k2-fsa/sherpa-onnx) — tải bằng `python -m scripts.download_tts_models`
+OFFLINE_ONNX_CATALOG: dict[str, dict[str, Any]] = {
+    "vi": {
+        "name": "vits-piper-vi_VN-vais1000-medium",
+        "kind": "vits",
+        "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/vits-piper-vi_VN-vais1000-medium.tar.bz2",
+        "size_mb": 63,
+        "languages": ["vi"],
+        "label": "Piper VITS Tiếng Việt (VAIS1000 · Offline)",
+    },
+    "en": {
+        "name": "vits-piper-en_US-lessac-medium",
+        "kind": "vits",
+        "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/vits-piper-en_US-lessac-medium.tar.bz2",
+        "size_mb": 63,
+        "languages": ["en"],
+        "label": "Piper VITS English US (Lessac · Offline)",
+    },
+    "fr": {
+        "name": "vits-piper-fr_FR-siwis-medium",
+        "kind": "vits",
+        "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/vits-piper-fr_FR-siwis-medium.tar.bz2",
+        "size_mb": 63,
+        "languages": ["fr"],
+        "label": "Piper VITS Français (Siwis · Offline)",
+    },
+    "zh": {
+        "name": "vits-piper-zh_CN-huayan-medium",
+        "kind": "vits",
+        "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/vits-piper-zh_CN-huayan-medium.tar.bz2",
+        "size_mb": 63,
+        "languages": ["zh"],
+        "label": "Piper VITS 中文 (Huayan · Offline)",
+    },
+    "de": {
+        "name": "vits-piper-de_DE-thorsten-medium",
+        "kind": "vits",
+        "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/vits-piper-de_DE-thorsten-medium.tar.bz2",
+        "size_mb": 63,
+        "languages": ["de"],
+        "label": "Piper VITS Deutsch (Thorsten · Offline)",
+    },
+    "es": {
+        "name": "vits-piper-es_ES-davefx-medium",
+        "kind": "vits",
+        "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/vits-piper-es_ES-davefx-medium.tar.bz2",
+        "size_mb": 63,
+        "languages": ["es"],
+        "label": "Piper VITS Español (DaveFX · Offline)",
+    },
+    "ru": {
+        "name": "vits-piper-ru_RU-ruslan-medium",
+        "kind": "vits",
+        "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/vits-piper-ru_RU-ruslan-medium.tar.bz2",
+        "size_mb": 63,
+        "languages": ["ru"],
+        "label": "Piper VITS Русский (Ruslan · Offline)",
+    },
+    "kokoro": {
+        "name": "kokoro-multi-lang-v1_0",
+        "kind": "kokoro",
+        "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/kokoro-multi-lang-v1_0.tar.bz2",
+        "size_mb": 330,
+        "languages": ["en", "fr", "zh", "ja", "es", "it", "pt", "hi"],
+        "label": "Kokoro-82M Multi-Lang (EN/FR/ZH/JA/ES/IT/PT/HI · Offline)",
+    },
+}
+
+# Ánh xạ speaker ID mặc định cho Kokoro-82M Multi-Lang v1.0 (53 speakers)
+_KOKORO_SPEAKER_IDS: dict[str, dict[str, int]] = {
+    "en": {"female": 0, "male": 11},
+    "ja": {"female": 37, "male": 41},
+    "zh": {"female": 45, "male": 49},
+    "fr": {"female": 30, "male": 30},
+    "es": {"female": 28, "male": 29},
+    "it": {"female": 35, "male": 36},
+    "pt": {"female": 42, "male": 43},
+    "hi": {"female": 31, "male": 33},
+}
+
+
+@dataclass(frozen=True)
+class TtsSynthesisResult:
+    audio_bytes: bytes
+    media_type: str
+    voice_id: str
+    provider: Literal["edge-neural", "sherpa-onnx"]
+    cache_hit: bool
+
+
+# Bounded LRU RAM Cache (0 file rác trên ổ đĩa!)
+_ram_audio_cache: OrderedDict[str, tuple[bytes, str, str, Literal["edge-neural", "sherpa-onnx"]]] = OrderedDict()
 _synthesis_locks: dict[str, asyncio.Lock] = {}
+_dynamic_voices_cache: list[dict[str, Any]] | None = None
+_dynamic_voices_lock = asyncio.Lock()
+_offline_tts_instances: dict[str, Any] = {}
+
+
+def clear_ram_cache() -> None:
+    """Clear in-memory LRU TTS audio cache (useful for tests)."""
+    _ram_audio_cache.clear()
 
 
 def _get_lock(key: str) -> asyncio.Lock:
@@ -106,31 +217,128 @@ def _get_lock(key: str) -> asyncio.Lock:
     return lock
 
 
-def get_tts_cache_dir() -> Path:
-    cache_dir = settings.upload_dir_path / "tts_cache"
-    cache_dir.mkdir(parents=True, exist_ok=True)
-    return cache_dir
+def _normalize_lang_code(language: str) -> str:
+    clean = (language or "vi").strip().lower().replace("_", "-")
+    return clean or "vi"
+
+
+def _base_lang(language: str) -> str:
+    return _normalize_lang_code(language).split("-", 1)[0]
+
+
+def _cache_get(
+    key: str,
+) -> tuple[bytes, str, str, Literal["edge-neural", "sherpa-onnx"]] | None:
+    entry = _ram_audio_cache.get(key)
+    if entry is not None:
+        _ram_audio_cache.move_to_end(key)
+    return entry
+
+
+def _cache_put(
+    key: str,
+    audio_bytes: bytes,
+    media_type: str,
+    voice_id: str,
+    provider: Literal["edge-neural", "sherpa-onnx"],
+) -> None:
+    max_items = max(8, int(getattr(settings, "TTS_RAM_CACHE_MAX_ITEMS", 64)))
+    _ram_audio_cache[key] = (audio_bytes, media_type, voice_id, provider)
+    _ram_audio_cache.move_to_end(key)
+    while len(_ram_audio_cache) > max_items:
+        _ram_audio_cache.popitem(last=False)
 
 
 def resolve_neural_voice(
-    language: SupportedLanguage,
+    language: str,
     gender: VoiceGender = "female",
 ) -> dict[str, str]:
-    lang_map = NEURAL_VOICES.get(language, NEURAL_VOICES["vi"])
+    """Resolve curated neural voice synchronously (for core 5 languages)."""
+    base = _base_lang(language)
+    lang_map = NEURAL_VOICES.get(base, NEURAL_VOICES["vi"])
     return lang_map.get(gender, lang_map["female"])
 
 
-def normalize_text_for_speech(text: str, language: SupportedLanguage = "vi") -> str:
+async def _load_all_edge_voices() -> list[dict[str, Any]]:
+    """Fetch and cache the full 140+ language / 300+ voice catalog from edge-tts in RAM."""
+    global _dynamic_voices_cache
+    if _dynamic_voices_cache is not None:
+        return _dynamic_voices_cache
+    async with _dynamic_voices_lock:
+        if _dynamic_voices_cache is not None:
+            return _dynamic_voices_cache
+        try:
+            import edge_tts
+
+            if hasattr(edge_tts, "list_voices"):
+                voices = await edge_tts.list_voices()
+                if isinstance(voices, list):
+                    _dynamic_voices_cache = voices
+                    return voices
+        except Exception:
+            pass
+    return []
+
+
+async def resolve_dynamic_neural_voice(
+    language: str,
+    gender: VoiceGender = "female",
+) -> dict[str, str]:
+    """Resolve ANY language code (e.g. `vi`, `ko`, `th`, `de`, `es`, `ar`, `ko-KR`, `pt-BR`)."""
+    norm = _normalize_lang_code(language)
+    base = _base_lang(norm)
+
+    # Ưu tiên danh mục chuẩn 5 ngôn ngữ cốt lõi (tránh network call list_voices)
+    if base in NEURAL_VOICES and "-" not in norm:
+        return NEURAL_VOICES[base].get(gender, NEURAL_VOICES[base]["female"])
+
+    # Tra cứu động trên toàn bộ 140+ ngôn ngữ của Microsoft Neural TTS
+    voices = await _load_all_edge_voices()
+    want_gender = "Female" if gender == "female" else "Male"
+
+    exact_locale: list[dict[str, Any]] = []
+    prefix_lang: list[dict[str, Any]] = []
+    for v in voices:
+        locale = str(v.get("Locale", "")).lower()
+        short_name = str(v.get("ShortName", ""))
+        if not short_name:
+            continue
+        if locale == norm:
+            exact_locale.append(v)
+        elif locale.startswith(f"{base}-") or locale == base:
+            prefix_lang.append(v)
+
+    pool = exact_locale or prefix_lang
+    if pool:
+        gender_matched = [v for v in pool if str(v.get("Gender", "")).lower() == want_gender.lower()]
+        chosen = (gender_matched or pool)[0]
+        short_name = str(chosen["ShortName"])
+        friendly = str(chosen.get("FriendlyName") or short_name)
+        return {
+            "id": short_name,
+            "label": friendly,
+            "locale": str(chosen.get("Locale", norm)),
+        }
+
+    # Fallback về ngôn ngữ cốt lõi nếu có
+    if base in NEURAL_VOICES:
+        return NEURAL_VOICES[base].get(gender, NEURAL_VOICES[base]["female"])
+    return NEURAL_VOICES["en"].get(gender, NEURAL_VOICES["en"]["female"])
+
+
+def normalize_text_for_speech(text: str, language: str = "vi") -> str:
     """Preprocess heritage script text so TTS speaks naturally with clear pauses."""
     cleaned = (text or "").strip()
     if not cleaned:
         return ""
 
+    base = _base_lang(language)
+
     # Strip markdown emphasis/links
     cleaned = re.sub(r"[*_`#]+", "", cleaned)
     cleaned = re.sub(r"\s+", " ", cleaned)
 
-    if language == "vi":
+    if base == "vi":
         replacements = [
             (r"\bTP\.?\s*HCM\b", "Thành phố Hồ Chí Minh"),
             (r"\bTP\.?\s*Thủ Đức\b", "Thành phố Thủ Đức"),
@@ -143,14 +351,13 @@ def normalize_text_for_speech(text: str, language: SupportedLanguage = "vi") -> 
             (r"(\d+)\s*km\b", r"\1 ki lô mét"),
             (r"(\d+)\s*m\b", r"\1 mét"),
             (r"(\d[\d\.]*)\s*đ\b", r"\1 đồng"),
-            # Year & time ranges: "1880 – 1891" -> "1880 đến 1891"
             (r"(\d{3,4})\s*[–—-]\s*(\d{3,4})", r"\1 đến \2"),
             (r"(\d{1,2}):00\s*[–—-]\s*(\d{1,2}):00", r"\1 giờ đến \2 giờ"),
             (r"(\d{1,2}):(\d{2})\s*[–—-]\s*(\d{1,2}):(\d{2})", r"\1 giờ \2 đến \3 giờ \4"),
         ]
         for pattern, repl in replacements:
             cleaned = re.sub(pattern, repl, cleaned, flags=re.IGNORECASE)
-    elif language == "en":
+    elif base == "en":
         cleaned = re.sub(r"(\d{3,4})\s*[–—-]\s*(\d{3,4})", r"\1 to \2", cleaned)
 
     # Convert awkward separators into natural vocal pauses
@@ -168,71 +375,429 @@ def normalize_text_for_speech(text: str, language: SupportedLanguage = "vi") -> 
     return cleaned
 
 
-async def synthesize_speech_mp3(
+# ---------------------------------------------------------------------------
+# Engine 2: Open-Source Offline ONNX TTS (sherpa-onnx, Pure WAV in RAM)
+# ---------------------------------------------------------------------------
+def is_piper_tts_available() -> bool:
+    try:
+        from piper.voice import PiperVoice  # noqa: F401
+
+        return True
+    except ImportError:
+        return False
+
+
+def is_sherpa_onnx_available() -> bool:
+    try:
+        import sherpa_onnx  # noqa: F401
+
+        return True
+    except ImportError:
+        return False
+
+
+def is_offline_onnx_available() -> bool:
+    return is_piper_tts_available() or is_sherpa_onnx_available()
+
+
+def _find_offline_model_dir(language: str) -> tuple[Path, str] | None:
+    """Locate an installed sherpa-onnx model folder inside `backend/models/tts/`."""
+    models_root = settings.tts_models_dir_path
+    if not models_root.is_dir():
+        return None
+
+    base = _base_lang(language)
+    candidates: list[tuple[Path, str]] = []
+
+    # 1. Thư mục đặt trực tiếp theo mã ngôn ngữ: models/tts/<lang>/
+    direct_dir = models_root / base
+    if direct_dir.is_dir():
+        candidates.append((direct_dir, "vits"))
+
+    # 2. Thư mục chuẩn theo tên archive trong OFFLINE_ONNX_CATALOG
+    cat = OFFLINE_ONNX_CATALOG.get(base)
+    if cat:
+        named_dir = models_root / str(cat["name"])
+        if named_dir.is_dir():
+            candidates.append((named_dir, str(cat["kind"])))
+
+    # 3. Quét bất kỳ thư mục nào bắt đầu bằng `vits-piper-<base>` hoặc `vits-<base>`
+    for child in sorted(models_root.iterdir()):
+        if not child.is_dir():
+            continue
+        lower = child.name.lower()
+        if f"-{base}_" in lower or f"-{base}-" in lower or lower.startswith(f"{base}_"):
+            candidates.append((child, "vits"))
+
+    # 4. Kokoro-82M Multi-Lang (hỗ trợ en/fr/zh/ja/es/it/pt/hi trong 1 model duy nhất)
+    kokoro_langs = OFFLINE_ONNX_CATALOG["kokoro"]["languages"]
+    if base in kokoro_langs:
+        kokoro_dir = models_root / str(OFFLINE_ONNX_CATALOG["kokoro"]["name"])
+        if kokoro_dir.is_dir():
+            candidates.append((kokoro_dir, "kokoro"))
+        alt_kokoro = models_root / "kokoro"
+        if alt_kokoro.is_dir():
+            candidates.append((alt_kokoro, "kokoro"))
+
+    for model_dir, kind in candidates:
+        onnx_files = list(model_dir.glob("*.onnx"))
+        if not onnx_files:
+            continue
+        onnx_json = Path(f"{onnx_files[0]}.json")
+        tokens_file = model_dir / "tokens.txt"
+        if kind == "kokoro":
+            if tokens_file.is_file() and (model_dir / "voices.bin").is_file():
+                return model_dir, "kokoro"
+            continue
+        if onnx_json.is_file() or tokens_file.is_file():
+            return model_dir, kind
+    return None
+
+
+def list_installed_offline_models() -> dict[str, dict[str, str]]:
+    """Report all installed local open-source ONNX models available offline."""
+    installed: dict[str, dict[str, str]] = {}
+    models_root = settings.tts_models_dir_path
+    if not models_root.is_dir():
+        return installed
+
+    for child in sorted(models_root.iterdir()):
+        if not child.is_dir():
+            continue
+        onnx_files = list(child.glob("*.onnx"))
+        if not onnx_files:
+            continue
+        onnx_json = Path(f"{onnx_files[0]}.json")
+        if onnx_json.is_file() or (child / "tokens.txt").is_file():
+            kind = "kokoro" if (child / "voices.bin").is_file() else ("piper" if onnx_json.is_file() else "vits")
+            installed[child.name] = {
+                "path": child.name,
+                "model_file": onnx_files[0].name,
+                "kind": kind,
+            }
+    return installed
+
+
+def _samples_to_wav_bytes(samples: Any, sample_rate: int) -> bytes:
+    """Encode float32 PCM samples [-1.0, 1.0] into 16-bit mono WAV bytes completely in RAM."""
+    pcm16 = array.array("h")
+    for s in samples:
+        val = float(s)
+        if val > 1.0:
+            val = 1.0
+        elif val < -1.0:
+            val = -1.0
+        pcm16.append(int(val * 32767.0))
+
+    buf = io.BytesIO()
+    with wave.open(buf, "wb") as wf:
+        wf.setnchannels(1)
+        wf.setsampwidth(2)
+        wf.setframerate(int(sample_rate))
+        wf.writeframes(pcm16.tobytes())
+    return buf.getvalue()
+
+
+def _get_or_create_offline_tts(model_dir: Path, kind: str) -> Any:
+    cache_id = f"{kind}:{model_dir.resolve()}"
+    if cache_id in _offline_tts_instances:
+        return _offline_tts_instances[cache_id]
+
+    import sherpa_onnx
+
+    onnx_file = sorted(model_dir.glob("*.onnx"))[0]
+    tokens_file = model_dir / "tokens.txt"
+    data_dir = model_dir / "espeak-ng-data"
+    dict_dir = model_dir / "dict"
+    lexicon_files = sorted(model_dir.glob("lexicon*.txt"))
+    lexicon_arg = ",".join(str(p) for p in lexicon_files) if lexicon_files else ""
+
+    if kind == "kokoro":
+        voices_file = model_dir / "voices.bin"
+        kokoro_cfg = sherpa_onnx.OfflineTtsKokoroModelConfig(
+            model=str(onnx_file),
+            voices=str(voices_file),
+            tokens=str(tokens_file),
+            lexicon=lexicon_arg,
+            data_dir=str(data_dir) if data_dir.is_dir() else "",
+            dict_dir=str(dict_dir) if dict_dir.is_dir() else "",
+        )
+        model_cfg = sherpa_onnx.OfflineTtsModelConfig(
+            kokoro=kokoro_cfg,
+            num_threads=2,
+            provider="cpu",
+        )
+    else:
+        vits_cfg = sherpa_onnx.OfflineTtsVitsModelConfig(
+            model=str(onnx_file),
+            lexicon=lexicon_arg,
+            tokens=str(tokens_file),
+            data_dir=str(data_dir) if data_dir.is_dir() else "",
+            dict_dir=str(dict_dir) if dict_dir.is_dir() else "",
+        )
+        model_cfg = sherpa_onnx.OfflineTtsModelConfig(
+            vits=vits_cfg,
+            num_threads=2,
+            provider="cpu",
+        )
+
+    tts_cfg = sherpa_onnx.OfflineTtsConfig(model=model_cfg)
+    instance = sherpa_onnx.OfflineTts(tts_cfg)
+    _offline_tts_instances[cache_id] = instance
+    return instance
+
+
+def _get_or_create_piper_voice(onnx_file: Path) -> Any:
+    cache_id = f"piper:{onnx_file.resolve()}"
+    if cache_id in _offline_tts_instances:
+        return _offline_tts_instances[cache_id]
+    from piper.voice import PiperVoice
+
+    voice = PiperVoice.load(str(onnx_file))
+    _offline_tts_instances[cache_id] = voice
+    return voice
+
+
+def _synthesize_offline_sync(
+    normalized_text: str,
+    language: str,
+    gender: VoiceGender,
+) -> tuple[bytes, str]:
+    found = _find_offline_model_dir(language)
+    if not found:
+        base = _base_lang(language)
+        raise RuntimeError(
+            f"Chưa cài model offline ONNX cho ngôn ngữ '{base}'. "
+            f"Chạy: python -m scripts.download_tts_models --langs {base}"
+        )
+    model_dir, kind = found
+    onnx_file = sorted(model_dir.glob("*.onnx"))[0]
+    onnx_json = Path(f"{onnx_file}.json")
+
+    # Ưu tiên PiperVoice trực tiếp trong RAM nếu là model Piper (có .onnx.json & cài piper-tts)
+    if kind != "kokoro" and onnx_json.is_file() and is_piper_tts_available():
+        piper_voice = _get_or_create_piper_voice(onnx_file)
+        buf = io.BytesIO()
+        with wave.open(buf, "wb") as wf:
+            piper_voice.synthesize_wav(normalized_text, wf)
+        wav_bytes = buf.getvalue()
+        if len(wav_bytes) < 256:
+            raise RuntimeError("Model offline Piper ONNX không sinh được dữ liệu WAV.")
+        return wav_bytes, model_dir.name
+
+    tts = _get_or_create_offline_tts(model_dir, kind)
+
+    sid = 0
+    if kind == "kokoro":
+        base = _base_lang(language)
+        sid = _KOKORO_SPEAKER_IDS.get(base, _KOKORO_SPEAKER_IDS["en"]).get(gender, 0)
+
+    audio = tts.generate(normalized_text, sid=sid, speed=1.0)
+    samples = getattr(audio, "samples", None)
+    sample_rate = int(getattr(audio, "sample_rate", 22050))
+    if samples is None or len(samples) == 0:
+        raise RuntimeError("Model offline ONNX không sinh được mẫu âm thanh.")
+
+    wav_bytes = _samples_to_wav_bytes(samples, sample_rate)
+    if len(wav_bytes) < 256:
+        raise RuntimeError("Dữ liệu WAV offline quá ngắn.")
+    return wav_bytes, f"{model_dir.name} (sid={sid})"
+
+
+# ---------------------------------------------------------------------------
+# Engine 1: Universal 140+ Languages RAM Stream (edge-tts, 0 disk files)
+# ---------------------------------------------------------------------------
+async def _synthesize_edge_neural_ram(
+    normalized_text: str,
+    language: str,
+    gender: VoiceGender,
+) -> tuple[bytes, str]:
+    try:
+        import edge_tts
+    except ImportError as exc:  # pragma: no cover
+        raise RuntimeError("Thư viện edge-tts chưa được cài đặt trên máy chủ.") from exc
+
+    voice_cfg = await resolve_dynamic_neural_voice(language, gender)
+    voice_id = voice_cfg["id"]
+
+    async def _stream_once() -> bytes:
+        communicator = edge_tts.Communicate(
+            text=normalized_text,
+            voice=voice_id,
+        )
+        chunks: list[bytes] = []
+        async for chunk in communicator.stream():
+            if chunk.get("type") == "audio" and chunk.get("data"):
+                chunks.append(chunk["data"])
+        return b"".join(chunks)
+
+    audio_bytes = b""
+    last_error: Exception | None = None
+    for attempt in range(2):
+        try:
+            audio_bytes = await _stream_once()
+            if len(audio_bytes) >= 256:
+                break
+        except Exception as exc:
+            last_error = exc
+            if attempt == 0:
+                await asyncio.sleep(0.25)
+
+    if len(audio_bytes) < 256:
+        detail = f" ({type(last_error).__name__}: {last_error})" if last_error else ""
+        raise RuntimeError(f"Không thể stream giọng AI Neural cho '{language}'.{detail}") from last_error
+
+    return audio_bytes, voice_id
+
+
+# ---------------------------------------------------------------------------
+# Unified Public API (Zero Disk Files, Dual-Engine Auto Fallback)
+# ---------------------------------------------------------------------------
+async def synthesize_speech_stream(
     *,
     text: str,
-    language: SupportedLanguage = "vi",
+    language: str = "vi",
     gender: VoiceGender = "female",
-) -> tuple[bytes, str, bool]:
-    """Return `(mp3_bytes, voice_id, cache_hit)` using cached Microsoft Neural TTS."""
+    provider: TtsProviderMode | None = None,
+) -> TtsSynthesisResult:
+    """Synthesize speech completely in RAM (0 disk files) across 140+ languages + offline ONNX."""
     normalized = normalize_text_for_speech(text, language)
     if not normalized:
         raise ValueError("Nội dung thuyết minh không được để trống.")
 
-    voice_cfg = resolve_neural_voice(language, gender)
-    voice_id = voice_cfg["id"]
-    rate = voice_cfg["rate"]
-    pitch = voice_cfg["pitch"]
-
+    effective_provider: TtsProviderMode = provider or (
+        settings.TTS_DEFAULT_PROVIDER
+        if settings.TTS_DEFAULT_PROVIDER in ("auto", "neural", "offline")
+        else "auto"
+    )
+    norm_lang = _normalize_lang_code(language)
     cache_key = hashlib.sha256(
-        f"v2|{voice_id}|{rate}|{pitch}|{normalized}".encode("utf-8")
+        f"ram-v1|{effective_provider}|{norm_lang}|{gender}|{normalized}".encode("utf-8")
     ).hexdigest()[:28]
-    cache_path = get_tts_cache_dir() / f"{cache_key}.mp3"
 
-    if cache_path.is_file() and cache_path.stat().st_size > 256:
-        return cache_path.read_bytes(), voice_id, True
+    cached = _cache_get(cache_key)
+    if cached is not None:
+        audio_bytes, media_type, voice_id, used_provider = cached
+        return TtsSynthesisResult(
+            audio_bytes=audio_bytes,
+            media_type=media_type,
+            voice_id=voice_id,
+            provider=used_provider,
+            cache_hit=True,
+        )
 
     lock = _get_lock(cache_key)
     async with lock:
-        if cache_path.is_file() and cache_path.stat().st_size > 256:
-            return cache_path.read_bytes(), voice_id, True
-
-        try:
-            import edge_tts
-        except ImportError as exc:  # pragma: no cover
-            raise RuntimeError("Thư viện edge-tts chưa được cài đặt trên máy chủ.") from exc
-
-        async def _stream_once(target_text: str) -> bytes:
-            # Dùng tham số mặc định của Microsoft Neural TTS (tránh lỗi NoAudioReceived khi gửi custom rate/pitch SSML)
-            communicator = edge_tts.Communicate(
-                text=target_text,
-                voice=voice_id,
+        cached = _cache_get(cache_key)
+        if cached is not None:
+            audio_bytes, media_type, voice_id, used_provider = cached
+            return TtsSynthesisResult(
+                audio_bytes=audio_bytes,
+                media_type=media_type,
+                voice_id=voice_id,
+                provider=used_provider,
+                cache_hit=True,
             )
-            chunks: list[bytes] = []
-            async for chunk in communicator.stream():
-                if chunk.get("type") == "audio" and chunk.get("data"):
-                    chunks.append(chunk["data"])
-            return b"".join(chunks)
 
-        audio_bytes = b""
-        last_error: Exception | None = None
-        for attempt in range(2):
-            try:
-                audio_bytes = await _stream_once(normalized)
-                if len(audio_bytes) >= 256:
-                    break
-            except Exception as exc:
-                last_error = exc
-                if attempt == 0:
-                    await asyncio.sleep(0.25)
+        if effective_provider == "offline":
+            wav_bytes, voice_id = await asyncio.to_thread(
+                _synthesize_offline_sync, normalized, norm_lang, gender
+            )
+            _cache_put(cache_key, wav_bytes, "audio/wav", voice_id, "sherpa-onnx")
+            return TtsSynthesisResult(
+                audio_bytes=wav_bytes,
+                media_type="audio/wav",
+                voice_id=voice_id,
+                provider="sherpa-onnx",
+                cache_hit=False,
+            )
 
-        if len(audio_bytes) < 256:
-            detail = f" ({type(last_error).__name__}: {last_error})" if last_error else ""
-            raise RuntimeError(
-                f"Không thể tạo âm thanh Neural TTS cho đoạn văn bản này.{detail}"
-            ) from last_error
+        # `neural` hoặc `auto`: thử Engine 1 (140+ ngôn ngữ RAM stream) trước
+        neural_err: Exception | None = None
+        try:
+            mp3_bytes, voice_id = await _synthesize_edge_neural_ram(
+                normalized, norm_lang, gender
+            )
+            _cache_put(cache_key, mp3_bytes, "audio/mpeg", voice_id, "edge-neural")
+            return TtsSynthesisResult(
+                audio_bytes=mp3_bytes,
+                media_type="audio/mpeg",
+                voice_id=voice_id,
+                provider="edge-neural",
+                cache_hit=False,
+            )
+        except Exception as exc:
+            neural_err = exc
+            if effective_provider == "neural":
+                raise RuntimeError(str(exc)) from exc
 
-        tmp_path = cache_path.with_suffix(".tmp")
-        tmp_path.write_bytes(audio_bytes)
-        tmp_path.replace(cache_path)
-        return audio_bytes, voice_id, False
+        # Chế độ `auto`: tự động chuyển sang Engine 2 (Piper/sherpa-onnx offline ONNX WAV trong RAM)
+        if is_offline_onnx_available() and _find_offline_model_dir(norm_lang) is not None:
+            wav_bytes, voice_id = await asyncio.to_thread(
+                _synthesize_offline_sync, normalized, norm_lang, gender
+            )
+            _cache_put(cache_key, wav_bytes, "audio/wav", voice_id, "sherpa-onnx")
+            return TtsSynthesisResult(
+                audio_bytes=wav_bytes,
+                media_type="audio/wav",
+                voice_id=voice_id,
+                provider="sherpa-onnx",
+                cache_hit=False,
+            )
+
+        raise RuntimeError(
+            f"Cả hai engine TTS đều chưa sẵn sàng cho '{norm_lang}': {neural_err}"
+        ) from neural_err
+
+
+async def get_tts_voices_catalog(*, include_all_languages: bool = False) -> dict[str, Any]:
+    """Return curated voices (default) or full 140+ dynamic languages + offline ONNX catalog."""
+    if not include_all_languages:
+        return NEURAL_VOICES
+
+    all_edge = await _load_all_edge_voices()
+    grouped: dict[str, list[dict[str, str]]] = {}
+    for v in all_edge:
+        locale = str(v.get("Locale", ""))
+        short_name = str(v.get("ShortName", ""))
+        if not locale or not short_name:
+            continue
+        grouped.setdefault(locale, []).append(
+            {
+                "id": short_name,
+                "gender": str(v.get("Gender", "")).lower(),
+                "label": str(v.get("FriendlyName") or short_name),
+            }
+        )
+
+    return {
+        "curated_voices": NEURAL_VOICES,
+        "all_neural_locales_count": len(grouped),
+        "all_neural_voices": grouped,
+        "offline_engine": {
+            "provider": "piper+sherpa-onnx",
+            "available": is_offline_onnx_available(),
+            "piper_available": is_piper_tts_available(),
+            "sherpa_onnx_available": is_sherpa_onnx_available(),
+            "models_dir": str(settings.TTS_MODELS_DIR),
+            "installed_models": list_installed_offline_models(),
+            "downloadable_catalog": OFFLINE_ONNX_CATALOG,
+        },
+        "storage_mode": "ram_stream_only (0 disk files)",
+    }
+
+
+async def synthesize_speech_mp3(
+    *,
+    text: str,
+    language: str = "vi",
+    gender: VoiceGender = "female",
+) -> tuple[bytes, str, bool]:
+    """Backward-compatible helper returning `(audio_bytes, voice_id, cache_hit)` from RAM."""
+    res = await synthesize_speech_stream(
+        text=text,
+        language=language,
+        gender=gender,
+        provider="auto",
+    )
+    return res.audio_bytes, res.voice_id, res.cache_hit

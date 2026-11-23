@@ -12,6 +12,7 @@ HeritageCategory = Literal["imperial", "temple", "museum", "monument", "ancient_
 MealSlot = Literal["breakfast", "lunch", "dinner", "cafe"]
 VerificationStatus = Literal["verified", "simulated", "flagged"]
 UserRole = Literal["user", "admin"]
+TravelMode = Literal["walking", "motorbike", "car"]
 
 
 class ORMBase(BaseModel):
@@ -246,13 +247,14 @@ class RecommendationResponse(BaseModel):
 class TourPlanRequest(BaseModel):
     lat: float = Field(..., ge=-90.0, le=90.0)
     lng: float = Field(..., ge=-180.0, le=180.0)
-    available_minutes: int = Field(default=120, ge=30, le=480)
+    available_minutes: int = Field(default=120, ge=30, le=720)
     start_hour: int = Field(default=9, ge=0, le=23)
     preferred_categories: list[HeritageCategory] = Field(default_factory=list)
     visited_site_ids: list[str] = Field(default_factory=list)
     include_meal_stop: bool = True
     language: SupportedLanguage = "vi"
     max_stops: int = Field(default=5, ge=1, le=10)
+    travel_mode: TravelMode = "walking"
 
 
 class TourStopItem(BaseModel):
@@ -288,6 +290,7 @@ class TourPlanResponse(BaseModel):
     optimization_method: str = "nearest_neighbor_2opt"
     route_polyline: list[list[float]] = Field(default_factory=list)
     meal_stop_included: bool = False
+    travel_mode: TravelMode = "walking"
     summary: str
 
 
@@ -324,10 +327,14 @@ class AiChatResponse(BaseModel):
     mode: Literal["gemini", "fallback"]
 
 
+TtsProviderMode = Literal["auto", "neural", "offline"]
+
+
 class TtsSynthesizeRequest(BaseModel):
     text: str = Field(..., min_length=1, max_length=2500)
-    language: SupportedLanguage = "vi"
+    language: str = Field(default="vi", min_length=2, max_length=16)
     voice_gender: Literal["female", "male"] = "female"
+    provider: TtsProviderMode = "auto"
 
 
 # ---------------------------------------------------------------------------
@@ -374,6 +381,7 @@ class WalkingRouteRequest(BaseModel):
     target_name: str = ""
     target_type: Literal["heritage", "restaurant"] = "heritage"
     language: SupportedLanguage = "vi"
+    travel_mode: TravelMode = "walking"
 
 
 class RouteStepDTO(BaseModel):
@@ -395,6 +403,7 @@ class WalkingRouteResponse(BaseModel):
     steps: list[RouteStepDTO]
     provider: Literal["osrm", "goong", "fallback"]
     cached: bool = False
+    travel_mode: TravelMode = "walking"
 
 
 # ---------------------------------------------------------------------------
@@ -425,6 +434,7 @@ class JourneyCheckInRequest(BaseModel):
     user_note: str = Field(default="", max_length=2000)
     user_rating: int = Field(default=5, ge=1, le=5)
     is_simulated: bool = False
+    travel_mode: TravelMode = "walking"
     vision_verified_site_id: Optional[str] = None
     vision_confidence: Optional[float] = Field(default=None, ge=0.0, le=1.0)
     visited_at: Optional[datetime] = None
@@ -443,6 +453,7 @@ class JourneyOut(ORMBase):
     route_coordinates: list[list[float]] = Field(default_factory=list)
     user_note: str = ""
     user_rating: int = 5
+    travel_mode: TravelMode = "walking"
     verification_status: VerificationStatus = "verified"
     verification_score: float = 100.0
     verification_details: dict[str, Any] = Field(default_factory=dict)
