@@ -1,5 +1,13 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, {
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {
+  ActivityIndicator,
   AppState,
   FlatList,
   Image,
@@ -109,11 +117,15 @@ import { SiteCard } from './src/components/SiteCard';
 import { SmartTourModal } from './src/components/SmartTourModal';
 import { AiChatModal } from './src/components/AiChatModal';
 import { AuthModal } from './src/components/AuthModal';
-import { AdminDashboardView } from './src/components/AdminDashboardView';
 import { WeatherWidgetCard } from './src/components/WeatherWidgetCard';
 import { COLORS, RADII, SERIF_FONT, SHADOWS, SPACING } from './src/theme';
 
-type MainTab = 'explore' | 'map' | 'journey' | 'ranking' | 'admin';
+// Code-split toàn bộ Admin Studio: du khách không tải code Admin, Admin tải từng tab theo nhu cầu
+const LazyAdminWorkspaceShell = React.lazy(
+  () => import('./src/components/admin/AdminWorkspaceShell')
+);
+
+type MainTab = 'explore' | 'map' | 'journey' | 'ranking';
 
 const PROXIMITY_TRIGGER_METERS = 150;
 const PROXIMITY_RESET_METERS = 220;
@@ -207,6 +219,7 @@ function SmartHeritageAppContent() {
     profile: null,
   });
   const [authModalVisible, setAuthModalVisible] = useState<boolean>(false);
+  const [adminPreviewAsUser, setAdminPreviewAsUser] = useState<boolean>(false);
   const [smartTourVisible, setSmartTourVisible] = useState<boolean>(false);
   const [aiChatVisible, setAiChatVisible] = useState<boolean>(false);
   const [aiChatContextSite, setAiChatContextSite] =
@@ -799,6 +812,7 @@ function SmartHeritageAppContent() {
   );
 
   const isAdminUser = authState.isAuthenticated && authState.profile?.role === 'admin';
+  const isAdminWorkspaceActive = isAdminUser && !adminPreviewAsUser;
 
   const handleAuthSuccess = useCallback((profile: UserProfile) => {
     setAuthState({
@@ -808,9 +822,10 @@ function SmartHeritageAppContent() {
     });
     setAuthModalVisible(false);
     if (profile.role === 'admin') {
-      setActiveTab('admin');
-      setToastMessage(`Xin chào Admin ${profile.display_name}! Đã mở bảng Quản trị.`);
+      setAdminPreviewAsUser(false);
+      setToastMessage(`Xin chào Admin ${profile.display_name}! Đã mở Admin Studio.`);
     } else {
+      setAdminPreviewAsUser(false);
       setToastMessage(`Xin chào ${profile.display_name}! Đã bật đồng bộ Cloud.`);
     }
     triggerHaptic('success');
@@ -823,7 +838,8 @@ function SmartHeritageAppContent() {
       isGuest: true,
       profile: null,
     });
-    setActiveTab((prev) => (prev === 'admin' ? 'explore' : prev));
+    setAdminPreviewAsUser(false);
+    setActiveTab('explore');
     setToastMessage('Đã chuyển về chế độ Khách (Offline).');
   }, []);
 
@@ -932,9 +948,9 @@ function SmartHeritageAppContent() {
 
   const autoSyncAttemptedKeyRef = useRef<string>('');
 
-  // Pre-warm bản đồ 3D ngầm sau khi tab Khám phá vừa hiển thị ổn định (~650ms) và giữ sống mãi để chuyển tab 0ms lag!
+  // Pre-warm bản đồ 3D ngầm cho chế độ Du khách (bỏ qua khi đang mở Admin Studio để tối ưu tốc độ tải)
   useEffect(() => {
-    if (isMapMounted) return;
+    if (isAdminWorkspaceActive || isMapMounted) return;
     if (activeTab === 'map') {
       setIsMapMounted(true);
       return;
@@ -943,7 +959,7 @@ function SmartHeritageAppContent() {
       setIsMapMounted(true);
     }, 650);
     return () => clearTimeout(timer);
-  }, [activeTab, isMapMounted]);
+  }, [activeTab, isAdminWorkspaceActive, isMapMounted]);
 
   const handleToggleFocusHcmcOnly = useCallback((next: boolean) => {
     setFocusHcmcOnly(next);
@@ -1070,6 +1086,7 @@ function SmartHeritageAppContent() {
 
   // Top quán ăn & đồ uống gần vị trí hiện tại để hiển thị nổi bật ngay trong tab Khám phá
   const nearbyFeaturedRestaurants = useMemo(() => {
+    if (isAdminWorkspaceActive) return [];
     const seen = new Set<string>();
     const list: Array<{
       restaurant: NearbyRestaurant;
@@ -1113,7 +1130,7 @@ function SmartHeritageAppContent() {
         return scoreA - scoreB;
       })
       .slice(0, 12);
-  }, [nearbySitesWithMetrics, selectedLanguage, userLocation]);
+  }, [isAdminWorkspaceActive, nearbySitesWithMetrics, selectedLanguage, userLocation]);
 
   const mapSites = useMemo(
     () => nearbySitesWithMetrics.map((i) => i.site),
@@ -1284,6 +1301,77 @@ function SmartHeritageAppContent() {
       )}
     </View>
   );
+
+  // Dedicated Admin Workspace Shell (tách biệt hoàn toàn giao diện & taskbar với Du khách, tải lười từng phân hệ)
+  if (isAdminWorkspaceActive) {
+    return (
+      <View style={styles.adminShellRoot}>
+        <StatusBar style="light" />
+        <Suspense
+          fallback={
+            <View style={styles.adminLoadingBox}>
+              <ActivityIndicator size="small" color={COLORS.accent} />
+              <Text style={styles.adminLoadingText}>
+                Đang khởi động Admin Studio...
+              </Text>
+            </View>
+          }
+        >
+          <LazyAdminWorkspaceShell
+            sites={catalogSites}
+            userLocation={userLocation}
+            authState={authState}
+            onUpsertSite={handleAdminUpsertSite}
+            onDeleteSite={handleAdminDeleteSite}
+            onUpsertRestaurant={handleAdminUpsertRestaurant}
+            onDeleteRestaurant={handleAdminDeleteRestaurant}
+            onOpenAuthModal={() => setAuthModalVisible(true)}
+            onLogout={handleLogout}
+            onEnterUserPreview={() => {
+              setAdminPreviewAsUser(true);
+              setActiveTab('explore');
+              setToastMessage('Đang xem ứng dụng như Du khách.');
+              triggerHaptic('selection');
+            }}
+            onNotify={(msg) => setToastMessage(msg)}
+          />
+        </Suspense>
+
+        {toastMessage && (
+          <View
+            pointerEvents="none"
+            style={[
+              styles.toastWrap,
+              { bottom: Math.max(insets.bottom, 8) + 70 },
+            ]}
+          >
+            <View style={styles.toastPill}>
+              <Check size={14} color={COLORS.visitedDot} strokeWidth={2.8} />
+              <Text style={styles.toastText} numberOfLines={2}>
+                {toastMessage}
+              </Text>
+            </View>
+          </View>
+        )}
+
+        <AuthModal
+          visible={authModalVisible}
+          authState={authState}
+          selectedLanguage={selectedLanguage}
+          localJourneysCount={visitedRecords.length}
+          isSyncing={isSyncingCloud}
+          onClose={() => setAuthModalVisible(false)}
+          onAuthSuccess={handleAuthSuccess}
+          onLogout={handleLogout}
+          onSyncOfflineJourneys={handleSyncOfflineJourneys}
+          onOpenAdminDashboard={() => {
+            setAuthModalVisible(false);
+            setAdminPreviewAsUser(false);
+          }}
+        />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.root}>
@@ -1776,23 +1864,26 @@ function SmartHeritageAppContent() {
             />
           </View>
         )}
-
-        {activeTab === 'admin' && isAdminUser && (
-          <View style={styles.tabContainer}>
-            <AdminDashboardView
-              sites={catalogSites}
-              userLocation={userLocation}
-              authState={authState}
-              onUpsertSite={handleAdminUpsertSite}
-              onDeleteSite={handleAdminDeleteSite}
-              onUpsertRestaurant={handleAdminUpsertRestaurant}
-              onDeleteRestaurant={handleAdminDeleteRestaurant}
-              onOpenAuthModal={() => setAuthModalVisible(true)}
-              onNotify={(msg) => setToastMessage(msg)}
-            />
-          </View>
-        )}
       </View>
+
+      {/* Nút nổi quay lại Admin Studio khi Admin đang xem thử chế độ Du khách */}
+      {isAdminUser && adminPreviewAsUser && (
+        <TouchableOpacity
+          activeOpacity={0.88}
+          onPress={() => {
+            setAdminPreviewAsUser(false);
+            triggerHaptic('selection');
+          }}
+          style={[
+            styles.returnAdminPill,
+            { bottom: Math.max(insets.bottom, 8) + 68 },
+          ]}
+          accessibilityLabel="Quay lại giao diện Admin Studio"
+        >
+          <ShieldCheck size={14} color="#FDBA74" />
+          <Text style={styles.returnAdminPillText}>Quay lại Admin Studio</Text>
+        </TouchableOpacity>
+      )}
 
       {/* Toast Notification */}
       {toastMessage && (
@@ -1938,33 +2029,6 @@ function SmartHeritageAppContent() {
             Xếp hạng
           </Text>
         </TouchableOpacity>
-
-        {isAdminUser && (
-          <TouchableOpacity
-            activeOpacity={0.8}
-            onPress={() => {
-              setActiveTab('admin');
-              triggerHaptic('selection');
-            }}
-            style={styles.tabItem}
-            accessibilityRole="tab"
-            accessibilityState={{ selected: activeTab === 'admin' }}
-          >
-            <ShieldCheck
-              size={21}
-              strokeWidth={activeTab === 'admin' ? 2.2 : 1.7}
-              color={activeTab === 'admin' ? COLORS.accent : COLORS.inkMuted}
-            />
-            <Text
-              style={[
-                styles.tabLabel,
-                activeTab === 'admin' && styles.tabLabelActive,
-              ]}
-            >
-              Quản trị
-            </Text>
-          </TouchableOpacity>
-        )}
       </View>
 
       {/* Filter & Location Bottom Sheet */}
@@ -2419,7 +2483,7 @@ function SmartHeritageAppContent() {
         onSyncOfflineJourneys={handleSyncOfflineJourneys}
         onOpenAdminDashboard={() => {
           setAuthModalVisible(false);
-          setActiveTab('admin');
+          setAdminPreviewAsUser(false);
         }}
       />
     </View>
@@ -3619,6 +3683,42 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
     color: COLORS.ink,
+  },
+  adminShellRoot: {
+    flex: 1,
+    backgroundColor: '#141413',
+  },
+  adminLoadingBox: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    backgroundColor: '#141413',
+  },
+  adminLoadingText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#D6D3D1',
+  },
+  returnAdminPill: {
+    position: 'absolute',
+    right: 16,
+    zIndex: 35,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: RADII.pill,
+    backgroundColor: '#141413',
+    borderWidth: 1,
+    borderColor: 'rgba(253,186,116,0.45)',
+    ...SHADOWS.floating,
+  },
+  returnAdminPillText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.white,
   },
 });
 
