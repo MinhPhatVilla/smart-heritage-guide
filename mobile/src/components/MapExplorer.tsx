@@ -327,10 +327,10 @@ function buildExplorerMapHtml(
     }
     .shg-dest-pulse {
       position: absolute;
-      width: 26px;
-      height: 26px;
+      width: 34px;
+      height: 34px;
       border-radius: 9999px;
-      background: rgba(185, 56, 21, 0.32);
+      background: rgba(37, 99, 235, 0.34);
       animation: shgGpsPulse 1.8s ease-out infinite;
     }
     .custom-user-marker,
@@ -647,10 +647,12 @@ function buildExplorerMapHtml(
         el.style.display = 'flex';
         el.style.alignItems = 'center';
         el.style.justifyContent = 'center';
-        el.style.width = '28px';
-        el.style.height = '28px';
+        el.style.width = '34px';
+        el.style.height = '34px';
         el.innerHTML = '<span class="shg-dest-pulse"></span>'
-          + '<span style="position:relative;width:16px;height:16px;border-radius:9999px;background:#B93815;border:3px solid #FFFFFF;box-shadow:0 3px 10px rgba(185,56,21,0.55);"></span>';
+          + '<span style="position:relative;width:20px;height:20px;border-radius:9999px;background:#1D4ED8;border:3.5px solid #FFFFFF;box-shadow:0 4px 12px rgba(29,78,216,0.55);display:flex;align-items:center;justify-content:center;">'
+          + '<span style="width:6px;height:6px;border-radius:9999px;background:#FFFFFF;"></span>'
+          + '</span>';
         return el;
       }
 
@@ -1628,44 +1630,68 @@ function buildExplorerMapHtml(
           }
 
           if (!map.getSource('shg-route')) {
+            var isDarkBasemap =
+              currentTile.id === 'mapbox_satellite' ||
+              currentTile.id === 'satellite' ||
+              currentLightPreset === 'night';
+            var routeOuterColor = isDarkBasemap ? '#075985' : '#1E3A8A';
+            var routeCoreColor = isDarkBasemap ? '#38BDF8' : '#2563EB';
+            var routeAccentColor = isDarkBasemap ? '#E0F2FE' : '#DBEAFE';
+
             map.addSource('shg-route', {
               type: 'geojson',
               data: { type: 'FeatureCollection', features: [] }
             });
+            // Soft outer halo so route separates crisply from roads & 3D buildings
+            map.addLayer(Object.assign({
+              id: 'shg-route-halo',
+              type: 'line',
+              source: 'shg-route',
+              layout: { 'line-join': 'round', 'line-cap': 'round' },
+              paint: {
+                'line-color': isDarkBasemap ? 'rgba(56, 189, 248, 0.28)' : 'rgba(37, 99, 235, 0.20)',
+                'line-width': ['interpolate', ['linear'], ['zoom'], 9, 13, 14, 17, 18, 22],
+                'line-blur': 3,
+                'line-opacity': 0.9
+              }
+            }, topSlotProps));
+            // Crisp dark-cobalt border casing (never blends into white/cream roads!)
             map.addLayer(Object.assign({
               id: 'shg-route-casing',
               type: 'line',
               source: 'shg-route',
               layout: { 'line-join': 'round', 'line-cap': 'round' },
               paint: {
-                'line-color': '#FAF9F6',
-                'line-width': 9,
-                'line-opacity': 0.96
+                'line-color': routeOuterColor,
+                'line-width': ['interpolate', ['linear'], ['zoom'], 9, 8.5, 14, 11.5, 18, 14.5],
+                'line-opacity': 0.98
               }
-            }, slotProps));
+            }, topSlotProps));
+            // Vibrant Google/Apple-Maps-grade navigation cobalt core
             map.addLayer(Object.assign({
               id: 'shg-route-core',
               type: 'line',
               source: 'shg-route',
               layout: { 'line-join': 'round', 'line-cap': 'round' },
               paint: {
-                'line-color': '#B93815',
-                'line-width': 5,
-                'line-opacity': 0.96
+                'line-color': routeCoreColor,
+                'line-width': ['interpolate', ['linear'], ['zoom'], 9, 5.5, 14, 7.5, 18, 9.5],
+                'line-opacity': 1
               }
-            }, slotProps));
+            }, topSlotProps));
+            // Walking breadcrumb dots (shown for walking mode; subtle centerline highlight for motorbike/car)
             map.addLayer(Object.assign({
               id: 'shg-route-dashes',
               type: 'line',
               source: 'shg-route',
               layout: { 'line-join': 'round', 'line-cap': 'round' },
               paint: {
-                'line-color': '#FDE8DF',
-                'line-width': 2,
-                'line-dasharray': [0.5, 2.8],
-                'line-opacity': 0.95
+                'line-color': routeAccentColor,
+                'line-width': ['interpolate', ['linear'], ['zoom'], 9, 1.8, 14, 2.4, 18, 3.0],
+                'line-dasharray': [0.25, 2.4],
+                'line-opacity': 0.92
               }
-            }, slotProps));
+            }, topSlotProps));
           }
 
           // =========================================================================
@@ -1913,6 +1939,33 @@ function buildExplorerMapHtml(
               properties: {}
             }]
           });
+
+          // Tinh chỉnh màu & nét tuyến theo phương tiện & nền bản đồ (sáng / đêm / vệ tinh)
+          try {
+            var isDarkMap =
+              currentTile.id === 'mapbox_satellite' ||
+              currentTile.id === 'satellite' ||
+              currentLightPreset === 'night';
+            var mode = route.travelMode || 'walking';
+            var coreHex = isDarkMap
+              ? (mode === 'car' ? '#60A5FA' : '#38BDF8')
+              : (mode === 'car' ? '#1D4ED8' : '#2563EB');
+            var casingHex = isDarkMap ? '#082F49' : '#1E3A8A';
+            if (map.getLayer('shg-route-core')) {
+              map.setPaintProperty('shg-route-core', 'line-color', coreHex);
+            }
+            if (map.getLayer('shg-route-casing')) {
+              map.setPaintProperty('shg-route-casing', 'line-color', casingHex);
+            }
+            if (map.getLayer('shg-route-dashes')) {
+              // Đi bộ hiển thị chấm bước chân rõ nét; xe máy/ô tô hiển thị dải liền mạch sạch mắt
+              map.setPaintProperty(
+                'shg-route-dashes',
+                'line-opacity',
+                mode === 'walking' ? 0.92 : 0.22
+              );
+            }
+          } catch (e) {}
 
           if (route.destination) {
             destMarker = new gl.Marker({
@@ -3039,10 +3092,11 @@ export const MapExplorer: React.FC<MapExplorerProps> = React.memo(({
       route:
         activeRoute && activeRoute.coordinates.length > 0
           ? {
-              key: `${activeRoute.targetId}:${activeRoute.coordinates.length}:${Math.round(activeRoute.totalDistanceMeters)}`,
+              key: `${activeRoute.targetId}:${activeRoute.travelMode || travelMode}:${activeRoute.coordinates.length}:${Math.round(activeRoute.totalDistanceMeters)}`,
               coordinates: activeRoute.coordinates,
               destination: activeRoute.destination,
               targetName: activeRoute.targetName,
+              travelMode: activeRoute.travelMode || travelMode,
             }
           : null,
     };
@@ -3055,6 +3109,7 @@ export const MapExplorer: React.FC<MapExplorerProps> = React.memo(({
     serializedSites,
     showRestaurantsOnMap,
     activeRoute,
+    travelMode,
   ]);
 
   const hasFlushedInitialRef = useRef<boolean>(false);
@@ -4728,7 +4783,9 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surface,
     borderRadius: RADII.xl,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: '#BFDBFE',
+    borderTopWidth: 3,
+    borderTopColor: COLORS.gpsBlue,
     padding: SPACING.md,
     ...SHADOWS.floating,
   },
@@ -4782,9 +4839,11 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   navSubMetrics: {
-    fontSize: 12,
-    color: COLORS.inkSecondary,
-    marginTop: 1,
+    fontSize: 12.5,
+    fontWeight: '700',
+    color: '#1D4ED8',
+    marginTop: 2,
+    fontVariant: ['tabular-nums'],
   },
   cancelNavBtn: {
     width: 32,
@@ -4827,7 +4886,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 5,
-    backgroundColor: COLORS.ink,
+    backgroundColor: '#2563EB',
     borderRadius: RADII.md,
     paddingVertical: 9,
     paddingHorizontal: 10,
@@ -4858,10 +4917,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: SPACING.sm,
-    backgroundColor: COLORS.bg,
+    backgroundColor: '#EFF6FF',
     borderRadius: RADII.md,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: '#BFDBFE',
     paddingHorizontal: 10,
     paddingVertical: 7,
   },
@@ -5040,8 +5099,8 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
   },
   travelModeChipActive: {
-    backgroundColor: COLORS.ink,
-    borderColor: COLORS.ink,
+    backgroundColor: '#2563EB',
+    borderColor: '#1D4ED8',
   },
   travelModeChipText: {
     fontSize: 11.5,
