@@ -4,12 +4,20 @@ import { createAudioPlayer, setAudioModeAsync, type AudioPlayer } from 'expo-aud
 import { SUPPORTED_LANGUAGES, SupportedLanguage } from '../types/heritage';
 import { getApiBaseUrl, shouldTryBackendProxy } from './apiClient';
 import {
+  computeSeekSecondsFromRatio,
+  computeSeekTargetSeconds,
   preprocessTextForSpeech,
   scoreSpeechVoice,
   type SpeechVoiceGender,
 } from '../utils/speechTextUtils';
 
-export { preprocessTextForSpeech, scoreSpeechVoice, type SpeechVoiceGender };
+export {
+  computeSeekSecondsFromRatio,
+  computeSeekTargetSeconds,
+  preprocessTextForSpeech,
+  scoreSpeechVoice,
+  type SpeechVoiceGender,
+};
 export type SpeechPlayState = 'idle' | 'playing' | 'paused';
 export type SpeechEngineMode = 'neural' | 'device' | 'simulated';
 
@@ -132,6 +140,9 @@ class MultiLingualSpeechService {
   private nativeWarmupKeys = new Set<string>();
   private neuralDisabledUntil = 0;
   private audioModeConfigured = false;
+  private lastKnownCurrentSec = 0;
+  private lastKnownDurationSec = 0;
+  private seekLockUntil = 0;
 
   private clearFallbackTimer(): void {
     if (this.fallbackTimer !== null) {
@@ -180,6 +191,9 @@ class MultiLingualSpeechService {
   private cleanupAudioPlayers(): void {
     this.clearProgressTimer();
     this.isContinuousMode = false;
+    this.lastKnownCurrentSec = 0;
+    this.lastKnownDurationSec = 0;
+    this.seekLockUntil = 0;
     if (this.activeFetchAbort) {
       try {
         this.activeFetchAbort.abort();
@@ -244,8 +258,15 @@ class MultiLingualSpeechService {
     this.callbacks.onComplete?.();
   }
 
-  private syncContinuousProgress(curSec: number, durSec: number): void {
+  private syncContinuousProgress(
+    curSec: number,
+    durSec: number,
+    force = false
+  ): void {
     if (!this.currentBundle || durSec <= 0) return;
+    if (!force && Date.now() < this.seekLockUntil) return;
+    this.lastKnownCurrentSec = Math.max(0, Math.min(durSec, curSec));
+    this.lastKnownDurationSec = durSec;
     const overallRatio = Math.max(0, Math.min(1, curSec / durSec));
     const bounds = this.currentBundle.bounds;
     let idx = bounds.length - 1;
@@ -629,9 +650,10 @@ class MultiLingualSpeechService {
       );
 
       this.callbacks.onLoadingChange?.(true);
+      // Tải trọn tệp MP3 về bộ nhớ đệm thiết bị (downloadFirst: true) để tua seekTo() chính xác 100% trên iOS/Android
       const player = createAudioPlayer(
         { uri: ttsUrl },
-        { updateInterval: 200, downloadFirst: false }
+        { updateInterval: 200, downloadFirst: true }
       );
       try {
         player.shouldCorrectPitch = true;
@@ -1038,6 +1060,130 @@ class MultiLingualSpeechService {
       this.pause();
     }
     return clamped;
+  }
+
+  /**
+   * Tua trực tiếp đến tỷ lệ 0..1 trên toàn bộ luồng âm thanh (khi chạm/kéo Seekbar).
+   * Tự động đồng bộ lại đoạn phụ đề tương ứng; nếu đang ở chế độ Offline Device TTS sẽ nhảy tới đoạn tương ứng.
+   */
+  public seekToRatio(ratio: number): boolean {
+    const clampedRatio = Math.max(0, Math.min(1, Number.isFinite(ratio) ? ratio : 0));
+
+    if (this.isContinuousMode && this.webAudio) {
+      const rawDur = this.webAudio.duration;
+      const dur =
+        Number.isFinite(rawDur) && rawDur > 0
+          ? rawDur
+          : this.lastKnownDurationSec;
+      if (dur > 0) {
+        try {
+          const nextSec = computeSeekSecondsFromRatio(clampedRatio, dur);
+          this.seekLockUntil = Date.now() + 250;
+          this.webAudio.currentTime = nextSec;
+          this.syncContinuousProgress(nextSec, dur, true);
+          return true;
+        } catch {
+          // fallback below
+        }
+      }
+    }
+
+    if (this.isContinuousMode && this.nativePlayer) {
+      const rawDur = this.nativePlayer.duration || 0;
+      const dur = rawDur > 0 ? rawDur : this.lastKnownDurationSec;
+      if (dur > 0) {
+        try {
+          const nextSec = computeSeekSecondsFromRatio(clampedRatio, dur);
+          this.seekLockUntil = Date.now() + 350;
+          void this.nativePlayer.seekTo(nextSec);
+          this.syncContinuousProgress(nextSec, dur, true);
+          return true;
+        } catch {
+          // fallback below
+        }
+      }
+    }
+
+    if (this.currentSegments.length > 0) {
+      let targetIdx = Math.min(
+        this.currentSegments.length - 1,
+        Math.floor(clampedRatio * this.currentSegments.length)
+      );
+      if (this.currentBundle?.bounds?.length) {
+        const found = this.currentBundle.bounds.findIndex(
+          (b) => clampedRatio <= b.endRatio
+        );
+        if (found >= 0) targetIdx = found;
+      }
+      this.jumpToSegment(targetIdx, this.state === 'playing');
+      return true;
+    }
+
+    return false;
+  }
+
+  /**
+   * Tua theo số giây tương đối (VD: -10s hoặc +10s) trên luồng âm thanh thực.
+   * Khi ở chế độ Offline Device TTS không hỗ trợ tua giữa câu, tự động chuyển sang đoạn trước/sau.
+   */
+  public seekBySeconds(deltaSeconds: number): boolean {
+    if (this.isContinuousMode && this.webAudio) {
+      const rawDur = this.webAudio.duration;
+      const dur =
+        Number.isFinite(rawDur) && rawDur > 0
+          ? rawDur
+          : this.lastKnownDurationSec;
+      if (dur > 0) {
+        try {
+          const rawCur = this.webAudio.currentTime;
+          const cur =
+            Number.isFinite(rawCur) && rawCur >= 0
+              ? rawCur
+              : this.lastKnownCurrentSec;
+          const nextSec = computeSeekTargetSeconds(cur, dur, deltaSeconds);
+          this.seekLockUntil = Date.now() + 250;
+          this.webAudio.currentTime = nextSec;
+          this.syncContinuousProgress(nextSec, dur, true);
+          return true;
+        } catch {
+          // fallback below
+        }
+      }
+    }
+
+    if (this.isContinuousMode && this.nativePlayer) {
+      const rawDur = this.nativePlayer.duration || 0;
+      const dur = rawDur > 0 ? rawDur : this.lastKnownDurationSec;
+      if (dur > 0) {
+        try {
+          // Ưu tiên lastKnownCurrentSec được cập nhật đều đặn từ playbackStatusUpdate trên iOS/Android
+          const cur =
+            this.lastKnownCurrentSec > 0
+              ? this.lastKnownCurrentSec
+              : Number.isFinite(this.nativePlayer.currentTime)
+                ? this.nativePlayer.currentTime
+                : 0;
+          const nextSec = computeSeekTargetSeconds(cur, dur, deltaSeconds);
+          this.seekLockUntil = Date.now() + 350;
+          void this.nativePlayer.seekTo(nextSec);
+          this.syncContinuousProgress(nextSec, dur, true);
+          return true;
+        } catch {
+          // fallback below
+        }
+      }
+    }
+
+    if (this.currentSegments.length > 0) {
+      if (deltaSeconds < 0) {
+        this.prevSegment();
+      } else {
+        this.nextSegment();
+      }
+      return true;
+    }
+
+    return false;
   }
 
   /** Đổi tốc độ đọc mượt tức thì (0.75x, 1.0x, 1.25x, 1.5x) mà không cần tải lại audio */
