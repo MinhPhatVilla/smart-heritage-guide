@@ -15,21 +15,25 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WebView } from 'react-native-webview';
 import {
   ArrowLeft,
+  Bike,
   Camera,
-  ChevronRight,
+  ChevronDown,
+  ChevronUp,
   Clock,
   ExternalLink,
   Film,
   Footprints,
+  Headphones,
   Image as ImageIcon,
   MapPin,
+  MessageSquareText,
   Navigation,
+  Pause,
   Play,
-  Sparkles,
+  RotateCcw,
   Star,
   Ticket,
   Utensils,
-  Volume2,
   X,
 } from 'lucide-react-native';
 import {
@@ -37,13 +41,20 @@ import {
   HeritageSite,
   NearbyRestaurant,
   SupportedLanguage,
+  VisitedSiteRecord,
 } from '../types/heritage';
 import {
+  estimateTravelSeconds,
   formatDistance,
+  formatTravelDuration,
   formatWalkingDuration,
   getRecommendedRestaurants,
 } from '../utils/geoUtils';
-import { AudioGuidePlayer } from './AudioGuidePlayer';
+import {
+  AudioGuidePlayer,
+  AudioPlaybackSnapshot,
+  formatAudioClock,
+} from './AudioGuidePlayer';
 import { SiteMiniMap } from './SiteMiniMap';
 import { speechService } from '../services/speechService';
 import { COLORS, RADII, SERIF_FONT, SHADOWS, SPACING } from '../theme';
@@ -51,6 +62,7 @@ import { COLORS, RADII, SERIF_FONT, SHADOWS, SPACING } from '../theme';
 export interface HeritageDetailModalProps {
   visible?: boolean;
   site: HeritageSite;
+  visitedRecord?: VisitedSiteRecord;
   userLocation: [number, number];
   distanceMeters: number;
   estimatedWalkingSeconds: number;
@@ -103,6 +115,7 @@ function buildVideoPlayerHtml(url: string, poster?: string): string {
 export const HeritageDetailModal: React.FC<HeritageDetailModalProps> = ({
   visible = true,
   site,
+  visitedRecord,
   userLocation,
   distanceMeters,
   estimatedWalkingSeconds,
@@ -117,6 +130,16 @@ export const HeritageDetailModal: React.FC<HeritageDetailModalProps> = ({
   const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState<DetailTab>('overview');
   const [minRatingFilter, setMinRatingFilter] = useState<number>(0);
+  const [showDiningMap, setShowDiningMap] = useState<boolean>(false);
+  const [audioSnapshot, setAudioSnapshot] = useState<AudioPlaybackSnapshot>({
+    playState: 'idle',
+    progressPercent: 0,
+    currentSeconds: 0,
+    durationSeconds: 0,
+    activeSegment: 0,
+    totalSegments: 0,
+    isBuffering: false,
+  });
   const [lightboxMedia, setLightboxMedia] = useState<{
     url: string;
     caption: string;
@@ -139,6 +162,7 @@ export const HeritageDetailModal: React.FC<HeritageDetailModalProps> = ({
   useEffect(() => {
     setActiveTab('overview');
     setMinRatingFilter(0);
+    setShowDiningMap(false);
     setLightboxMedia(null);
     setPlayingVideoId(null);
   }, [site.id]);
@@ -200,11 +224,6 @@ export const HeritageDetailModal: React.FC<HeritageDetailModalProps> = ({
         minRatingFilter
       ),
     [safeRestaurants, site.lat, site.lng, minRatingFilter]
-  );
-
-  const previewRestaurants = useMemo(
-    () => getRecommendedRestaurants(safeRestaurants, site.lat, site.lng, 0).slice(0, 3),
-    [safeRestaurants, site.lat, site.lng]
   );
 
   const safeRating = Number.isFinite(site.rating) ? site.rating : 4.7;
@@ -358,298 +377,290 @@ export const HeritageDetailModal: React.FC<HeritageDetailModalProps> = ({
         </Pressable>
       </View>
 
-      {/* Clean Sticky Tab Bar */}
-      <View style={styles.tabsBar}>
-        {(
-          [
-            { id: 'overview', label: 'Tổng quan & Nghe', icon: Volume2 },
-            {
-              id: 'dining',
-              label: `Ẩm thực (${safeRestaurants.length})`,
-              icon: Utensils,
-            },
-            {
-              id: 'media',
-              label: `Tư liệu (${safeGallery.length})`,
-              icon: ImageIcon,
-            },
-          ] as const
-        ).map((tab) => {
-          const active = activeTab === tab.id;
-          const IconComponent = tab.icon;
-          return (
-            <Pressable
-              key={tab.id}
-              onPress={() => setActiveTab(tab.id)}
-              style={[styles.tabBtn, active && styles.tabBtnActive]}
-              accessibilityRole="tab"
-              accessibilityState={{ selected: active }}
-            >
-              <IconComponent
-                size={14}
-                color={active ? COLORS.accent : COLORS.inkMuted}
-              />
-              <Text
-                style={[styles.tabLabel, active && styles.tabLabelActive]}
-                numberOfLines={1}
+      {/* Clean Soft Jade Segmented Tab Bar */}
+      <View style={styles.tabsOuter}>
+        <View style={styles.tabsBar}>
+          {(
+            [
+              { id: 'overview', label: 'Thuyết minh', icon: Headphones },
+              {
+                id: 'dining',
+                label: `Ẩm thực (${safeRestaurants.length})`,
+                icon: Utensils,
+              },
+              {
+                id: 'media',
+                label: `Tư liệu (${safeGallery.length})`,
+                icon: ImageIcon,
+              },
+            ] as const
+          ).map((tab) => {
+            const active = activeTab === tab.id;
+            const IconComponent = tab.icon;
+            return (
+              <Pressable
+                key={tab.id}
+                onPress={() => setActiveTab(tab.id)}
+                style={[styles.tabBtn, active && styles.tabBtnActive]}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: active }}
               >
-                {tab.label}
-              </Text>
-            </Pressable>
-          );
-        })}
+                <IconComponent
+                  size={13.5}
+                  color={active ? COLORS.white : COLORS.accentDeep}
+                  strokeWidth={2}
+                />
+                <Text
+                  style={[styles.tabLabel, active && styles.tabLabelActive]}
+                  numberOfLines={1}
+                >
+                  {tab.label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
       </View>
 
-      {/* Scrollable Body (Hero lives inside scroll for spacious, comfortable reading!) */}
+      {/* Scrollable Body (Hero lives inside scroll; cleanly centered on Web Desktop) */}
       <ScrollView
         style={styles.bodyScroll}
         contentContainerStyle={styles.bodyContent}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Compact Editorial Hero Card */}
-        <View style={styles.heroCard}>
-          <Image
-            source={{ uri: site.coverImage }}
-            style={styles.heroImage}
-            resizeMode="cover"
-          />
-          <View style={styles.heroScrim} pointerEvents="none" />
+        <View style={styles.bodyInner}>
+        {/* Clean Editorial Hero Card (Photo uncluttered + Practical Info Strip below) */}
+        <View style={styles.heroCardWrap}>
+          <View style={styles.heroCard}>
+            <Image
+              source={{ uri: site.coverImage }}
+              style={styles.heroImage}
+              resizeMode="cover"
+            />
+            <View style={styles.heroScrim} pointerEvents="none" />
 
-          <View style={styles.heroTopRow} pointerEvents="none">
-            {site.unescoRecognized ? (
-              <View style={styles.heroBadge}>
-                <Text style={styles.heroBadgeText}>Di sản UNESCO</Text>
-              </View>
-            ) : site.nationalSpecialMonument ? (
-              <View style={styles.heroBadgeAccent}>
-                <Text style={styles.heroBadgeText}>Di tích QG Đặc biệt</Text>
-              </View>
-            ) : (
-              <View />
-            )}
+            <View style={styles.heroTopRow} pointerEvents="none">
+              {site.unescoRecognized ? (
+                <View style={styles.heroBadge}>
+                  <Text style={styles.heroBadgeText}>Di sản UNESCO</Text>
+                </View>
+              ) : site.nationalSpecialMonument ? (
+                <View style={styles.heroBadgeAccent}>
+                  <Text style={styles.heroBadgeText}>Di tích QG Đặc biệt</Text>
+                </View>
+              ) : (
+                <View />
+              )}
 
-            <View style={styles.heroRatingPill}>
-              <Star
-                size={12}
-                color={COLORS.amberStar}
-                fill={COLORS.amberStar}
-              />
-              <Text style={styles.heroRatingText}>
-                {safeRating.toFixed(1)} ({safeReviewCount.toLocaleString()})
+              <View style={styles.heroRatingPill}>
+                <Star
+                  size={12}
+                  color={COLORS.amberStar}
+                  fill={COLORS.amberStar}
+                />
+                <Text style={styles.heroRatingText}>
+                  {safeRating.toFixed(1)} ({safeReviewCount.toLocaleString()})
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.heroBottom} pointerEvents="none">
+              <Text style={styles.heroEra} numberOfLines={1}>
+                {site.city}
+                {localized.historicalEra ? ` · ${localized.historicalEra}` : ''}
+              </Text>
+              <Text style={styles.heroTitle} numberOfLines={2}>
+                {localized.name}
               </Text>
             </View>
           </View>
 
-          <View style={styles.heroBottom} pointerEvents="none">
-            <Text style={styles.heroEra} numberOfLines={1}>
-              {site.city}
-              {localized.historicalEra ? ` · ${localized.historicalEra}` : ''}
-            </Text>
-            <Text style={styles.heroTitle} numberOfLines={2}>
-              {localized.name}
-            </Text>
-            <View style={styles.heroStatsRow}>
-              <View style={styles.heroStatItem}>
-                <Footprints size={13} color={COLORS.amberStar} />
-                <Text style={styles.heroStatText}>
-                  {formatWalkingDuration(estimatedWalkingSeconds)} ·{' '}
-                  {formatDistance(distanceMeters)}
-                </Text>
-              </View>
-              <Text style={styles.heroMetaDot}>·</Text>
-              <View style={styles.heroStatItem}>
-                <Ticket size={13} color="#FDE68A" />
-                <Text style={styles.heroStatText} numberOfLines={1}>
-                  {site.ticketPrice || 'Miễn phí'}
-                </Text>
-              </View>
+          {/* Clean Practical Strip Below Photo (Smart travel estimate · Ticket · Rating) */}
+          <View style={styles.heroMetaStrip}>
+            <View style={styles.heroMetaStripItem}>
+              {distanceMeters > 3500 ? (
+                <Bike size={13} color={COLORS.accentDeep} strokeWidth={2} />
+              ) : (
+                <Footprints size={13} color={COLORS.accentDeep} strokeWidth={2} />
+              )}
+              <Text style={styles.heroMetaStripPrimary} numberOfLines={1}>
+                {distanceMeters > 3500
+                  ? `~${formatTravelDuration(
+                      estimateTravelSeconds(distanceMeters, 'motorbike'),
+                      'motorbike'
+                    )}`
+                  : `~${formatWalkingDuration(estimatedWalkingSeconds)}`}{' '}
+                ({formatDistance(distanceMeters)})
+              </Text>
+            </View>
+            <View style={styles.heroMetaStripDivider} />
+            <View style={styles.heroMetaStripItemRight}>
+              <Ticket size={13} color={COLORS.inkMuted} strokeWidth={1.9} />
+              <Text style={styles.heroMetaStripMuted} numberOfLines={1}>
+                {site.ticketPrice || 'Miễn phí'}
+              </Text>
             </View>
           </View>
         </View>
 
-        {/* TAB 1: TỔNG QUAN, THUYẾT MINH & ẨM THỰC GẦN ĐÓ */}
-        {activeTab === 'overview' && (
-          <View style={styles.tabSection}>
-            <AudioGuidePlayer
-              site={site}
-              selectedLanguage={selectedLanguage}
-              onLanguageChange={onLanguageChange}
-            />
+        {/* TAB 1: THUYẾT MINH & TỔNG QUAN (Luôn giữ sống trong DOM để âm thanh KHÔNG NGẮT khi đổi sang tab Ẩm thực / Tư liệu!) */}
+        <View
+          style={[
+            styles.tabSection,
+            activeTab !== 'overview' && styles.hiddenTab,
+          ]}
+        >
+          <AudioGuidePlayer
+            site={site}
+            selectedLanguage={selectedLanguage}
+            onLanguageChange={onLanguageChange}
+            onPlaybackSnapshotChange={setAudioSnapshot}
+          />
 
-            {/* Quick Facts Grid */}
-            <View style={styles.quickFactsGrid}>
-              <View style={styles.quickFactCard}>
-                <View style={styles.quickFactIcon}>
-                  <Clock size={14} color={COLORS.accent} />
+          {/* User's Own Check-in Review Card (shown when user has rated/checked in) */}
+          {visitedRecord && (
+            <View style={styles.myReviewCard}>
+              <View style={styles.myReviewHeader}>
+                <View style={styles.myReviewLeft}>
+                  <Text style={styles.myReviewTitle}>Đánh giá của bạn</Text>
+                  <View style={styles.myReviewStars}>
+                    {[1, 2, 3, 4, 5].map((star) => {
+                      const filled = star <= (visitedRecord.userRating || 5);
+                      return (
+                        <Star
+                          key={star}
+                          size={13}
+                          color={filled ? COLORS.amberStar : COLORS.borderStrong}
+                          fill={filled ? COLORS.amberStar : 'transparent'}
+                        />
+                      );
+                    })}
+                    <Text style={styles.myReviewScoreText}>
+                      {(visitedRecord.userRating || 5).toFixed(1)}
+                    </Text>
+                  </View>
                 </View>
-                <Text style={styles.quickFactLabel}>Giờ mở cửa</Text>
-                <Text style={styles.quickFactValue} numberOfLines={2}>
+
+                <TouchableOpacity
+                  onPress={() => onOpenPhotoCheckIn(site)}
+                  style={styles.myReviewEditBtn}
+                  activeOpacity={0.78}
+                >
+                  <Text style={styles.myReviewEditText}>Cập nhật</Text>
+                </TouchableOpacity>
+              </View>
+
+              {visitedRecord.userNote ? (
+                <Text style={styles.myReviewNote}>{visitedRecord.userNote}</Text>
+              ) : null}
+
+              {visitedRecord.photos?.length > 0 &&
+                visitedRecord.photos[0].dataUrl &&
+                visitedRecord.photos[0].dataUrl !== site.coverImage && (
+                  <Image
+                    source={{ uri: visitedRecord.photos[0].dataUrl }}
+                    style={styles.myReviewPhoto}
+                    resizeMode="cover"
+                  />
+                )}
+            </View>
+          )}
+
+          {/* Consolidated Single Practical Info Card (Giờ mở cửa · Giá vé · Địa chỉ) */}
+          <View style={styles.practicalCard}>
+            <View style={styles.practicalRowItem}>
+              <View style={styles.practicalIconBox}>
+                <Clock size={14} color={COLORS.accentDeep} strokeWidth={2} />
+              </View>
+              <View style={styles.practicalTextCol}>
+                <Text style={styles.practicalLabel}>Giờ mở cửa</Text>
+                <Text style={styles.practicalValue}>
                   {localized.openingHours || '07:00 – 18:00'}
                 </Text>
               </View>
+            </View>
 
-              <View style={styles.quickFactCard}>
-                <View style={styles.quickFactIcon}>
-                  <Ticket size={14} color={COLORS.accent} />
-                </View>
-                <Text style={styles.quickFactLabel}>Giá vé tham khảo</Text>
-                <Text style={styles.quickFactValue} numberOfLines={2}>
+            <View style={styles.practicalDivider} />
+
+            <View style={styles.practicalRowItem}>
+              <View style={styles.practicalIconBox}>
+                <Ticket size={14} color={COLORS.accentDeep} strokeWidth={2} />
+              </View>
+              <View style={styles.practicalTextCol}>
+                <Text style={styles.practicalLabel}>Giá vé tham khảo</Text>
+                <Text style={styles.practicalValue}>
                   {site.ticketPrice || 'Miễn phí tham quan'}
                 </Text>
               </View>
             </View>
 
-            {/* Address Row */}
-            <View style={styles.addressCard}>
-              <MapPin size={15} color={COLORS.accent} />
-              <View style={styles.infoTextWrap}>
-                <Text style={styles.infoLabel}>Địa chỉ & Tọa độ</Text>
-                {site.address ? (
-                  <Text style={styles.infoValue}>{site.address}</Text>
-                ) : null}
-                <Text style={styles.infoCoords}>
-                  {site.lat.toFixed(4)}°N, {site.lng.toFixed(4)}°E
-                </Text>
-              </View>
-            </View>
-
-            {/* Historical Summary & Highlights */}
-            <View style={styles.card}>
-              <Text style={styles.cardEyebrow}>
-                GIỚI THIỆU & ĐIỂM NHẤN KIẾN TRÚC
-              </Text>
-              <Text style={styles.summaryText}>{localized.shortSummary}</Text>
-
-              {safeHighlights.length > 0 && (
-                <View style={styles.highlightsList}>
-                  {safeHighlights.map((item, idx) => (
-                    <View key={idx} style={styles.highlightRow}>
-                      <Text style={styles.highlightIndex}>0{idx + 1}</Text>
-                      <Text style={styles.highlightText}>{item}</Text>
-                    </View>
-                  ))}
-                </View>
-              )}
-            </View>
-
-            {/* Nearby Dining Preview right on Overview tab */}
-            {previewRestaurants.length > 0 && (
-              <View style={styles.card}>
-                <View style={styles.sectionHeaderRow}>
-                  <View style={styles.sectionHeaderLeft}>
-                    <Utensils size={14} color={COLORS.accent} />
-                    <Text style={styles.cardEyebrowDark}>
-                      QUÁN ĂN & ĐỒ UỐNG GẦN ĐÂY ({safeRestaurants.length})
-                    </Text>
+            {site.address ? (
+              <>
+                <View style={styles.practicalDivider} />
+                <View style={styles.practicalRowItem}>
+                  <View style={styles.practicalIconBox}>
+                    <MapPin size={14} color={COLORS.accentDeep} strokeWidth={2} />
                   </View>
-                  <TouchableOpacity
-                    onPress={() => setActiveTab('dining')}
-                    style={styles.seeAllLink}
-                    activeOpacity={0.75}
-                  >
-                    <Text style={styles.seeAllLinkText}>Xem tất cả</Text>
-                    <ChevronRight size={14} color={COLORS.accent} />
-                  </TouchableOpacity>
+                  <View style={styles.practicalTextCol}>
+                    <Text style={styles.practicalLabel}>Địa chỉ</Text>
+                    <Text style={styles.practicalValue}>{site.address}</Text>
+                  </View>
                 </View>
-
-                <View style={styles.previewFoodList}>
-                  {previewRestaurants.map((res) => (
-                    <View key={res.id} style={styles.previewFoodItem}>
-                      <Image
-                        source={{ uri: res.imageUrl || FALLBACK_FOOD_IMG }}
-                        style={styles.previewFoodThumb}
-                        resizeMode="cover"
-                      />
-                      <View style={styles.previewFoodInfo}>
-                        <Text style={styles.previewFoodName} numberOfLines={1}>
-                          {res.name}
-                        </Text>
-                        <Text style={styles.previewFoodMeta} numberOfLines={1}>
-                          ★ {(res.rating ?? 4.5).toFixed(1)} ·{' '}
-                          {formatDistance(res.distanceMeters)} ·{' '}
-                          {res.priceRange || res.cuisine}
-                        </Text>
-                        {Array.isArray(res.specialtyDishes) &&
-                        res.specialtyDishes.length > 0 ? (
-                          <Text
-                            style={styles.previewFoodDish}
-                            numberOfLines={1}
-                          >
-                            {res.specialtyDishes.slice(0, 2).join(' · ')}
-                          </Text>
-                        ) : null}
-                      </View>
-                      <TouchableOpacity
-                        onPress={() => onNavigateToRestaurant(res, site)}
-                        style={styles.previewFoodGoBtn}
-                        activeOpacity={0.8}
-                      >
-                        <Navigation size={13} color={COLORS.white} />
-                      </TouchableOpacity>
-                    </View>
-                  ))}
-                </View>
-              </View>
-            )}
-
-            {onAskAiAboutSite && (
-              <TouchableOpacity
-                onPress={() => onAskAiAboutSite(site)}
-                style={styles.askAiCard}
-                activeOpacity={0.85}
-              >
-                <View style={styles.askAiIconWrap}>
-                  <Sparkles size={16} color={COLORS.white} />
-                </View>
-                <View style={styles.askAiTextCol}>
-                  <Text style={styles.askAiTitle}>Hỏi AI về di tích này</Text>
-                  <Text style={styles.askAiDesc} numberOfLines={2}>
-                    Trợ lý RAG đa ngôn ngữ giải đáp lịch sử, kiến trúc & ẩm thực
-                    quanh {localized.name}
-                  </Text>
-                </View>
-                <View style={styles.askAiCtaPill}>
-                  <Text style={styles.askAiCtaText}>Hỏi AI</Text>
-                </View>
-              </TouchableOpacity>
-            )}
-
-            {/* Embedded SiteMiniMap */}
-            <View style={styles.miniMapSection}>
-              <View style={styles.miniMapHeader}>
-                <Text style={styles.cardEyebrow}>
-                  BẢN ĐỒ DI TÍCH & ẨM THỰC XUNG QUANH
-                </Text>
-                <TouchableOpacity
-                  onPress={() => onStartNavigation(site)}
-                  style={styles.miniMapNavLink}
-                  activeOpacity={0.75}
-                >
-                  <Navigation size={12} color={COLORS.accent} />
-                  <Text style={styles.miniMapNavLinkText}>Mở bản đồ lớn</Text>
-                </TouchableOpacity>
-              </View>
-              <SiteMiniMap
-                site={site}
-                userLocation={userLocation}
-                restaurants={topRestaurants}
-                onSelectRestaurant={(res) => onNavigateToRestaurant(res, site)}
-                height={215}
-              />
-            </View>
+              </>
+            ) : null}
           </View>
-        )}
 
-        {/* TAB 2: ẨM THỰC GẦN ĐÓ */}
+          {/* Historical Summary & Highlights */}
+          <View style={styles.card}>
+            <Text style={styles.cardEyebrow}>
+              GIỚI THIỆU &amp; ĐIỂM NHẤN KIẾN TRÚC
+            </Text>
+            <Text style={styles.summaryText}>{localized.shortSummary}</Text>
+
+            {safeHighlights.length > 0 && (
+              <View style={styles.highlightsList}>
+                {safeHighlights.map((item, idx) => (
+                  <View key={idx} style={styles.highlightRow}>
+                    <Text style={styles.highlightIndex}>0{idx + 1}</Text>
+                    <Text style={styles.highlightText}>{item}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
+          </View>
+
+          {onAskAiAboutSite && (
+            <TouchableOpacity
+              onPress={() => onAskAiAboutSite(site)}
+              style={styles.askAiCard}
+              activeOpacity={0.85}
+            >
+              <View style={styles.askAiIconWrap}>
+                <MessageSquareText size={16} color={COLORS.white} />
+              </View>
+              <View style={styles.askAiTextCol}>
+                <Text style={styles.askAiTitle}>Hỏi trợ lý về di tích này</Text>
+                <Text style={styles.askAiDesc} numberOfLines={2}>
+                  Giải đáp lịch sử, kiến trúc &amp; ẩm thực quanh {localized.name}
+                </Text>
+              </View>
+              <View style={styles.askAiCtaPill}>
+                <Text style={styles.askAiCtaText}>Hỏi ngay</Text>
+              </View>
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {/* TAB 2: ẨM THỰC GẦN ĐÓ (Danh sách hiện ngay, Bản đồ mini thu gọn mặc định) */}
         {activeTab === 'dining' && (
           <View style={styles.tabSection}>
             <View style={styles.sectionIntro}>
               <Text style={styles.sectionTitle}>
-                Quán ăn & Đồ uống quanh {localized.name}
+                Quán ăn &amp; Đồ uống quanh {localized.name}
               </Text>
               <Text style={styles.sectionSubtitle}>
-                Sắp xếp theo đánh giá cao nhất và khoảng cách đi bộ từ địa điểm.
+                Sắp xếp theo đánh giá cao nhất và khoảng cách từ địa điểm.
               </Text>
             </View>
 
@@ -689,14 +700,46 @@ export const HeritageDetailModal: React.FC<HeritageDetailModalProps> = ({
               })}
             </ScrollView>
 
-            {/* Mini map showing nearby restaurants */}
-            <SiteMiniMap
-              site={site}
-              userLocation={userLocation}
-              restaurants={topRestaurants}
-              onSelectRestaurant={(res) => onNavigateToRestaurant(res, site)}
-              height={195}
-            />
+            {/* Collapsible Mini Map Toggle (Hidden by default so user sees dining list immediately) */}
+            <TouchableOpacity
+              activeOpacity={0.82}
+              onPress={() => setShowDiningMap((prev) => !prev)}
+              style={styles.diningMapToggleBtn}
+              accessibilityRole="button"
+              accessibilityLabel={
+                showDiningMap
+                  ? 'Ẩn bản đồ vị trí các quán'
+                  : 'Xem vị trí các quán trên bản đồ'
+              }
+            >
+              <View style={styles.diningMapToggleLeft}>
+                <MapPin size={14} color={COLORS.accentDeep} strokeWidth={2} />
+                <Text style={styles.diningMapToggleText}>
+                  {showDiningMap
+                    ? 'Ẩn bản đồ vị trí các quán'
+                    : `Xem vị trí ${topRestaurants.length} quán trên bản đồ`}
+                </Text>
+              </View>
+              {showDiningMap ? (
+                <ChevronUp size={15} color={COLORS.accentDeep} strokeWidth={2} />
+              ) : (
+                <ChevronDown
+                  size={15}
+                  color={COLORS.accentDeep}
+                  strokeWidth={2}
+                />
+              )}
+            </TouchableOpacity>
+
+            {showDiningMap && (
+              <SiteMiniMap
+                site={site}
+                userLocation={userLocation}
+                restaurants={topRestaurants}
+                onSelectRestaurant={(res) => onNavigateToRestaurant(res, site)}
+                height={195}
+              />
+            )}
 
             {topRestaurants.length === 0 ? (
               <View style={styles.emptyDiningCard}>
@@ -857,27 +900,119 @@ export const HeritageDetailModal: React.FC<HeritageDetailModalProps> = ({
             )}
           </View>
         )}
+        </View>
       </ScrollView>
 
-      {/* Sticky Footer Actions */}
-      <View style={styles.footer}>
-        <TouchableOpacity
-          onPress={() => onStartNavigation(site)}
-          style={styles.footerPrimaryBtn}
-          activeOpacity={0.85}
-        >
-          <Navigation size={16} color={COLORS.white} />
-          <Text style={styles.footerPrimaryText}>Dẫn đường</Text>
-        </TouchableOpacity>
+      {/* Persistent Mini Audio Bar when viewing Ẩm thực / Tư liệu while audio is playing or paused */}
+      {activeTab !== 'overview' && audioSnapshot.playState !== 'idle' && (
+        <View style={styles.miniAudioOuter}>
+          <View style={styles.miniAudioCard}>
+            <View style={styles.miniAudioProgressTrack}>
+              <View
+                style={[
+                  styles.miniAudioProgressFill,
+                  { width: `${audioSnapshot.progressPercent}%` },
+                ]}
+              />
+            </View>
+            <View style={styles.miniAudioRow}>
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={() => setActiveTab('overview')}
+                style={styles.miniAudioInfoBtn}
+                accessibilityLabel="Quay lại trình phát thuyết minh đầy đủ"
+              >
+                <View style={styles.miniAudioIconBox}>
+                  <Headphones size={14} color={COLORS.white} strokeWidth={2} />
+                </View>
+                <View style={styles.miniAudioTextCol}>
+                  <Text style={styles.miniAudioTitle} numberOfLines={1}>
+                    {localized.name}
+                  </Text>
+                  <Text style={styles.miniAudioSub} numberOfLines={1}>
+                    {audioSnapshot.playState === 'playing'
+                      ? 'Đang phát thuyết minh'
+                      : 'Đang tạm dừng'}{' '}
+                    ·{' '}
+                    {audioSnapshot.durationSeconds > 0
+                      ? `${formatAudioClock(
+                          audioSnapshot.currentSeconds
+                        )} / ${formatAudioClock(audioSnapshot.durationSeconds)}`
+                      : `Đoạn ${audioSnapshot.activeSegment + 1}/${
+                          audioSnapshot.totalSegments
+                        }`}
+                  </Text>
+                </View>
+              </TouchableOpacity>
 
-        <TouchableOpacity
-          onPress={() => onOpenPhotoCheckIn(site)}
-          style={styles.footerSecondaryBtn}
-          activeOpacity={0.8}
-        >
-          <Camera size={16} color={COLORS.ink} />
-          <Text style={styles.footerSecondaryText}>Chụp ảnh Check-in</Text>
-        </TouchableOpacity>
+              <View style={styles.miniAudioControls}>
+                <TouchableOpacity
+                  activeOpacity={0.75}
+                  onPress={() => speechService.seekBySeconds(-10)}
+                  style={styles.miniAudioStepBtn}
+                  accessibilityLabel="Tua lùi 10 giây"
+                >
+                  <RotateCcw
+                    size={14}
+                    color={COLORS.accentDeep}
+                    strokeWidth={2}
+                  />
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  onPress={() => {
+                    if (audioSnapshot.playState === 'playing') {
+                      speechService.pause();
+                    } else {
+                      speechService.resume();
+                    }
+                  }}
+                  style={styles.miniAudioPlayBtn}
+                  accessibilityLabel={
+                    audioSnapshot.playState === 'playing'
+                      ? 'Tạm dừng thuyết minh'
+                      : 'Tiếp tục thuyết minh'
+                  }
+                >
+                  {audioSnapshot.playState === 'playing' ? (
+                    <Pause size={15} color={COLORS.white} fill={COLORS.white} />
+                  ) : (
+                    <Play
+                      size={15}
+                      color={COLORS.white}
+                      fill={COLORS.white}
+                      style={{ marginLeft: 1.5 }}
+                    />
+                  )}
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </View>
+      )}
+
+      {/* Sticky Footer Actions (Soft Jade WCAG AA) */}
+      <View style={styles.footerOuter}>
+        <View style={styles.footer}>
+          <TouchableOpacity
+            onPress={() => onStartNavigation(site)}
+            style={styles.footerPrimaryBtn}
+            activeOpacity={0.85}
+          >
+            <Navigation size={15} color={COLORS.white} strokeWidth={2} />
+            <Text style={styles.footerPrimaryText}>Dẫn đường</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => onOpenPhotoCheckIn(site)}
+            style={styles.footerSecondaryBtn}
+            activeOpacity={0.8}
+          >
+            <Camera size={15} color={COLORS.accentDeep} strokeWidth={2} />
+            <Text style={styles.footerSecondaryText}>Check-in ảnh</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Non-nested Inline Fullscreen Image Lightbox (NO nested <Modal> bugs!) */}
@@ -1009,12 +1144,24 @@ const styles = StyleSheet.create({
     opacity: 0.7,
     transform: [{ scale: 0.96 }],
   },
-  tabsBar: {
-    flexDirection: 'row',
+  tabsOuter: {
     backgroundColor: COLORS.surface,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
-    paddingHorizontal: SPACING.sm,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: 8,
+    alignItems: 'center',
+  },
+  tabsBar: {
+    width: '100%',
+    maxWidth: 740,
+    flexDirection: 'row',
+    backgroundColor: COLORS.accentSoft,
+    borderRadius: RADII.lg,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    padding: 3,
+    gap: 4,
   },
   tabBtn: {
     flex: 1,
@@ -1022,20 +1169,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 5,
-    paddingVertical: 11,
-    borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
+    paddingVertical: 8,
+    borderRadius: RADII.md,
   },
   tabBtnActive: {
-    borderBottomColor: COLORS.accent,
+    backgroundColor: COLORS.accent,
   },
   tabLabel: {
     fontSize: 12,
-    fontWeight: '600',
-    color: COLORS.inkMuted,
+    fontWeight: '700',
+    color: COLORS.accentDeep,
   },
   tabLabelActive: {
-    color: COLORS.ink,
+    color: COLORS.white,
     fontWeight: '700',
   },
   bodyScroll: {
@@ -1044,16 +1190,67 @@ const styles = StyleSheet.create({
   bodyContent: {
     padding: SPACING.md + 2,
     paddingBottom: SPACING.xxl + 8,
+    alignItems: 'center',
+  },
+  bodyInner: {
+    width: '100%',
+    maxWidth: 740,
     gap: SPACING.md,
   },
-  heroCard: {
-    height: 190,
-    width: '100%',
-    borderRadius: 18,
+  heroCardWrap: {
+    backgroundColor: COLORS.surface,
+    borderRadius: RADII.xl,
+    borderWidth: 1,
+    borderColor: COLORS.border,
     overflow: 'hidden',
+    ...SHADOWS.card,
+  },
+  heroCard: {
+    height: 184,
+    width: '100%',
     backgroundColor: COLORS.ink,
     position: 'relative',
-    ...SHADOWS.card,
+  },
+  heroMetaStrip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    backgroundColor: COLORS.surface,
+  },
+  heroMetaStripItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flex: 1,
+    minWidth: 0,
+  },
+  heroMetaStripItemRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    flexShrink: 1,
+    maxWidth: '46%',
+  },
+  heroMetaStripDivider: {
+    width: 1,
+    height: 16,
+    backgroundColor: COLORS.border,
+  },
+  heroMetaStripPrimary: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.accentDeep,
+    fontVariant: ['tabular-nums'],
+    flexShrink: 1,
+  },
+  heroMetaStripMuted: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: COLORS.inkSecondary,
+    flexShrink: 1,
   },
   heroImage: {
     width: '100%',
@@ -1156,6 +1353,223 @@ const styles = StyleSheet.create({
   },
   tabSection: {
     gap: SPACING.md,
+  },
+  hiddenTab: {
+    display: 'none',
+  },
+  myReviewCard: {
+    backgroundColor: COLORS.accentSoft,
+    borderRadius: RADII.xl,
+    borderWidth: 1,
+    borderColor: COLORS.accentBorder,
+    padding: 14,
+    gap: 8,
+  },
+  myReviewHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  myReviewLeft: {
+    gap: 4,
+    flex: 1,
+  },
+  myReviewTitle: {
+    fontFamily: SERIF_FONT,
+    fontSize: 13.5,
+    fontWeight: '700',
+    color: COLORS.accentDeep,
+  },
+  myReviewStars: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+  },
+  myReviewScoreText: {
+    marginLeft: 4,
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.ink,
+    fontVariant: ['tabular-nums'],
+  },
+  myReviewEditBtn: {
+    paddingHorizontal: 11,
+    paddingVertical: 6,
+    borderRadius: RADII.pill,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.accentBorder,
+  },
+  myReviewEditText: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: COLORS.accentDeep,
+  },
+  myReviewNote: {
+    fontSize: 13,
+    lineHeight: 19,
+    color: COLORS.ink,
+  },
+  myReviewPhoto: {
+    width: 84,
+    height: 84,
+    borderRadius: RADII.md,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  practicalCard: {
+    backgroundColor: COLORS.surface,
+    borderRadius: RADII.xl,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    ...SHADOWS.card,
+  },
+  practicalRowItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 11,
+    paddingVertical: 10,
+  },
+  practicalIconBox: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: COLORS.accentSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  practicalTextCol: {
+    flex: 1,
+    gap: 1,
+  },
+  practicalLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: COLORS.inkMuted,
+  },
+  practicalValue: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: COLORS.ink,
+    lineHeight: 18,
+  },
+  practicalDivider: {
+    height: 1,
+    backgroundColor: COLORS.border,
+  },
+  diningMapToggleBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+    backgroundColor: COLORS.accentSoft,
+    borderRadius: RADII.lg,
+    borderWidth: 1,
+    borderColor: COLORS.accentBorder,
+    paddingHorizontal: 13,
+    paddingVertical: 11,
+  },
+  diningMapToggleLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    flex: 1,
+  },
+  diningMapToggleText: {
+    fontSize: 12.5,
+    fontWeight: '700',
+    color: COLORS.accentDeep,
+  },
+  miniAudioOuter: {
+    paddingHorizontal: SPACING.md,
+    paddingTop: 8,
+    backgroundColor: COLORS.bg,
+    alignItems: 'center',
+  },
+  miniAudioCard: {
+    width: '100%',
+    maxWidth: 740,
+    backgroundColor: COLORS.surface,
+    borderRadius: RADII.lg,
+    borderWidth: 1,
+    borderColor: COLORS.accentBorder,
+    overflow: 'hidden',
+    ...SHADOWS.floating,
+  },
+  miniAudioProgressTrack: {
+    width: '100%',
+    height: 3,
+    backgroundColor: COLORS.accentSoft,
+  },
+  miniAudioProgressFill: {
+    height: '100%',
+    backgroundColor: COLORS.accent,
+  },
+  miniAudioRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+  },
+  miniAudioInfoBtn: {
+    flex: 1,
+    minWidth: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  miniAudioIconBox: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    backgroundColor: COLORS.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  miniAudioTextCol: {
+    flex: 1,
+    minWidth: 0,
+    gap: 1,
+  },
+  miniAudioTitle: {
+    fontFamily: SERIF_FONT,
+    fontSize: 13,
+    fontWeight: '700',
+    color: COLORS.ink,
+  },
+  miniAudioSub: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: COLORS.accentDeep,
+    fontVariant: ['tabular-nums'],
+  },
+  miniAudioControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+  },
+  miniAudioStepBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: RADII.pill,
+    backgroundColor: COLORS.accentSoft,
+    borderWidth: 1,
+    borderColor: COLORS.accentBorder,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  miniAudioPlayBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: RADII.pill,
+    backgroundColor: COLORS.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   quickFactsGrid: {
     flexDirection: 'row',
@@ -1490,8 +1904,8 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surface,
   },
   filterChipActive: {
-    backgroundColor: COLORS.ink,
-    borderColor: COLORS.ink,
+    backgroundColor: COLORS.accent,
+    borderColor: COLORS.accent,
   },
   filterChipText: {
     fontSize: 12,
@@ -1615,33 +2029,38 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 7,
-    paddingVertical: 10,
-    borderRadius: RADII.md,
-    backgroundColor: COLORS.ink,
+    height: 40,
+    borderRadius: RADII.pill,
+    backgroundColor: COLORS.accent,
   },
   navRestaurantBtnText: {
     fontSize: 12,
     fontWeight: '700',
     color: COLORS.white,
   },
-  footer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.sm,
-    paddingHorizontal: SPACING.lg,
-    paddingVertical: 12,
+  footerOuter: {
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
     backgroundColor: COLORS.surface,
+    alignItems: 'center',
     ...SHADOWS.bar,
+  },
+  footer: {
+    width: '100%',
+    maxWidth: 740,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm + 2,
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: 12,
   },
   footerPrimaryBtn: {
     flex: 1,
+    height: 44,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 12,
+    gap: 7,
     borderRadius: RADII.pill,
     backgroundColor: COLORS.accent,
   },
@@ -1652,20 +2071,20 @@ const styles = StyleSheet.create({
   },
   footerSecondaryBtn: {
     flex: 1,
+    height: 44,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 12,
+    gap: 7,
     borderRadius: RADII.pill,
     borderWidth: 1,
-    borderColor: COLORS.borderStrong,
-    backgroundColor: COLORS.bg,
+    borderColor: COLORS.accentBorder,
+    backgroundColor: COLORS.accentSoft,
   },
   footerSecondaryText: {
     fontSize: 13,
     fontWeight: '700',
-    color: COLORS.ink,
+    color: COLORS.accentDeep,
   },
   lightboxOverlay: {
     position: 'absolute',

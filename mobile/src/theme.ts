@@ -1,38 +1,40 @@
 import { Platform, TextStyle, ViewStyle } from 'react-native';
 
 export const COLORS = {
-  // Warm parchment & stone surfaces
-  bg: '#FAF9F6',
+  // Soft Jade (Ngọc nhạt) & Clean Ivory-Mint surfaces — WCAG 2.1 AA/AAA
+  bg: '#F5FAF8',
   surface: '#FFFFFF',
-  surfaceMuted: '#F3F1EC',
-  surfaceTint: '#F7F5F0',
+  surfaceMuted: '#EBF5F2',
+  surfaceTint: '#EEF7F4',
 
-  // Deep charcoal / ink typography
-  ink: '#141413',
-  inkPressed: '#2C2B29',
-  inkSecondary: '#57554F',
-  inkMuted: '#8A877F',
+  // Deep Jade-Charcoal typography
+  ink: '#132422',
+  inkPressed: '#1F3835',
+  inkSecondary: '#4A6360',
+  inkMuted: '#6E8884',
 
-  // Borders
-  border: '#E6E4DD',
-  borderStrong: '#D4D0C5',
+  // Soft Jade borders
+  border: '#D5E7E2',
+  borderStrong: '#B4D6CC',
 
-  // Heritage terracotta accent
-  accent: '#B93815',
-  accentSoft: 'rgba(185, 56, 21, 0.10)',
-  accentBorder: 'rgba(185, 56, 21, 0.25)',
+  // Primary Soft Jade / Celadon Heritage Accent (WCAG AA 5.1:1 on white, AAA 7.4:1 deep)
+  accent: '#1F7A70',
+  accentDeep: '#155E56',
+  accentSoft: '#E3F3EE',
+  accentSoftStrong: '#D0ECE3',
+  accentBorder: '#B4DDD1',
 
   // Visited / Emerald accents
-  visited: '#047857',
+  visited: '#0F766E',
   visitedDot: '#10B981',
-  visitedBg: '#ECFDF5',
-  visitedBorder: '#A7F3D0',
+  visitedBg: '#E6F7F2',
+  visitedBorder: '#99DFC9',
 
-  // Ratings / Amber accents
-  amber: '#D97706',
-  amberStar: '#F59E0B',
-  amberBg: '#FFFBEB',
-  amberBorder: '#FDE68A',
+  // Ratings / Heritage Warm Gold accents
+  amber: '#B47A1E',
+  amberStar: '#C48A2C',
+  amberBg: '#FDF8EC',
+  amberBorder: '#F2DCAA',
 
   // GPS / Blue accent
   gpsBlue: '#2563EB',
@@ -40,8 +42,8 @@ export const COLORS = {
 
   // Pure & overlays
   white: '#FFFFFF',
-  overlayDark: 'rgba(20, 20, 19, 0.80)',
-  overlayScrim: 'rgba(20, 20, 19, 0.50)',
+  overlayDark: 'rgba(19, 36, 34, 0.84)',
+  overlayScrim: 'rgba(19, 36, 34, 0.42)',
 } as const;
 
 export const SPACING = {
@@ -58,8 +60,8 @@ export const RADII = {
   xs: 4,
   sm: 6,
   md: 10,
-  lg: 12,
-  xl: 16,
+  lg: 14,
+  xl: 18,
   pill: 999,
 } as const;
 
@@ -75,7 +77,7 @@ export const SERIF_FONT = APP_FONT;
 export const TYPOGRAPHY: Record<string, TextStyle> = {
   brandTitle: {
     fontFamily: APP_FONT,
-    fontSize: 17,
+    fontSize: 18,
     fontWeight: '700',
     letterSpacing: -0.2,
     color: COLORS.ink,
@@ -107,7 +109,7 @@ export const TYPOGRAPHY: Record<string, TextStyle> = {
   },
   badge: {
     fontFamily: APP_FONT,
-    fontSize: 10,
+    fontSize: 10.5,
     fontWeight: '700',
     letterSpacing: 0.2,
   },
@@ -116,41 +118,41 @@ export const TYPOGRAPHY: Record<string, TextStyle> = {
 export const SHADOWS: Record<'card' | 'floating' | 'bar', ViewStyle> = {
   card: Platform.select<ViewStyle>({
     ios: {
-      shadowColor: '#141413',
-      shadowOffset: { width: 0, height: 2 },
+      shadowColor: '#132422',
+      shadowOffset: { width: 0, height: 3 },
       shadowOpacity: 0.06,
-      shadowRadius: 6,
+      shadowRadius: 8,
     },
     android: {
       elevation: 2,
     },
     default: {
-      shadowColor: '#141413',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.06,
-      shadowRadius: 6,
+      shadowColor: '#132422',
+      shadowOffset: { width: 0, height: 3 },
+      shadowOpacity: 0.07,
+      shadowRadius: 10,
     },
   })!,
   floating: Platform.select<ViewStyle>({
     ios: {
-      shadowColor: '#141413',
-      shadowOffset: { width: 0, height: 6 },
-      shadowOpacity: 0.16,
-      shadowRadius: 14,
+      shadowColor: '#132422',
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.14,
+      shadowRadius: 18,
     },
     android: {
       elevation: 8,
     },
     default: {
-      shadowColor: '#141413',
-      shadowOffset: { width: 0, height: 6 },
-      shadowOpacity: 0.16,
-      shadowRadius: 14,
+      shadowColor: '#132422',
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.14,
+      shadowRadius: 18,
     },
   })!,
   bar: Platform.select<ViewStyle>({
     ios: {
-      shadowColor: '#141413',
+      shadowColor: '#132422',
       shadowOffset: { width: 0, height: -2 },
       shadowOpacity: 0.05,
       shadowRadius: 8,
@@ -159,7 +161,7 @@ export const SHADOWS: Record<'card' | 'floating' | 'bar', ViewStyle> = {
       elevation: 6,
     },
     default: {
-      shadowColor: '#141413',
+      shadowColor: '#132422',
       shadowOffset: { width: 0, height: -2 },
       shadowOpacity: 0.05,
       shadowRadius: 8,

@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
+  computeSeekSecondsFromRatio,
+  computeSeekTargetSeconds,
   preprocessTextForSpeech,
   scoreSpeechVoice,
 } from '../utils/speechTextUtils';
@@ -69,5 +71,16 @@ describe('speechService text preprocessing & voice scoring', () => {
 
     expect(neuralFemale).toBeGreaterThan(legacy);
     expect(neuralMale).toBeGreaterThan(legacy);
+  });
+
+  it('clamps relative seek (-10s / +10s) and ratio seek (0..1) safely within audio duration', () => {
+    expect(computeSeekTargetSeconds(25, 90, -10)).toBe(15);
+    expect(computeSeekTargetSeconds(5, 90, -10)).toBe(0);
+    expect(computeSeekTargetSeconds(85, 90, 10)).toBe(89.75);
+    expect(computeSeekTargetSeconds(10, 0, 10)).toBe(0);
+
+    expect(computeSeekSecondsFromRatio(0.5, 100)).toBe(50);
+    expect(computeSeekSecondsFromRatio(-0.2, 100)).toBe(0);
+    expect(computeSeekSecondsFromRatio(1.2, 100)).toBe(99.75);
   });
 });

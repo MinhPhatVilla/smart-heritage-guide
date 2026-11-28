@@ -59,7 +59,7 @@ jobs:
           pip install -r requirements.txt
 
       - name: Run pytest suite (AI, Anti-Fake, Routing, Auth & Smoke Tests)
-        run: pytest -v
+        run: python -m pytest -v
 
       - name: Verify OpenAPI schema generation
         run: |
@@ -75,10 +75,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Node.js 20
+      - name: Set up Node.js 22
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
           cache: "npm"
           cache-dependency-path: mobile/package-lock.json
 

@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Keyboard,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -11,12 +12,13 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   BookOpen,
+  Compass,
   MapPin,
+  MessageSquareText,
   Send,
-  Sparkles,
   X,
 } from 'lucide-react-native';
 import {
@@ -163,6 +165,7 @@ export const AiChatModal: React.FC<AiChatModalProps> = ({
   onClose,
   onOpenSiteById,
 }) => {
+  const insets = useSafeAreaInsets();
   const [scopedSite, setScopedSite] = useState<HeritageSite | null>(
     contextSite ?? null
   );
@@ -170,8 +173,30 @@ export const AiChatModal: React.FC<AiChatModalProps> = ({
   const [isSending, setIsSending] = useState<boolean>(false);
   const [messages, setMessages] = useState<ChatBubbleItem[]>([]);
   const [suggestedQuestions, setSuggestedQuestions] = useState<string[]>([]);
+  const [keyboardVisible, setKeyboardVisible] = useState<boolean>(false);
 
   const scrollRef = useRef<React.ComponentRef<typeof ScrollView> | null>(null);
+
+  useEffect(() => {
+    if (!visible || Platform.OS === 'web') return;
+    const showEvent =
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent =
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const subShow = Keyboard.addListener(showEvent, () => {
+      setKeyboardVisible(true);
+      setTimeout(() => {
+        scrollRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+    });
+    const subHide = Keyboard.addListener(hideEvent, () => {
+      setKeyboardVisible(false);
+    });
+    return () => {
+      subShow.remove();
+      subHide.remove();
+    };
+  }, [visible]);
 
   const scopedSiteName = scopedSite
     ? (scopedSite.translations[selectedLanguage] || scopedSite.translations.vi)
@@ -258,34 +283,42 @@ export const AiChatModal: React.FC<AiChatModalProps> = ({
     }, 80);
   };
 
-  return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      presentationStyle="pageSheet"
-      onRequestClose={onClose}
+  if (!visible) return null;
+
+  const chatContent = (
+    <View
+      style={[
+        styles.safeArea,
+        {
+          paddingTop: Platform.OS === 'web' ? 0 : Math.max(insets.top, 8),
+        },
+      ]}
     >
-      <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
-        <KeyboardAvoidingView
-          style={styles.flex}
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        >
-          {/* Header */}
-          <View style={styles.header}>
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={0}
+      >
+        {/* Header */}
+        <View style={styles.header}>
+          <View style={styles.headerInner}>
             <View style={styles.headerTopRow}>
               <View style={styles.headerTitleCol}>
                 <View style={styles.eyebrowRow}>
-                  <Sparkles size={12} color={COLORS.accent} />
+                  <Compass size={12} color={COLORS.accentDeep} strokeWidth={2} />
                   <Text style={styles.eyebrow}>
-                    TRỢ LÝ AI HƯỚNG DẪN VIÊN RAG · 5 NGÔN NGỮ
+                    TRỢ LÝ HƯỚNG DẪN VIÊN · 5 NGÔN NGỮ
                   </Text>
                 </View>
-                <Text style={styles.headerTitle}>Hỏi – Đáp Di sản AI</Text>
+                <Text style={styles.headerTitle}>Hỏi – Đáp Di sản</Text>
               </View>
               <TouchableOpacity
-                onPress={onClose}
+                onPress={() => {
+                  Keyboard.dismiss();
+                  onClose();
+                }}
                 style={styles.closeBtn}
-                accessibilityLabel="Đóng trợ lý AI"
+                accessibilityLabel="Đóng trợ lý"
                 activeOpacity={0.75}
               >
                 <X size={20} color={COLORS.ink} />
@@ -319,7 +352,7 @@ export const AiChatModal: React.FC<AiChatModalProps> = ({
 
               {scopedSite && (
                 <View style={styles.contextPill}>
-                  <MapPin size={11} color={COLORS.accent} />
+                  <MapPin size={11} color={COLORS.accentDeep} />
                   <Text style={styles.contextPillText} numberOfLines={1}>
                     {scopedSiteName}
                   </Text>
@@ -333,15 +366,17 @@ export const AiChatModal: React.FC<AiChatModalProps> = ({
               )}
             </View>
           </View>
+        </View>
 
-          {/* Messages Feed */}
-          <ScrollView
-            ref={scrollRef}
-            style={styles.messagesScroll}
-            contentContainerStyle={styles.messagesContent}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
-          >
+        {/* Messages Feed */}
+        <ScrollView
+          ref={scrollRef}
+          style={styles.messagesScroll}
+          contentContainerStyle={styles.messagesContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.messagesInner}>
             {messages.map((msg) => {
               const isUser = msg.role === 'user';
               return (
@@ -360,12 +395,15 @@ export const AiChatModal: React.FC<AiChatModalProps> = ({
                   >
                     {!isUser && msg.mode && (
                       <View style={styles.modeTag}>
-                        <Sparkles size={10} color={COLORS.accent} />
+                        <MessageSquareText
+                          size={10}
+                          color={COLORS.accentDeep}
+                        />
                         <Text style={styles.modeTagText}>
                           {msg.mode === 'gemini'
                             ? 'Gemini RAG'
                             : msg.mode === 'fallback'
-                              ? 'Tri thức cục bộ RAG'
+                              ? 'Tri thức di sản'
                               : 'Chế độ Offline'}
                         </Text>
                       </View>
@@ -391,6 +429,7 @@ export const AiChatModal: React.FC<AiChatModalProps> = ({
                               key={`${cit.site_id}-${idx}`}
                               onPress={() => {
                                 if (onOpenSiteById && cit.site_id) {
+                                  Keyboard.dismiss();
                                   onClose();
                                   onOpenSiteById(cit.site_id);
                                 }
@@ -398,7 +437,7 @@ export const AiChatModal: React.FC<AiChatModalProps> = ({
                               style={styles.citationChip}
                               activeOpacity={0.75}
                             >
-                              <BookOpen size={11} color={COLORS.accent} />
+                              <BookOpen size={11} color={COLORS.accentDeep} />
                               <Text
                                 style={styles.citationChipText}
                                 numberOfLines={1}
@@ -417,49 +456,70 @@ export const AiChatModal: React.FC<AiChatModalProps> = ({
 
             {isSending && (
               <View style={[styles.bubbleWrap, styles.bubbleWrapBot]}>
-                <View style={[styles.bubble, styles.bubbleBot, styles.typingBox]}>
+                <View
+                  style={[styles.bubble, styles.bubbleBot, styles.typingBox]}
+                >
                   <ActivityIndicator size="small" color={COLORS.accent} />
                   <Text style={styles.typingText}>
-                    Trợ lý AI đang truy xuất tri thức di sản...
+                    Trợ lý đang tra cứu thông tin di sản…
                   </Text>
                 </View>
               </View>
             )}
-          </ScrollView>
+          </View>
+        </ScrollView>
 
-          {/* 3 Tappable Suggested Questions */}
-          {suggestedQuestions.length > 0 && !isSending && (
-            <View style={styles.suggestionsWrap}>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.suggestionsRow}
-              >
-                {suggestedQuestions.slice(0, 3).map((q, idx) => (
-                  <TouchableOpacity
-                    key={idx}
-                    onPress={() => handleSend(q)}
-                    style={styles.suggestionChip}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={styles.suggestionText} numberOfLines={2}>
-                      {q}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            </View>
-          )}
+        {/* Suggested Questions (hide while typing on mobile to save screen space above keyboard) */}
+        {suggestedQuestions.length > 0 && !isSending && !keyboardVisible && (
+          <View style={styles.suggestionsWrap}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.suggestionsRow}
+            >
+              {suggestedQuestions.slice(0, 3).map((q, idx) => (
+                <TouchableOpacity
+                  key={idx}
+                  onPress={() => handleSend(q)}
+                  style={styles.suggestionChip}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.suggestionText} numberOfLines={2}>
+                    {q}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        )}
 
-          {/* Composer */}
+        {/* Composer (always lifted cleanly above keyboard on iOS & Android) */}
+        <View
+          style={[
+            styles.composerOuter,
+            {
+              paddingBottom:
+                Platform.OS === 'web'
+                  ? 12
+                  : keyboardVisible
+                    ? 10
+                    : Math.max(insets.bottom, 12),
+            },
+          ]}
+        >
           <View style={styles.composerBar}>
             <TextInput
               value={inputText}
               onChangeText={setInputText}
+              onFocus={() => {
+                setTimeout(() => {
+                  scrollRef.current?.scrollToEnd({ animated: true });
+                }, 120);
+              }}
               placeholder={
                 selectedLanguage === 'vi'
-                  ? 'Hỏi về lịch sử, kiến trúc, giờ mở cửa, ẩm thực...'
-                  : 'Ask about heritage, architecture, hours, or food...'
+                  ? 'Hỏi về lịch sử, kiến trúc, giờ mở cửa, ẩm thực…'
+                  : 'Ask about heritage, architecture, hours, or food…'
               }
               placeholderTextColor={COLORS.inkMuted}
               style={styles.composerInput}
@@ -480,13 +540,37 @@ export const AiChatModal: React.FC<AiChatModalProps> = ({
               <Send size={16} color={COLORS.white} />
             </TouchableOpacity>
           </View>
-        </KeyboardAvoidingView>
-      </SafeAreaView>
+        </View>
+      </KeyboardAvoidingView>
+    </View>
+  );
+
+  if (Platform.OS === 'web') {
+    return <View style={styles.webFixedPortal}>{chatContent}</View>;
+  }
+
+  return (
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="fullScreen"
+      onRequestClose={onClose}
+    >
+      {chatContent}
     </Modal>
   );
 };
 
 const styles = StyleSheet.create({
+  webFixedPortal: {
+    position: 'fixed' as unknown as 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 9999,
+    backgroundColor: COLORS.bg,
+  },
   safeArea: {
     flex: 1,
     backgroundColor: COLORS.bg,
@@ -496,11 +580,16 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: SPACING.lg,
-    paddingTop: SPACING.md,
+    paddingTop: SPACING.sm + 2,
     paddingBottom: SPACING.sm + 2,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
     backgroundColor: COLORS.surface,
+    alignItems: 'center',
+  },
+  headerInner: {
+    width: '100%',
+    maxWidth: 740,
     gap: SPACING.sm,
   },
   headerTopRow: {
@@ -560,7 +649,7 @@ const styles = StyleSheet.create({
     borderRadius: RADII.sm,
   },
   langBtnActive: {
-    backgroundColor: COLORS.ink,
+    backgroundColor: COLORS.accent,
   },
   langBtnText: {
     fontSize: 10.5,
@@ -585,7 +674,7 @@ const styles = StyleSheet.create({
   contextPillText: {
     fontSize: 11,
     fontWeight: '600',
-    color: COLORS.accent,
+    color: COLORS.accentDeep,
     flexShrink: 1,
   },
   messagesScroll: {
@@ -593,8 +682,13 @@ const styles = StyleSheet.create({
   },
   messagesContent: {
     padding: SPACING.lg,
-    gap: SPACING.md,
     paddingBottom: SPACING.xl,
+    alignItems: 'center',
+  },
+  messagesInner: {
+    width: '100%',
+    maxWidth: 740,
+    gap: SPACING.md,
   },
   bubbleWrap: {
     flexDirection: 'row',
@@ -612,7 +706,7 @@ const styles = StyleSheet.create({
     gap: SPACING.xs + 2,
   },
   bubbleUser: {
-    backgroundColor: COLORS.ink,
+    backgroundColor: COLORS.accent,
     borderBottomRightRadius: RADII.xs,
   },
   bubbleBot: {
@@ -714,24 +808,29 @@ const styles = StyleSheet.create({
     color: COLORS.ink,
     lineHeight: 16,
   },
-  composerBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.sm,
+  composerOuter: {
     paddingHorizontal: SPACING.lg,
-    paddingVertical: SPACING.sm + 2,
+    paddingTop: SPACING.sm + 2,
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
     backgroundColor: COLORS.surface,
+    alignItems: 'center',
     ...SHADOWS.bar,
+  },
+  composerBar: {
+    width: '100%',
+    maxWidth: 740,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
   },
   composerInput: {
     flex: 1,
     backgroundColor: COLORS.bg,
     borderWidth: 1,
     borderColor: COLORS.border,
-    borderRadius: RADII.md,
-    paddingHorizontal: SPACING.md,
+    borderRadius: RADII.pill,
+    paddingHorizontal: 15,
     paddingVertical: 10,
     fontSize: 13.5,
     color: COLORS.ink,
@@ -739,7 +838,7 @@ const styles = StyleSheet.create({
   sendBtn: {
     width: 42,
     height: 42,
-    borderRadius: RADII.md,
+    borderRadius: RADII.pill,
     backgroundColor: COLORS.accent,
     alignItems: 'center',
     justifyContent: 'center',
