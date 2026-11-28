@@ -11,8 +11,10 @@ import {
   AppState,
   FlatList,
   Image,
+  Keyboard,
   Modal,
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Switch,
@@ -20,6 +22,7 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  useWindowDimensions,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import * as Haptics from 'expo-haptics';
@@ -28,9 +31,11 @@ import {
   useSafeAreaInsets,
 } from 'react-native-safe-area-context';
 import {
+  Bike,
   BookOpen,
   Check,
   ChevronDown,
+  ChevronRight,
   Cloud,
   CloudLightning,
   CloudRain,
@@ -39,15 +44,17 @@ import {
   Droplets,
   Footprints,
   Globe,
+  Headphones,
+  Landmark,
   LocateFixed,
   Map as MapIcon,
+  MapPin,
+  Menu,
   MessageSquareText,
   Navigation,
   Route,
   Search,
   ShieldCheck,
-  SlidersHorizontal,
-  Sparkles,
   Star,
   Sun,
   Trophy,
@@ -55,7 +62,6 @@ import {
   User,
   Utensils,
   Volume2,
-  VolumeX,
   Wind,
   X,
 } from 'lucide-react-native';
@@ -75,11 +81,14 @@ import { CITY_PRESETS, HERITAGE_SITES } from './src/data/heritageSites';
 import {
   calculateBearingDegrees,
   calculateDistanceMeters,
+  estimateTravelSeconds,
   estimateWalkingSeconds,
   formatDistance,
+  formatTravelDuration,
   formatWalkingDuration,
   getNearbySitesWithMetrics,
   interpolateRouteForSmoothWalk,
+  normalizeVietnamese,
   suggestTravelModeForDistance,
 } from './src/utils/geoUtils';
 import { fetchWalkingRoute } from './src/services/routingService';
@@ -101,7 +110,6 @@ import {
 } from './src/services/authService';
 import {
   LocationWatchHandle,
-  formatCoordinatesLabel,
   getCurrentLocation,
   watchDeviceHeading,
   watchLocation,
@@ -120,7 +128,6 @@ import { SiteCard } from './src/components/SiteCard';
 import { SmartTourModal } from './src/components/SmartTourModal';
 import { AiChatModal } from './src/components/AiChatModal';
 import { AuthModal } from './src/components/AuthModal';
-import { WeatherWidgetCard } from './src/components/WeatherWidgetCard';
 import { COLORS, RADII, SERIF_FONT, SHADOWS, SPACING } from './src/theme';
 
 // Code-split toàn bộ Admin Studio: du khách không tải code Admin, Admin tải từng tab theo nhu cầu
@@ -169,6 +176,9 @@ function triggerHaptic(type: 'light' | 'success' | 'selection'): void {
 
 function SmartHeritageAppContent() {
   const insets = useSafeAreaInsets();
+  const { width: viewportWidth } = useWindowDimensions();
+  const isWideWeb = viewportWidth >= 720;
+  const exploreColumns = viewportWidth >= 1080 ? 3 : viewportWidth >= 720 ? 2 : 1;
 
   const [userLocation, setUserLocation] = useState<[number, number]>([
     10.7775, 106.699,
@@ -176,7 +186,7 @@ function SmartHeritageAppContent() {
   const [userHeading, setUserHeading] = useState<number | null>(null);
   const [activeCityId, setActiveCityId] = useState<string>('ALL_HCM');
   const [focusHcmcOnly, setFocusHcmcOnly] = useState<boolean>(true);
-  const [gpsStatus, setGpsStatus] = useState<string>('Trung tâm Quận 1');
+  const [gpsStatus, setGpsStatus] = useState<string>('Quận 1');
   const [isLocatingGps, setIsLocatingGps] = useState<boolean>(false);
 
   const [selectedLanguage, setSelectedLanguage] =
@@ -186,13 +196,15 @@ function SmartHeritageAppContent() {
     'all' | HeritageCategory
   >('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [searchFocused, setSearchFocused] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<MainTab>('explore');
   const [exploreSection, setExploreSection] = useState<'sites' | 'dining'>('sites');
   const [isMapMounted, setIsMapMounted] = useState<boolean>(false);
 
-  // Compact bottom sheets (replaces cluttered stacked toolbars)
+  // Floating ☰ Menu Popover & Clean Sheets
+  const [menuPopoverVisible, setMenuPopoverVisible] = useState<boolean>(false);
+  const [menuLangExpanded, setMenuLangExpanded] = useState<boolean>(false);
   const [filterSheetVisible, setFilterSheetVisible] = useState<boolean>(false);
-  const [langSheetVisible, setLangSheetVisible] = useState<boolean>(false);
   const [weatherSheetVisible, setWeatherSheetVisible] = useState<boolean>(false);
 
   const [selectedSite, setSelectedSite] = useState<HeritageSite | null>(null);
@@ -230,13 +242,55 @@ function SmartHeritageAppContent() {
     useState<HeritageSite | null>(null);
   const [isSyncingCloud, setIsSyncingCloud] = useState<boolean>(false);
   const [weather, setWeather] = useState<WeatherSnapshot | null>(null);
-  const [isWeatherLoading, setIsWeatherLoading] = useState<boolean>(false);
   const lastWeatherCoordsRef = useRef<[number, number] | null>(null);
 
   const walkTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const gpsWatchRef = useRef<LocationWatchHandle | null>(null);
   const lastAutoTriggeredSiteIdRef = useRef<string | null>(null);
   const usedSimulatedWalkRef = useRef<boolean>(false);
+  const autoGpsAttemptedRef = useRef<boolean>(false);
+  const returnDetailAfterPhotoRef = useRef<HeritageSite | null>(null);
+  const returnDetailAfterAiChatRef = useRef<HeritageSite | null>(null);
+
+  // Tự động xin quyền GPS thực tế ngay khi mở app (từ chối sẽ giữ fallback an toàn tại Quận 1)
+  useEffect(() => {
+    if (autoGpsAttemptedRef.current) return;
+    autoGpsAttemptedRef.current = true;
+    let cancelled = false;
+
+    void (async () => {
+      setIsLocatingGps(true);
+      const res = await getCurrentLocation({ timeoutMs: 7000 });
+      if (cancelled) return;
+      setIsLocatingGps(false);
+
+      if (res.ok && res.tuple) {
+        const [lat, lng] = res.tuple;
+        setUserLocation([lat, lng]);
+        setActiveCityId('GPS');
+        setGpsStatus('Vị trí của bạn');
+
+        const handle = await watchLocation({
+          distanceIntervalMeters: 20,
+          timeIntervalMs: 6000,
+          onUpdate: (_coords, tuple) => {
+            if (!cancelled) {
+              setUserLocation(tuple);
+            }
+          },
+        });
+        if (cancelled) {
+          handle?.remove();
+        } else {
+          gpsWatchRef.current = handle;
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -328,11 +382,9 @@ function SmartHeritageAppContent() {
 
   const refreshLiveWeather = useCallback(
     async (lat: number, lng: number, forceRefresh = false) => {
-      setIsWeatherLoading(true);
       const snapshot = await fetchLiveWeather(lat, lng, { forceRefresh });
       setWeather(snapshot);
       lastWeatherCoordsRef.current = [lat, lng];
-      setIsWeatherLoading(false);
     },
     []
   );
@@ -429,7 +481,7 @@ function SmartHeritageAppContent() {
   );
 
   const nearbySitesWithMetrics = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
+    const q = normalizeVietnamese(searchQuery);
     return rawNearbySites.filter(({ site }) => {
       if (selectedCategory !== 'all' && site.category !== selectedCategory) {
         return false;
@@ -437,19 +489,154 @@ function SmartHeritageAppContent() {
       if (!q) return true;
       const local = site.translations[selectedLanguage] || site.translations.vi;
       const matchesName =
-        local.name.toLowerCase().includes(q) ||
-        site.translations.vi.name.toLowerCase().includes(q) ||
-        local.shortSummary.toLowerCase().includes(q) ||
-        site.city.toLowerCase().includes(q) ||
-        (site.address ? site.address.toLowerCase().includes(q) : false);
+        normalizeVietnamese(local.name).includes(q) ||
+        normalizeVietnamese(site.translations.vi.name).includes(q) ||
+        normalizeVietnamese(local.shortSummary).includes(q) ||
+        normalizeVietnamese(site.city).includes(q) ||
+        (site.district ? normalizeVietnamese(site.district).includes(q) : false) ||
+        (site.address ? normalizeVietnamese(site.address).includes(q) : false);
       const matchesFood = site.nearbyRestaurants.some(
         (r) =>
-          r.name.toLowerCase().includes(q) ||
-          r.specialtyDishes.some((d) => d.toLowerCase().includes(q))
+          normalizeVietnamese(r.name).includes(q) ||
+          r.specialtyDishes.some((d) => normalizeVietnamese(d).includes(q))
       );
       return matchesName || matchesFood;
     });
   }, [rawNearbySites, selectedCategory, searchQuery, selectedLanguage]);
+
+  // Escape key on Web closes Smart Search dropdown cleanly
+  useEffect(() => {
+    if (!searchFocused || Platform.OS !== 'web') return;
+    const win = globalThis as unknown as {
+      addEventListener?: (ev: string, fn: (e: { key?: string }) => void) => void;
+      removeEventListener?: (ev: string, fn: (e: { key?: string }) => void) => void;
+    };
+    if (!win.addEventListener || !win.removeEventListener) return;
+    const onKeyDown = (e: { key?: string }) => {
+      if (e.key === 'Escape') {
+        setSearchFocused(false);
+      }
+    };
+    win.addEventListener('keydown', onKeyDown);
+    return () => win.removeEventListener?.('keydown', onKeyDown);
+  }, [searchFocused]);
+
+  // Gợi ý tìm kiếm thông minh: 5 địa điểm gần GPS nhất khi trống, hoặc Top 6 khớp theo tên (Di tích + Ẩm thực) khi nhập
+  const smartSearchSuggestions = useMemo(() => {
+    const q = normalizeVietnamese(searchQuery);
+
+    if (!q) {
+      return {
+        mode: 'nearby' as const,
+        sites: allSitesWithMetrics.slice(0, 5),
+        restaurants: [] as Array<{
+          restaurant: NearbyRestaurant;
+          parentSite: HeritageSite;
+          parentName: string;
+          distanceMeters: number;
+          walkingSeconds: number;
+        }>,
+      };
+    }
+
+    const scoredSites = allSitesWithMetrics
+      .map((entry) => {
+        const localName =
+          (
+            entry.site.translations[selectedLanguage] ||
+            entry.site.translations.vi
+          )?.name || entry.site.id;
+        const normLocal = normalizeVietnamese(localName);
+        const normVi = normalizeVietnamese(entry.site.translations.vi.name);
+        const normArea = normalizeVietnamese(
+          `${entry.site.district || ''} ${entry.site.city} ${entry.site.address || ''}`
+        );
+
+        let rank = 0;
+        if (normLocal.startsWith(q) || normVi.startsWith(q)) {
+          rank = 3;
+        } else if (normLocal.includes(q) || normVi.includes(q)) {
+          rank = 2;
+        } else if (normArea.includes(q)) {
+          rank = 1;
+        }
+        return { entry, rank };
+      })
+      .filter((x) => x.rank > 0)
+      .sort((a, b) => {
+        if (b.rank !== a.rank) return b.rank - a.rank;
+        return a.entry.distanceMeters - b.entry.distanceMeters;
+      })
+      .map((x) => x.entry);
+
+    const seenFood = new Set<string>();
+    const matchedFoods: Array<{
+      restaurant: NearbyRestaurant;
+      parentSite: HeritageSite;
+      parentName: string;
+      distanceMeters: number;
+      walkingSeconds: number;
+      rank: number;
+    }> = [];
+
+    for (const { site } of allSitesWithMetrics) {
+      const parentName =
+        (site.translations[selectedLanguage] || site.translations.vi)?.name ||
+        site.city;
+      const list = Array.isArray(site.nearbyRestaurants)
+        ? site.nearbyRestaurants
+        : [];
+      for (const r of list) {
+        const normR = normalizeVietnamese(r.name);
+        const normDishes = normalizeVietnamese(
+          (r.specialtyDishes || []).join(' ')
+        );
+        const normCuisine = normalizeVietnamese(r.cuisine || '');
+        let rank = 0;
+        if (normR.startsWith(q)) rank = 3;
+        else if (normR.includes(q)) rank = 2;
+        else if (normDishes.includes(q) || normCuisine.includes(q)) rank = 1;
+
+        if (rank === 0) continue;
+        const key = `${normR}|${r.lat.toFixed(4)}|${r.lng.toFixed(4)}`;
+        if (seenFood.has(key)) continue;
+        seenFood.add(key);
+
+        const dist = calculateDistanceMeters(
+          userLocation[0],
+          userLocation[1],
+          r.lat,
+          r.lng
+        );
+        matchedFoods.push({
+          restaurant: r,
+          parentSite: site,
+          parentName,
+          distanceMeters: dist,
+          walkingSeconds: estimateWalkingSeconds(dist),
+          rank,
+        });
+      }
+    }
+
+    matchedFoods.sort((a, b) => {
+      if (b.rank !== a.rank) return b.rank - a.rank;
+      return a.distanceMeters - b.distanceMeters;
+    });
+
+    const maxSites = matchedFoods.length > 0 ? 4 : 6;
+    const chosenSites = scoredSites.slice(0, maxSites);
+    const remainingSlots = Math.max(0, 6 - chosenSites.length);
+    const chosenFoods = matchedFoods
+      .slice(0, remainingSlots)
+      .map(({ rank: _r, ...rest }) => rest);
+
+    return {
+      mode: 'query' as const,
+      sites: chosenSites,
+      restaurants: chosenFoods,
+    };
+  }, [allSitesWithMetrics, searchQuery, selectedLanguage, userLocation]);
 
   const closestSiteItem = allSitesWithMetrics[0];
 
@@ -497,7 +684,7 @@ function SmartHeritageAppContent() {
       setUserLocation([lat, lng]);
       setSearchRadiusMeters(0);
       setActiveCityId('GPS');
-      setGpsStatus(formatCoordinatesLabel(lat, lng));
+      setGpsStatus('Vị trí của bạn');
       setToastMessage('Đã cập nhật vị trí GPS thực tế.');
       triggerHaptic('light');
 
@@ -506,15 +693,14 @@ function SmartHeritageAppContent() {
         timeIntervalMs: 5000,
         onUpdate: (_coords, tuple) => {
           setUserLocation(tuple);
-          setGpsStatus(formatCoordinatesLabel(tuple[0], tuple[1]));
         },
       });
       gpsWatchRef.current = handle;
     } else {
-      setGpsStatus('Trung tâm Quận 1');
+      setGpsStatus('Quận 1');
       setToastMessage(
         result.error ||
-          'Chưa lấy được GPS thực tế. Bạn có thể chọn khu vực trong Bộ lọc.'
+          'Chưa lấy được GPS thực tế. Đang dùng vị trí mặc định tại Quận 1.'
       );
     }
   }, [stopGpsWatch, stopWalkSimulation]);
@@ -692,7 +878,7 @@ function SmartHeritageAppContent() {
         setIsSimulatingWalk(false);
         const dest = activeRoute.destination;
         setUserLocation(dest);
-        setGpsStatus(formatCoordinatesLabel(dest[0], dest[1]));
+        setGpsStatus('Đã đến nơi');
         setActiveWalkSeconds((prev) =>
           Math.max(prev, activeRoute.estimatedDurationSeconds)
         );
@@ -790,6 +976,19 @@ function SmartHeritageAppContent() {
         travelMode: checkInMode,
       });
       setVisitedRecords(updated);
+      // Cập nhật live số sao & lượt đánh giá hiển thị bên ngoài của địa điểm
+      setCatalogSites((prev) =>
+        prev.map((s) => {
+          if (s.id !== photoCaptureSite.id) return s;
+          const prevCount = Number.isFinite(s.reviewCount) ? s.reviewCount : 0;
+          const prevRating = Number.isFinite(s.rating) ? s.rating : 4.7;
+          const nextCount = prevCount + 1;
+          const nextRating = Number(
+            ((prevRating * prevCount + data.userRating) / nextCount).toFixed(1)
+          );
+          return { ...s, rating: nextRating, reviewCount: nextCount };
+        })
+      );
       setActiveRoute(null);
       setActiveWalkSeconds(0);
       usedSimulatedWalkRef.current = false;
@@ -1051,7 +1250,7 @@ function SmartHeritageAppContent() {
       stopGpsWatch();
       setUserLocation([lat, lng]);
       setActiveCityId('CUSTOM');
-      setGpsStatus(formatCoordinatesLabel(lat, lng));
+      setGpsStatus('Vị trí đã chọn');
     },
     [stopGpsWatch, stopWalkSimulation]
   );
@@ -1078,12 +1277,14 @@ function SmartHeritageAppContent() {
   ]);
 
   const handleOpenGlobalAiChat = useCallback(() => {
+    returnDetailAfterAiChatRef.current = null;
     setAiChatContextSite(null);
     setAiChatVisible(true);
     triggerHaptic('light');
   }, []);
 
   const handleAskAiAboutSite = useCallback((site: HeritageSite) => {
+    returnDetailAfterAiChatRef.current = site;
     setSelectedSite(null);
     setAiChatContextSite(site);
     setAiChatVisible(true);
@@ -1092,6 +1293,7 @@ function SmartHeritageAppContent() {
 
   const handleOpenRecognizedSite = useCallback(
     (siteId: string) => {
+      returnDetailAfterPhotoRef.current = null;
       const matched = catalogSites.find((s) => s.id === siteId);
       if (!matched) return;
       setQuickAudioSite(matched);
@@ -1135,22 +1337,35 @@ function SmartHeritageAppContent() {
       };
       index: number;
     }) => (
-      <SiteCard
-        site={item.site}
-        index={index}
-        distanceMeters={item.distanceMeters}
-        estimatedWalkingSeconds={item.estimatedWalkingSeconds}
-        selectedLanguage={selectedLanguage}
-        visitedRecord={visitedMap.get(item.site.id)}
-        isActiveRouteTarget={activeRoute?.targetId === item.site.id}
-        onOpenDetail={setSelectedSite}
-        onStartNavigation={handleStartNavigationToSite}
-        onNavigateToRestaurant={handleNavigateToRestaurant}
-        onOpenPhotoCapture={setPhotoCaptureSite}
-      />
+      <View
+        style={
+          exploreColumns > 1
+            ? [
+                styles.gridCell,
+                { maxWidth: `${100 / exploreColumns}%` as unknown as number },
+              ]
+            : undefined
+        }
+      >
+        <SiteCard
+          site={item.site}
+          index={index}
+          distanceMeters={item.distanceMeters}
+          estimatedWalkingSeconds={item.estimatedWalkingSeconds}
+          selectedLanguage={selectedLanguage}
+          visitedRecord={visitedMap.get(item.site.id)}
+          isActiveRouteTarget={activeRoute?.targetId === item.site.id}
+          isGridItem={exploreColumns > 1}
+          onOpenDetail={setSelectedSite}
+          onStartNavigation={handleStartNavigationToSite}
+          onNavigateToRestaurant={handleNavigateToRestaurant}
+          onOpenPhotoCapture={setPhotoCaptureSite}
+        />
+      </View>
     ),
     [
       activeRoute?.targetId,
+      exploreColumns,
       handleNavigateToRestaurant,
       handleStartNavigationToSite,
       selectedLanguage,
@@ -1221,26 +1436,87 @@ function SmartHeritageAppContent() {
 
   const activeCityLabel =
     activeCityId === 'GPS'
-      ? 'GPS thực tế'
-      : CITY_PRESETS.find((c) => c.id === activeCityId)?.label || gpsStatus;
+      ? 'Vị trí của bạn'
+      : activeCityId === 'ALL_HCM'
+        ? 'Quận 1'
+        : (
+            CITY_PRESETS.find((c) => c.id === activeCityId)?.label || gpsStatus
+          )
+            .split('·')[0]
+            .trim();
 
-  // Scrollable list header: Ultra-clean Compact Weather Bar + Quick AI Pills + Segmented Switcher
+  const currentLangMeta =
+    SUPPORTED_LANGUAGES.find((l) => l.code === selectedLanguage) ||
+    SUPPORTED_LANGUAGES[0];
+
+  // Clean Scrollable List Header: Unified Soft Jade Concierge Card + Segmented Switcher + Slim Category Pills
   const exploreListHeader = (
     <View style={styles.listHeaderWrap}>
-      {/* Compact Expandable Live Auto-Updating Weather Bar */}
-      <WeatherWidgetCard
-        weather={weather}
-        locationLabel={activeCityLabel}
-        isLoading={isWeatherLoading}
-        onPlanTourWithWeather={() => {
-          setSmartTourVisible(true);
-          triggerHaptic('light');
-        }}
-      />
+      {/* Unified Soft Jade Concierge Card (replaces scattered AI buttons & duplicate Weather block) */}
+      <View
+        style={[
+          styles.conciergeBanner,
+          isWideWeb && styles.conciergeBannerWide,
+        ]}
+      >
+        <View style={styles.conciergeTextCol}>
+          <View style={styles.conciergeEyebrowRow}>
+            <Compass size={13} color={COLORS.accentDeep} strokeWidth={2} />
+            <Text style={styles.conciergeEyebrow}>
+              TRỢ LÝ HÀNH TRÌNH THÔNG MINH
+            </Text>
+          </View>
+          <Text style={styles.conciergeHeadline}>
+            Lập lịch trình theo thời tiết hoặc hỏi đáp lịch sử 5 ngôn ngữ
+          </Text>
+        </View>
 
-      {/* Smart Mode Switcher: Địa điểm vs Ẩm thực + Slim AI Action Chips */}
-      <View style={styles.exploreControlsRow}>
-        <View style={styles.segmentedControl}>
+        <View
+          style={[
+            styles.conciergeActions,
+            isWideWeb && styles.conciergeActionsWide,
+          ]}
+        >
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={() => {
+              setSmartTourVisible(true);
+              triggerHaptic('light');
+            }}
+            style={styles.conciergePrimaryBtn}
+          >
+            <Route size={14} color={COLORS.white} strokeWidth={2} />
+            <Text style={styles.conciergePrimaryText}>Lập lịch trình</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            activeOpacity={0.82}
+            onPress={handleOpenGlobalAiChat}
+            style={styles.conciergeSecondaryBtn}
+          >
+            <MessageSquareText
+              size={14}
+              color={COLORS.accentDeep}
+              strokeWidth={2}
+            />
+            <Text style={styles.conciergeSecondaryText}>Hỏi trợ lý</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Clean Mode Switcher + Category Pills */}
+      <View
+        style={[
+          styles.exploreControlsBar,
+          isWideWeb && styles.exploreControlsBarWide,
+        ]}
+      >
+        <View
+          style={[
+            styles.segmentedControl,
+            isWideWeb && styles.segmentedControlWide,
+          ]}
+        >
           <TouchableOpacity
             activeOpacity={0.85}
             onPress={() => {
@@ -1252,9 +1528,12 @@ function SmartHeritageAppContent() {
               exploreSection === 'sites' && styles.segBtnActive,
             ]}
           >
-            <Compass
+            <Landmark
               size={13}
-              color={exploreSection === 'sites' ? COLORS.white : COLORS.inkSecondary}
+              color={
+                exploreSection === 'sites' ? COLORS.white : COLORS.accentDeep
+              }
+              strokeWidth={2}
             />
             <Text
               style={[
@@ -1279,7 +1558,10 @@ function SmartHeritageAppContent() {
           >
             <Utensils
               size={13}
-              color={exploreSection === 'dining' ? COLORS.white : COLORS.inkSecondary}
+              color={
+                exploreSection === 'dining' ? COLORS.white : COLORS.accentDeep
+              }
+              strokeWidth={2}
             />
             <Text
               style={[
@@ -1291,52 +1573,59 @@ function SmartHeritageAppContent() {
             </Text>
           </TouchableOpacity>
         </View>
-      </View>
 
-      {/* Slim 1-Row Quick AI & Reset Strip */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.quickActionPillsRow}
-      >
-        <TouchableOpacity
-          activeOpacity={0.82}
-          onPress={() => {
-            setSmartTourVisible(true);
-            triggerHaptic('light');
-          }}
-          style={styles.quickAiPillDark}
-        >
-          <Route size={13} color={COLORS.white} />
-          <Text style={styles.quickAiPillDarkText}>Lập Tour AI</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          activeOpacity={0.82}
-          onPress={handleOpenGlobalAiChat}
-          style={styles.quickAiPillLight}
-        >
-          <MessageSquareText size={13} color={COLORS.accent} />
-          <Text style={styles.quickAiPillLightText}>Hỏi AI Di sản</Text>
-        </TouchableOpacity>
-
-        {activeFilterCount > 0 && (
-          <TouchableOpacity
-            activeOpacity={0.8}
-            onPress={() => {
-              setActiveCityId('ALL_HCM');
-              setSearchRadiusMeters(0);
-              setSelectedCategory('all');
-              setSearchQuery('');
-              setGpsStatus('Trung tâm Quận 1');
-            }}
-            style={styles.quickResetPill}
+        {exploreSection === 'sites' && (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.categoryPillsRow}
           >
-            <X size={12} color={COLORS.accent} />
-            <Text style={styles.quickResetPillText}>Đặt lại lọc</Text>
-          </TouchableOpacity>
+            {CATEGORY_FILTERS.map((cat) => {
+              const active = selectedCategory === cat.id;
+              return (
+                <TouchableOpacity
+                  key={cat.id}
+                  activeOpacity={0.78}
+                  onPress={() => {
+                    setSelectedCategory(cat.id);
+                    triggerHaptic('selection');
+                  }}
+                  style={[
+                    styles.catPill,
+                    active && styles.catPillActive,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.catPillText,
+                      active && styles.catPillTextActive,
+                    ]}
+                  >
+                    {cat.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+
+            {(activeFilterCount > 0 || selectedCategory !== 'all' || searchQuery.length > 0) && (
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={() => {
+                  setActiveCityId('ALL_HCM');
+                  setSearchRadiusMeters(0);
+                  setSelectedCategory('all');
+                  setSearchQuery('');
+                  setGpsStatus('Quận 1');
+                }}
+                style={styles.quickResetPill}
+              >
+                <X size={12} color={COLORS.accentDeep} strokeWidth={2.2} />
+                <Text style={styles.quickResetPillText}>Đặt lại</Text>
+              </TouchableOpacity>
+            )}
+          </ScrollView>
         )}
-      </ScrollView>
+      </View>
 
       {/* Compact Proximity Banner (only shown when actually near a monument < 300m) */}
       {isNearbyBannerVisible && closestSiteItem && (
@@ -1368,7 +1657,7 @@ function SmartHeritageAppContent() {
             onPress={() => setQuickAudioSite(closestSiteItem.site)}
             style={styles.proximityPlayBtn}
           >
-            <Volume2 size={14} color={COLORS.white} />
+            <Headphones size={14} color={COLORS.white} strokeWidth={2} />
             <Text style={styles.proximityPlayText}>Nghe</Text>
           </TouchableOpacity>
         </View>
@@ -1451,35 +1740,25 @@ function SmartHeritageAppContent() {
     <View style={styles.root}>
       <StatusBar style="dark" />
 
-      {/* Ultra-Clean 1-Line Mobile Header */}
+      {/* Ultra-Clean 1-Line Soft Jade Header (Zero GPS coords, unified 100% Lucide icons) */}
       <View
-        style={[styles.header, { paddingTop: Math.max(insets.top, 8) + 4 }]}
+        style={[
+          styles.header,
+          { paddingTop: Math.max(insets.top, 8) + 4 },
+        ]}
       >
-        <View style={styles.headerRow}>
-          <TouchableOpacity
-            activeOpacity={0.75}
-            onPress={() => setFilterSheetVisible(true)}
-            style={styles.brandCol}
-          >
+        <View style={styles.headerInner}>
+          <View style={styles.brandRow}>
+            <View style={styles.brandMark}>
+              <Landmark size={16} color={COLORS.accentDeep} strokeWidth={2} />
+            </View>
             <Text style={styles.brandTitle} numberOfLines={1}>
               Smart Heritage
             </Text>
-            <View style={styles.locationSubtitleRow}>
-              <View
-                style={[
-                  styles.gpsDot,
-                  isLocatingGps && styles.gpsDotLocating,
-                ]}
-              />
-              <Text style={styles.locationSubtitle} numberOfLines={1}>
-                {gpsStatus}
-              </Text>
-              <ChevronDown size={12} color={COLORS.inkMuted} />
-            </View>
-          </TouchableOpacity>
+          </View>
 
           <View style={styles.headerActions}>
-            {/* Live Weather Compact Pill (accessible directly on Map & all tabs) */}
+            {/* Compact Weather Pill (opens 4h forecast sheet) */}
             <TouchableOpacity
               activeOpacity={0.8}
               onPress={() => {
@@ -1491,91 +1770,51 @@ function SmartHeritageAppContent() {
                 weather?.aiTourAdvice.comfortLevel === 'rain_alert' &&
                   styles.headerWeatherBtnRain,
               ]}
-              accessibilityLabel="Xem thời tiết trực tiếp (nhiệt độ, độ ẩm, khả năng mưa)"
+              accessibilityLabel="Xem thời tiết trực tiếp"
             >
               {weather?.conditionKind === 'sunny' ? (
-                <Sun size={13} color="#D97706" />
+                <Sun size={14} color={COLORS.amberStar} strokeWidth={2} />
               ) : weather?.conditionKind === 'cloudy' ? (
-                <Cloud size={13} color={COLORS.inkSecondary} />
+                <Cloud size={14} color={COLORS.inkSecondary} strokeWidth={2} />
               ) : weather?.conditionKind === 'rain' ? (
-                <CloudRain size={13} color={COLORS.gpsBlue} />
+                <CloudRain size={14} color={COLORS.gpsBlue} strokeWidth={2} />
               ) : weather?.conditionKind === 'storm' ? (
-                <CloudLightning size={13} color={COLORS.accent} />
+                <CloudLightning
+                  size={14}
+                  color={COLORS.accentDeep}
+                  strokeWidth={2}
+                />
               ) : (
-                <CloudSun size={13} color={COLORS.accent} />
+                <CloudSun size={14} color={COLORS.amberStar} strokeWidth={2} />
               )}
               <Text style={styles.headerWeatherText}>
                 {weather ? `${Math.round(weather.temperatureC)}°` : '--°'}
               </Text>
             </TouchableOpacity>
 
-            {/* 1-Tap Auto Audio Guide Toggle Icon (right next to Language) */}
+            {/* Unified Floating ☰ Menu Button (Account · Language · Auto Audio · GPS) */}
             <TouchableOpacity
               activeOpacity={0.8}
               onPress={() => {
-                setAutoAudioGuide((prev) => {
-                  const next = !prev;
-                  setToastMessage(
-                    next
-                      ? 'Đã bật tự động thuyết minh khi đến gần di tích (< 150m).'
-                      : 'Đã tắt tự động thuyết minh.'
-                  );
-                  return next;
-                });
+                setMenuLangExpanded(false);
+                setMenuPopoverVisible((prev) => !prev);
                 triggerHaptic('selection');
               }}
               style={[
-                styles.headerAudioBtn,
-                autoAudioGuide && styles.headerAudioBtnActive,
+                styles.headerMenuBtn,
+                isWideWeb && styles.headerMenuBtnWide,
+                menuPopoverVisible && styles.headerMenuBtnOpen,
               ]}
-              accessibilityLabel={
-                autoAudioGuide
-                  ? 'Tắt tự động thuyết minh khi đến gần'
-                  : 'Bật tự động thuyết minh khi đến gần'
-              }
+              accessibilityLabel="Mở menu cài đặt và tài khoản"
             >
-              {autoAudioGuide ? (
-                <Volume2 size={14} color={COLORS.accent} />
+              {menuPopoverVisible ? (
+                <X size={17} color={COLORS.accentDeep} strokeWidth={2.2} />
               ) : (
-                <VolumeX size={14} color={COLORS.inkMuted} />
+                <Menu size={17} color={COLORS.accentDeep} strokeWidth={2.2} />
               )}
-              {autoAudioGuide && <View style={styles.audioActiveDot} />}
-            </TouchableOpacity>
-
-            {/* Compact Language Pill (opens clean 5-language sheet instead of cramming 5 buttons) */}
-            <TouchableOpacity
-              activeOpacity={0.8}
-              onPress={() => {
-                setLangSheetVisible(true);
-                triggerHaptic('selection');
-              }}
-              style={styles.langPillBtn}
-              accessibilityLabel="Chọn ngôn ngữ thuyết minh"
-            >
-              <Globe size={13} color={COLORS.inkSecondary} />
-              <Text style={styles.langPillText}>
-                {selectedLanguage.toUpperCase()}
-              </Text>
-            </TouchableOpacity>
-
-            {/* Clean Circular Account Avatar Button */}
-            <TouchableOpacity
-              activeOpacity={0.8}
-              onPress={() => setAuthModalVisible(true)}
-              style={[
-                styles.avatarBtn,
-                authState.isAuthenticated && styles.avatarBtnSignedIn,
-              ]}
-              accessibilityLabel="Tài khoản và đồng bộ Cloud"
-            >
-              <User
-                size={15}
-                color={
-                  authState.isAuthenticated
-                    ? COLORS.visited
-                    : COLORS.inkSecondary
-                }
-              />
+              {isWideWeb && (
+                <Text style={styles.headerMenuLabel}>Cài đặt</Text>
+              )}
               {authState.isAuthenticated && <View style={styles.onlineDot} />}
             </TouchableOpacity>
           </View>
@@ -1586,128 +1825,353 @@ function SmartHeritageAppContent() {
       <View style={styles.mainBody}>
         {activeTab === 'explore' && (
           <View style={styles.tabContainer}>
-            {/* Minimalist Sticky Search + Single Category Bar */}
+            {/* Clean Sticky Search + Compact Area Chip */}
             <View style={styles.stickySearchArea}>
               <View style={styles.searchFilterRow}>
-                <View style={styles.searchPill}>
-                  <Search size={15} color={COLORS.inkMuted} />
+                <View
+                  style={[
+                    styles.searchPill,
+                    searchFocused && styles.searchPillFocused,
+                  ]}
+                >
+                  <Search
+                    size={15}
+                    color={searchFocused ? COLORS.accentDeep : COLORS.inkMuted}
+                    strokeWidth={2}
+                  />
                   <TextInput
                     value={searchQuery}
-                    onChangeText={setSearchQuery}
+                    onFocus={() => setSearchFocused(true)}
+                    onChangeText={(txt) => {
+                      setSearchQuery(txt);
+                      if (!searchFocused) setSearchFocused(true);
+                    }}
+                    onSubmitEditing={() => setSearchFocused(false)}
                     placeholder="Tìm di tích, quận, món đặc sản…"
                     placeholderTextColor={COLORS.inkMuted}
                     style={styles.searchInput}
                     returnKeyType="search"
                   />
-                  {searchQuery.length > 0 && (
+                  {(searchQuery.length > 0 || searchFocused) && (
                     <TouchableOpacity
-                      onPress={() => setSearchQuery('')}
+                      onPress={() => {
+                        if (searchQuery.length > 0) {
+                          setSearchQuery('');
+                        } else {
+                          setSearchFocused(false);
+                          Keyboard.dismiss();
+                        }
+                      }}
                       hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                      accessibilityLabel="Xóa tìm kiếm"
+                      accessibilityLabel="Xóa tìm kiếm hoặc đóng gợi ý"
                     >
-                      <X size={15} color={COLORS.inkMuted} />
+                      <X size={15} color={COLORS.inkMuted} strokeWidth={2} />
                     </TouchableOpacity>
                   )}
                 </View>
 
                 <TouchableOpacity
-                  activeOpacity={0.8}
+                  activeOpacity={0.82}
                   onPress={() => {
+                    setSearchFocused(false);
+                    Keyboard.dismiss();
                     setFilterSheetVisible(true);
                     triggerHaptic('selection');
                   }}
                   style={[
-                    styles.filterIconBtn,
-                    activeFilterCount > 0 && styles.filterIconBtnActive,
+                    styles.areaChipBtn,
+                    activeFilterCount > 0 && styles.areaChipBtnActive,
                   ]}
-                  accessibilityLabel="Mở bộ lọc khu vực và bán kính"
+                  accessibilityLabel="Chọn khu vực và bán kính tìm kiếm"
                 >
-                  <SlidersHorizontal
-                    size={16}
-                    color={activeFilterCount > 0 ? COLORS.white : COLORS.ink}
+                  <MapPin
+                    size={14}
+                    color={
+                      activeFilterCount > 0
+                        ? COLORS.white
+                        : COLORS.accentDeep
+                    }
+                    strokeWidth={2}
                   />
-                  {activeFilterCount > 0 && (
-                    <View style={styles.filterCountBadge}>
-                      <Text style={styles.filterCountText}>
-                        {activeFilterCount}
-                      </Text>
-                    </View>
-                  )}
+                  <Text
+                    style={[
+                      styles.areaChipText,
+                      activeFilterCount > 0 && styles.areaChipTextActive,
+                    ]}
+                    numberOfLines={1}
+                  >
+                    {activeCityLabel}
+                  </Text>
+                  <ChevronDown
+                    size={13}
+                    color={
+                      activeFilterCount > 0
+                        ? COLORS.white
+                        : COLORS.inkSecondary
+                    }
+                    strokeWidth={2}
+                  />
                 </TouchableOpacity>
               </View>
-
-              {/* Single Clean Category Bar (only shown on Địa điểm view) */}
-              {exploreSection === 'sites' && (
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.categoryBar}
-                >
-                  {CATEGORY_FILTERS.map((cat) => {
-                    const active = selectedCategory === cat.id;
-                    return (
-                      <TouchableOpacity
-                        key={cat.id}
-                        activeOpacity={0.75}
-                        onPress={() => {
-                          setSelectedCategory(cat.id);
-                          triggerHaptic('selection');
-                        }}
-                        style={[
-                          styles.catTab,
-                          active && styles.catTabActive,
-                        ]}
-                      >
-                        <Text
-                          style={[
-                            styles.catTabText,
-                            active && styles.catTabTextActive,
-                          ]}
-                        >
-                          {cat.label}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </ScrollView>
-              )}
             </View>
+
+            {/* Floating Smart Search Dropdown Overlay (zero layout shift on Mobile & Web) */}
+            {searchFocused && (
+              <>
+                <Pressable
+                  onPress={() => {
+                    setSearchFocused(false);
+                    Keyboard.dismiss();
+                  }}
+                  style={styles.searchOverlayBackdrop}
+                  accessibilityLabel="Đóng danh sách gợi ý tìm kiếm"
+                />
+                <View style={styles.searchDropdownAnchor} pointerEvents="box-none">
+                  <View style={styles.searchDropdownCard}>
+                    <View style={styles.searchDropdownHeader}>
+                      <View style={styles.searchDropdownHeaderLeft}>
+                        {smartSearchSuggestions.mode === 'nearby' ? (
+                          <LocateFixed
+                            size={13}
+                            color={COLORS.accentDeep}
+                            strokeWidth={2}
+                          />
+                        ) : (
+                          <Search
+                            size={13}
+                            color={COLORS.accentDeep}
+                            strokeWidth={2}
+                          />
+                        )}
+                        <Text style={styles.searchDropdownEyebrow}>
+                          {smartSearchSuggestions.mode === 'nearby'
+                            ? 'Gần vị trí của bạn'
+                            : `Gợi ý cho "${searchQuery.trim()}"`}
+                        </Text>
+                      </View>
+                      <TouchableOpacity
+                        onPress={() => {
+                          setSearchFocused(false);
+                          Keyboard.dismiss();
+                        }}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      >
+                        <Text style={styles.searchDropdownCloseText}>Đóng</Text>
+                      </TouchableOpacity>
+                    </View>
+
+                    <ScrollView
+                      keyboardShouldPersistTaps="handled"
+                      showsVerticalScrollIndicator={false}
+                      style={styles.searchDropdownScroll}
+                    >
+                      {smartSearchSuggestions.sites.length === 0 &&
+                      smartSearchSuggestions.restaurants.length === 0 ? (
+                        <View style={styles.searchEmptyRow}>
+                          <Text style={styles.searchEmptyText}>
+                            Không tìm thấy địa điểm hay quán ăn nào khớp với &quot;
+                            {searchQuery.trim()}&quot;.
+                          </Text>
+                        </View>
+                      ) : (
+                        <>
+                          {smartSearchSuggestions.sites.length > 0 && (
+                            <View style={styles.searchGroupSection}>
+                              {smartSearchSuggestions.mode === 'query' &&
+                                smartSearchSuggestions.restaurants.length > 0 && (
+                                  <Text style={styles.searchGroupLabel}>
+                                    DI TÍCH &amp; ĐỊA ĐIỂM
+                                  </Text>
+                                )}
+                              {smartSearchSuggestions.sites.map((entry) => {
+                                const localName = (
+                                  entry.site.translations[selectedLanguage] ||
+                                  entry.site.translations.vi
+                                ).name;
+                                const shortDistrict =
+                                  entry.site.district ||
+                                  entry.site.city.split('·')[0].trim();
+                                const useMoto = entry.distanceMeters > 3500;
+                                const eta = useMoto
+                                  ? `~${formatTravelDuration(
+                                      estimateTravelSeconds(
+                                        entry.distanceMeters,
+                                        'motorbike'
+                                      ),
+                                      'motorbike'
+                                    )}`
+                                  : `~${formatWalkingDuration(
+                                      entry.estimatedWalkingSeconds
+                                    )}`;
+                                return (
+                                  <TouchableOpacity
+                                    key={entry.site.id}
+                                    activeOpacity={0.78}
+                                    onPress={() => {
+                                      setSearchFocused(false);
+                                      Keyboard.dismiss();
+                                      setSelectedSite(entry.site);
+                                      triggerHaptic('selection');
+                                    }}
+                                    style={styles.searchSuggestionRow}
+                                  >
+                                    <Image
+                                      source={{ uri: entry.site.coverImage }}
+                                      style={styles.searchSuggestionThumb}
+                                      resizeMode="cover"
+                                    />
+                                    <View style={styles.searchSuggestionInfo}>
+                                      <Text
+                                        style={styles.searchSuggestionTitle}
+                                        numberOfLines={1}
+                                      >
+                                        {localName}
+                                      </Text>
+                                      <Text
+                                        style={styles.searchSuggestionSub}
+                                        numberOfLines={1}
+                                      >
+                                        {shortDistrict} · {eta} (
+                                        {formatDistance(entry.distanceMeters)})
+                                      </Text>
+                                    </View>
+                                    <ChevronRight
+                                      size={15}
+                                      color={COLORS.inkMuted}
+                                      strokeWidth={2}
+                                    />
+                                  </TouchableOpacity>
+                                );
+                              })}
+                            </View>
+                          )}
+
+                          {smartSearchSuggestions.restaurants.length > 0 && (
+                            <View style={styles.searchGroupSection}>
+                              <Text style={styles.searchGroupLabel}>
+                                ẨM THỰC GẦN DI TÍCH
+                              </Text>
+                              {smartSearchSuggestions.restaurants.map((entry) => {
+                                const useMoto = entry.distanceMeters > 3500;
+                                const eta = useMoto
+                                  ? `~${formatTravelDuration(
+                                      estimateTravelSeconds(
+                                        entry.distanceMeters,
+                                        'motorbike'
+                                      ),
+                                      'motorbike'
+                                    )}`
+                                  : `~${formatWalkingDuration(
+                                      entry.walkingSeconds
+                                    )}`;
+                                return (
+                                  <TouchableOpacity
+                                    key={entry.restaurant.id}
+                                    activeOpacity={0.78}
+                                    onPress={() => {
+                                      setSearchFocused(false);
+                                      Keyboard.dismiss();
+                                      void handleNavigateToRestaurant(
+                                        entry.restaurant,
+                                        entry.parentSite
+                                      );
+                                    }}
+                                    style={styles.searchSuggestionRow}
+                                  >
+                                    <View style={styles.searchFoodIconBox}>
+                                      <Utensils
+                                        size={16}
+                                        color={COLORS.accentDeep}
+                                        strokeWidth={2}
+                                      />
+                                    </View>
+                                    <View style={styles.searchSuggestionInfo}>
+                                      <Text
+                                        style={styles.searchSuggestionTitle}
+                                        numberOfLines={1}
+                                      >
+                                        {entry.restaurant.name}
+                                      </Text>
+                                      <Text
+                                        style={styles.searchSuggestionSub}
+                                        numberOfLines={1}
+                                      >
+                                        Gần {entry.parentName} · {eta} (
+                                        {formatDistance(entry.distanceMeters)})
+                                      </Text>
+                                    </View>
+                                    <View style={styles.searchFoodCtaPill}>
+                                      <Navigation
+                                        size={11}
+                                        color={COLORS.accentDeep}
+                                        strokeWidth={2}
+                                      />
+                                      <Text style={styles.searchFoodCtaText}>
+                                        Đi tới
+                                      </Text>
+                                    </View>
+                                  </TouchableOpacity>
+                                );
+                              })}
+                            </View>
+                          )}
+                        </>
+                      )}
+                    </ScrollView>
+                  </View>
+                </View>
+              </>
+            )}
 
             {/* Quick Audio Player (when active) */}
             {quickAudioSite && (
               <View style={styles.quickAudioCard}>
-                <View style={styles.quickAudioHeader}>
-                  <View style={styles.quickAudioTitleWrap}>
-                    <Sparkles size={13} color={COLORS.accent} />
-                    <Text style={styles.quickAudioEyebrow}>
-                      ĐANG PHÁT THUYẾT MINH
-                    </Text>
+                <View style={styles.quickAudioInner}>
+                  <View style={styles.quickAudioHeader}>
+                    <View style={styles.quickAudioTitleWrap}>
+                      <Headphones
+                        size={13}
+                        color={COLORS.accentDeep}
+                        strokeWidth={2}
+                      />
+                      <Text style={styles.quickAudioEyebrow}>
+                        ĐANG PHÁT THUYẾT MINH
+                      </Text>
+                    </View>
+                    <TouchableOpacity
+                      onPress={handleCloseQuickAudio}
+                      style={styles.quickAudioCloseBtn}
+                    >
+                      <Text style={styles.quickAudioCloseText}>Đóng</Text>
+                    </TouchableOpacity>
                   </View>
-                  <TouchableOpacity
-                    onPress={handleCloseQuickAudio}
-                    style={styles.quickAudioCloseBtn}
-                  >
-                    <Text style={styles.quickAudioCloseText}>Đóng</Text>
-                  </TouchableOpacity>
+                  <AudioGuidePlayer
+                    site={quickAudioSite}
+                    selectedLanguage={selectedLanguage}
+                    onLanguageChange={setSelectedLanguage}
+                    autoPlayOnOpen={true}
+                    compact={true}
+                  />
                 </View>
-                <AudioGuidePlayer
-                  site={quickAudioSite}
-                  selectedLanguage={selectedLanguage}
-                  onLanguageChange={setSelectedLanguage}
-                  autoPlayOnOpen={true}
-                  compact={true}
-                />
               </View>
             )}
 
-            {/* Main Explore Feed: Cleanly switches between Heritage Sites and Nearby Dining */}
+            {/* Main Explore Feed: Responsive 1/2/3 Column Grid across Mobile & Web */}
             {exploreSection === 'sites' ? (
               <FlatList
+                key={`sites-cols-${exploreColumns}`}
+                numColumns={exploreColumns}
+                columnWrapperStyle={
+                  exploreColumns > 1 ? styles.gridRow : undefined
+                }
                 data={nearbySitesWithMetrics}
                 keyExtractor={(item) => item.site.id}
                 renderItem={renderSiteItem}
                 ListHeaderComponent={exploreListHeader}
-                contentContainerStyle={styles.listContent}
+                contentContainerStyle={[
+                  styles.listContent,
+                  isWideWeb && styles.listContentWide,
+                ]}
                 showsVerticalScrollIndicator={false}
                 keyboardShouldPersistTaps="handled"
                 ListEmptyComponent={
@@ -1726,7 +2190,7 @@ function SmartHeritageAppContent() {
                         setSelectedCategory('all');
                         setSearchQuery('');
                         setActiveCityId('ALL_HCM');
-                        setGpsStatus('Trung tâm Quận 1');
+                        setGpsStatus('Quận 1');
                       }}
                       style={styles.emptyResetBtn}
                     >
@@ -1739,86 +2203,147 @@ function SmartHeritageAppContent() {
               />
             ) : (
               <FlatList
+                key={`dining-cols-${exploreColumns}`}
+                numColumns={exploreColumns}
+                columnWrapperStyle={
+                  exploreColumns > 1 ? styles.gridRow : undefined
+                }
                 data={nearbyFeaturedRestaurants}
                 keyExtractor={(item) => item.restaurant.id}
                 ListHeaderComponent={exploreListHeader}
-                contentContainerStyle={styles.listContent}
+                contentContainerStyle={[
+                  styles.listContent,
+                  isWideWeb && styles.listContentWide,
+                ]}
                 showsVerticalScrollIndicator={false}
                 keyboardShouldPersistTaps="handled"
-                renderItem={({ item: entry }) => (
-                  <View style={styles.diningFeedCard}>
-                    <TouchableOpacity
-                      activeOpacity={0.88}
-                      onPress={() => setSelectedSite(entry.parentSite)}
-                      style={styles.diningFeedTop}
+                renderItem={({ item: entry }) => {
+                  const useMoto = entry.distanceMeters > 3500;
+                  const etaLabel = useMoto
+                    ? `~${formatTravelDuration(
+                        estimateTravelSeconds(entry.distanceMeters, 'motorbike'),
+                        'motorbike'
+                      )}`
+                    : `~${formatWalkingDuration(entry.walkingSeconds)}`;
+                  return (
+                    <View
+                      style={
+                        exploreColumns > 1
+                          ? [
+                              styles.gridCell,
+                              {
+                                maxWidth: `${
+                                  100 / exploreColumns
+                                }%` as unknown as number,
+                              },
+                            ]
+                          : undefined
+                      }
                     >
-                      <Image
-                        source={{
-                          uri:
-                            entry.restaurant.imageUrl ||
-                            'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=600&q=80',
-                        }}
-                        style={styles.diningFeedThumb}
-                        resizeMode="cover"
-                      />
-                      <View style={styles.diningFeedInfo}>
-                        <View style={styles.diningFeedTitleRow}>
-                          <Text style={styles.diningFeedName} numberOfLines={1}>
-                            {entry.restaurant.name}
-                          </Text>
-                          <View style={styles.diningFeedRatingPill}>
-                            <Star
-                              size={11}
-                              color={COLORS.amberStar}
-                              fill={COLORS.amberStar}
-                            />
-                            <Text style={styles.diningFeedRatingText}>
-                              {(entry.restaurant.rating ?? 4.5).toFixed(1)}
+                      <View
+                        style={[
+                          styles.diningFeedCard,
+                          exploreColumns > 1 && styles.diningFeedCardGrid,
+                        ]}
+                      >
+                        <TouchableOpacity
+                          activeOpacity={0.88}
+                          onPress={() => setSelectedSite(entry.parentSite)}
+                          style={styles.diningFeedTop}
+                        >
+                          <Image
+                            source={{
+                              uri:
+                                entry.restaurant.imageUrl ||
+                                'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=600&q=80',
+                            }}
+                            style={styles.diningFeedThumb}
+                            resizeMode="cover"
+                          />
+                          <View style={styles.diningFeedInfo}>
+                            <View style={styles.diningFeedTitleRow}>
+                              <Text
+                                style={styles.diningFeedName}
+                                numberOfLines={1}
+                              >
+                                {entry.restaurant.name}
+                              </Text>
+                              <View style={styles.diningFeedRatingPill}>
+                                <Star
+                                  size={11}
+                                  color={COLORS.amberStar}
+                                  fill={COLORS.amberStar}
+                                />
+                                <Text style={styles.diningFeedRatingText}>
+                                  {(entry.restaurant.rating ?? 4.5).toFixed(1)}
+                                </Text>
+                              </View>
+                            </View>
+                            <Text
+                              style={styles.diningFeedCuisine}
+                              numberOfLines={1}
+                            >
+                              {entry.restaurant.cuisine}
+                              {entry.restaurant.priceRange
+                                ? ` · ${entry.restaurant.priceRange}`
+                                : ''}
+                            </Text>
+                            <Text
+                              style={styles.diningFeedNearSite}
+                              numberOfLines={1}
+                            >
+                              Gần {entry.parentName}
                             </Text>
                           </View>
+                        </TouchableOpacity>
+
+                        <View style={styles.diningFeedFooter}>
+                          <View style={styles.diningFeedDistWrap}>
+                            {useMoto ? (
+                              <Bike
+                                size={12.5}
+                                color={COLORS.accentDeep}
+                                strokeWidth={2}
+                              />
+                            ) : (
+                              <Footprints
+                                size={12}
+                                color={COLORS.accentDeep}
+                                strokeWidth={2}
+                              />
+                            )}
+                            <Text
+                              style={styles.diningFeedDistText}
+                              numberOfLines={1}
+                            >
+                              {etaLabel} ({formatDistance(entry.distanceMeters)})
+                            </Text>
+                          </View>
+
+                          <TouchableOpacity
+                            activeOpacity={0.85}
+                            onPress={() =>
+                              handleNavigateToRestaurant(
+                                entry.restaurant,
+                                entry.parentSite
+                              )
+                            }
+                            style={styles.diningFeedGoBtn}
+                          >
+                            <Navigation
+                              size={12}
+                              color={COLORS.white}
+                              strokeWidth={2}
+                            />
+                            <Text style={styles.diningFeedGoText}>
+                              Chỉ đường
+                            </Text>
+                          </TouchableOpacity>
                         </View>
-                        <Text style={styles.diningFeedCuisine} numberOfLines={1}>
-                          {entry.restaurant.cuisine}
-                          {entry.restaurant.priceRange
-                            ? ` · ${entry.restaurant.priceRange}`
-                            : ''}
-                        </Text>
-                        <Text style={styles.diningFeedDish} numberOfLines={1}>
-                          {entry.restaurant.specialtyDishes?.length
-                            ? entry.restaurant.specialtyDishes.slice(0, 2).join(' · ')
-                            : `Gần ${entry.parentName}`}
-                        </Text>
-                        <Text style={styles.diningFeedNearSite} numberOfLines={1}>
-                          Gần {entry.parentName}
-                        </Text>
                       </View>
-                    </TouchableOpacity>
-
-                    <View style={styles.diningFeedFooter}>
-                      <View style={styles.diningFeedDistWrap}>
-                        <Footprints size={12} color={COLORS.accent} />
-                        <Text style={styles.diningFeedDistText}>
-                          {formatDistance(entry.distanceMeters)} ·{' '}
-                          {formatWalkingDuration(entry.walkingSeconds)}
-                        </Text>
-                      </View>
-
-                      <TouchableOpacity
-                        activeOpacity={0.85}
-                        onPress={() =>
-                          handleNavigateToRestaurant(
-                            entry.restaurant,
-                            entry.parentSite
-                          )
-                        }
-                        style={styles.diningFeedGoBtn}
-                      >
-                        <Navigation size={12} color={COLORS.white} />
-                        <Text style={styles.diningFeedGoText}>Chỉ đường</Text>
-                      </TouchableOpacity>
                     </View>
-                  </View>
-                )}
+                  );
+                }}
                 ListEmptyComponent={
                   <View style={styles.emptyBox}>
                     <Text style={styles.emptyTitle}>
@@ -1999,7 +2524,7 @@ function SmartHeritageAppContent() {
           <Compass
             size={21}
             strokeWidth={activeTab === 'explore' ? 2.2 : 1.7}
-            color={activeTab === 'explore' ? COLORS.ink : COLORS.inkMuted}
+            color={activeTab === 'explore' ? COLORS.accentDeep : COLORS.inkMuted}
           />
           <Text
             style={[
@@ -2032,7 +2557,7 @@ function SmartHeritageAppContent() {
               <MapIcon
                 size={21}
                 strokeWidth={activeTab === 'map' ? 2.2 : 1.7}
-                color={activeTab === 'map' ? COLORS.ink : COLORS.inkMuted}
+                color={activeTab === 'map' ? COLORS.accentDeep : COLORS.inkMuted}
               />
             )}
             {activeRoute && <View style={styles.routeActiveDot} />}
@@ -2061,7 +2586,7 @@ function SmartHeritageAppContent() {
             <BookOpen
               size={21}
               strokeWidth={activeTab === 'journey' ? 2.2 : 1.7}
-              color={activeTab === 'journey' ? COLORS.ink : COLORS.inkMuted}
+              color={activeTab === 'journey' ? COLORS.accentDeep : COLORS.inkMuted}
             />
             {visitedRecords.length > 0 && (
               <View style={styles.journeyBadge}>
@@ -2094,7 +2619,7 @@ function SmartHeritageAppContent() {
           <Trophy
             size={21}
             strokeWidth={activeTab === 'ranking' ? 2.2 : 1.7}
-            color={activeTab === 'ranking' ? COLORS.ink : COLORS.inkMuted}
+            color={activeTab === 'ranking' ? COLORS.accentDeep : COLORS.inkMuted}
           />
           <Text
             style={[
@@ -2239,27 +2764,6 @@ function SmartHeritageAppContent() {
                   thumbColor={COLORS.white}
                 />
               </View>
-
-              {/* Auto Proximity Audio Switch */}
-              <View style={styles.sheetSwitchRow}>
-                <View style={styles.sheetSwitchTextCol}>
-                  <Text style={styles.sheetSwitchTitle}>
-                    Tự động thuyết minh khi đến gần
-                  </Text>
-                  <Text style={styles.sheetSwitchSub}>
-                    Tự mở giọng đọc khi vào vùng bán kính &lt; 150m
-                  </Text>
-                </View>
-                <Switch
-                  value={autoAudioGuide}
-                  onValueChange={setAutoAudioGuide}
-                  trackColor={{
-                    false: COLORS.borderStrong,
-                    true: COLORS.ink,
-                  }}
-                  thumbColor={COLORS.white}
-                />
-              </View>
             </ScrollView>
 
             <TouchableOpacity
@@ -2375,7 +2879,7 @@ function SmartHeritageAppContent() {
                 )}
 
                 <View style={styles.weatherSheetAdviceCard}>
-                  <Sparkles size={14} color={COLORS.accent} />
+                  <Compass size={15} color={COLORS.accentDeep} strokeWidth={2} />
                   <View style={{ flex: 1, gap: 2 }}>
                     <Text style={styles.weatherSheetAdviceTitle}>
                       {weather.aiTourAdvice.headlineVi}
@@ -2395,7 +2899,7 @@ function SmartHeritageAppContent() {
                   style={styles.sheetApplyBtn}
                 >
                   <Text style={styles.sheetApplyText}>
-                    Lập lịch trình AI theo thời tiết này
+                    Lập lịch trình theo thời tiết này
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -2408,66 +2912,241 @@ function SmartHeritageAppContent() {
         </TouchableOpacity>
       </Modal>
 
-      {/* Language Picker Bottom Sheet */}
+      {/* Redesigned Floating ☰ Menu Popover (Account · Language Dropdown · Auto Audio Switch · GPS) */}
       <Modal
-        visible={langSheetVisible}
+        visible={menuPopoverVisible}
         transparent
         animationType="fade"
-        onRequestClose={() => setLangSheetVisible(false)}
+        onRequestClose={() => setMenuPopoverVisible(false)}
       >
         <TouchableOpacity
           activeOpacity={1}
-          onPress={() => setLangSheetVisible(false)}
-          style={styles.sheetBackdrop}
+          onPress={() => setMenuPopoverVisible(false)}
+          style={styles.menuBackdrop}
         >
           <TouchableOpacity
             activeOpacity={1}
             onPress={() => {}}
             style={[
-              styles.sheetCard,
-              { paddingBottom: Math.max(insets.bottom, 16) + 8 },
+              styles.menuPopoverCard,
+              {
+                marginTop: Math.max(insets.top, 8) + 56,
+              },
+              isWideWeb && styles.menuPopoverCardWide,
             ]}
           >
-            <View style={styles.sheetHandle} />
-            <View style={styles.sheetHeader}>
-              <Text style={styles.sheetTitle}>Ngôn ngữ thuyết minh</Text>
+            {/* Block 1: Account Profile Card */}
+            <View style={styles.menuProfileBlock}>
+              <View style={styles.menuProfileLeft}>
+                <View
+                  style={[
+                    styles.menuAvatarCircle,
+                    authState.isAuthenticated && styles.menuAvatarCircleOnline,
+                  ]}
+                >
+                  <User
+                    size={18}
+                    color={COLORS.accentDeep}
+                    strokeWidth={2}
+                  />
+                </View>
+                <View style={styles.menuProfileTextCol}>
+                  <Text style={styles.menuProfileName} numberOfLines={1}>
+                    {authState.isAuthenticated
+                      ? authState.profile?.display_name || 'Thành viên'
+                      : 'Chế độ Khách'}
+                  </Text>
+                  <Text style={styles.menuProfileSub} numberOfLines={1}>
+                    {authState.isAuthenticated
+                      ? authState.profile?.email || 'Đã bật đồng bộ Cloud'
+                      : 'Đăng nhập để đồng bộ hành trình'}
+                  </Text>
+                </View>
+              </View>
+
               <TouchableOpacity
-                onPress={() => setLangSheetVisible(false)}
-                style={styles.sheetCloseBtn}
+                activeOpacity={0.85}
+                onPress={() => {
+                  setMenuPopoverVisible(false);
+                  setAuthModalVisible(true);
+                }}
+                style={styles.menuAuthBtn}
               >
-                <X size={18} color={COLORS.inkSecondary} />
+                <Text style={styles.menuAuthBtnText}>
+                  {authState.isAuthenticated ? 'Quản lý' : 'Đăng nhập'}
+                </Text>
               </TouchableOpacity>
             </View>
 
-            <View style={styles.langList}>
-              {SUPPORTED_LANGUAGES.map((lang) => {
-                const active = selectedLanguage === lang.code;
-                return (
-                  <TouchableOpacity
-                    key={lang.code}
-                    activeOpacity={0.8}
-                    onPress={() => {
-                      setSelectedLanguage(lang.code);
-                      setLangSheetVisible(false);
-                      triggerHaptic('selection');
-                    }}
-                    style={[
-                      styles.langOptionRow,
-                      active && styles.langOptionRowActive,
-                    ]}
-                  >
-                    <View style={styles.langOptionLeft}>
-                      <Text style={styles.langCodeTag}>
-                        {lang.code.toUpperCase()}
+            {/* Block 2: Grouped Settings Rows */}
+            <View style={styles.menuSettingsGroup}>
+              {/* 2.1 Language Accordion Dropdown */}
+              <View style={styles.menuRowBlock}>
+                <TouchableOpacity
+                  activeOpacity={0.78}
+                  onPress={() => setMenuLangExpanded((prev) => !prev)}
+                  style={styles.menuRowTouchable}
+                >
+                  <View style={styles.menuRowLeft}>
+                    <View style={styles.menuRowIconBox}>
+                      <Globe
+                        size={15}
+                        color={COLORS.accentDeep}
+                        strokeWidth={2}
+                      />
+                    </View>
+                    <View style={styles.menuRowTextCol}>
+                      <Text style={styles.menuRowTitle}>
+                        Ngôn ngữ thuyết minh
                       </Text>
-                      <Text style={styles.langNativeLabel}>
-                        {lang.nativeLabel}
+                      <Text style={styles.menuRowSub}>
+                        {currentLangMeta.nativeLabel} (
+                        {currentLangMeta.code.toUpperCase()})
                       </Text>
                     </View>
-                    {active && <Check size={16} color={COLORS.accent} />}
-                  </TouchableOpacity>
-                );
-              })}
+                  </View>
+                  <ChevronDown
+                    size={16}
+                    color={COLORS.inkSecondary}
+                    strokeWidth={2}
+                    style={
+                      menuLangExpanded
+                        ? { transform: [{ rotate: '180deg' }] }
+                        : undefined
+                    }
+                  />
+                </TouchableOpacity>
+
+                {menuLangExpanded && (
+                  <View style={styles.menuLangList}>
+                    {SUPPORTED_LANGUAGES.map((lang) => {
+                      const active = selectedLanguage === lang.code;
+                      return (
+                        <TouchableOpacity
+                          key={lang.code}
+                          activeOpacity={0.78}
+                          onPress={() => {
+                            setSelectedLanguage(lang.code);
+                            setMenuLangExpanded(false);
+                            triggerHaptic('selection');
+                          }}
+                          style={[
+                            styles.menuLangOption,
+                            active && styles.menuLangOptionActive,
+                          ]}
+                        >
+                          <View style={styles.menuLangOptionLeft}>
+                            <Text
+                              style={[
+                                styles.menuLangNative,
+                                active && styles.menuLangNativeActive,
+                              ]}
+                            >
+                              {lang.nativeLabel}
+                            </Text>
+                            <Text style={styles.menuLangCode}>
+                              {lang.code.toUpperCase()}
+                            </Text>
+                          </View>
+                          {active && (
+                            <Check
+                              size={15}
+                              color={COLORS.accentDeep}
+                              strokeWidth={2.4}
+                            />
+                          )}
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                )}
+              </View>
+
+              {/* 2.2 Auto Audio Guide Switch */}
+              <View style={styles.menuRowDivider} />
+              <View style={styles.menuRowInline}>
+                <View style={styles.menuRowLeft}>
+                  <View style={styles.menuRowIconBox}>
+                    <Volume2
+                      size={15}
+                      color={COLORS.accentDeep}
+                      strokeWidth={2}
+                    />
+                  </View>
+                  <View style={styles.menuRowTextCol}>
+                    <Text style={styles.menuRowTitle}>
+                      Tự động thuyết minh
+                    </Text>
+                    <Text style={styles.menuRowSub}>
+                      Tự phát khi đến gần (&lt; 150m)
+                    </Text>
+                  </View>
+                </View>
+                <Switch
+                  value={autoAudioGuide}
+                  onValueChange={(next) => {
+                    setAutoAudioGuide(next);
+                    setToastMessage(
+                      next
+                        ? 'Đã bật tự động thuyết minh khi đến gần (< 150m).'
+                        : 'Đã tắt tự động thuyết minh.'
+                    );
+                    triggerHaptic('selection');
+                  }}
+                  trackColor={{
+                    false: COLORS.borderStrong,
+                    true: COLORS.accent,
+                  }}
+                  thumbColor={COLORS.white}
+                />
+              </View>
+
+              {/* 2.3 Live GPS Status & Refresh */}
+              <View style={styles.menuRowDivider} />
+              <View style={styles.menuRowInline}>
+                <View style={styles.menuRowLeft}>
+                  <View style={styles.menuRowIconBox}>
+                    <LocateFixed
+                      size={15}
+                      color={COLORS.accentDeep}
+                      strokeWidth={2}
+                    />
+                  </View>
+                  <View style={styles.menuRowTextCol}>
+                    <Text style={styles.menuRowTitle}>
+                      Định vị GPS thực tế
+                    </Text>
+                    <Text style={styles.menuRowSub}>
+                      {isLocatingGps
+                        ? 'Đang xác định vị trí…'
+                        : activeCityId === 'GPS'
+                          ? 'Đang hoạt động · Vị trí của bạn'
+                          : `Khu vực đang chọn · ${activeCityLabel}`}
+                    </Text>
+                  </View>
+                </View>
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  onPress={() => {
+                    setMenuPopoverVisible(false);
+                    void handleDetectRealGps();
+                  }}
+                  style={styles.menuGpsRefreshBtn}
+                >
+                  <Text style={styles.menuGpsRefreshText}>Cập nhật</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Block 3: Compact Offline-First Footer */}
+            <View style={styles.menuFooter}>
+              <View style={styles.menuFooterLeft}>
+                <View style={styles.gpsDot} />
+                <Text style={styles.menuFooterText}>
+                  Offline-First · {catalogSites.length} di tích
+                </Text>
+              </View>
+              <Text style={styles.menuFooterText}>TP.HCM</Text>
             </View>
           </TouchableOpacity>
         </TouchableOpacity>
@@ -2477,7 +3156,10 @@ function SmartHeritageAppContent() {
       {selectedSite && (
         <HeritageDetailModal
           visible={true}
-          site={selectedSite}
+          site={
+            catalogSites.find((s) => s.id === selectedSite.id) || selectedSite
+          }
+          visitedRecord={visitedMap.get(selectedSite.id)}
           userLocation={userLocation}
           distanceMeters={selectedSiteMetrics?.distanceMeters || 500}
           estimatedWalkingSeconds={
@@ -2489,6 +3171,7 @@ function SmartHeritageAppContent() {
           onStartNavigation={handleStartNavigationToSite}
           onNavigateToRestaurant={handleNavigateToRestaurant}
           onOpenPhotoCheckIn={(site) => {
+            returnDetailAfterPhotoRef.current = site;
             setSelectedSite(null);
             setPhotoCaptureSite(site);
           }}
@@ -2513,7 +3196,14 @@ function SmartHeritageAppContent() {
             photoCaptureMetrics?.distanceMeters ||
             750
           }
-          onClose={() => setPhotoCaptureSite(null)}
+          onClose={() => {
+            setPhotoCaptureSite(null);
+            if (returnDetailAfterPhotoRef.current) {
+              const prevSite = returnDetailAfterPhotoRef.current;
+              returnDetailAfterPhotoRef.current = null;
+              setSelectedSite(prevSite);
+            }
+          }}
           onOpenRecognizedSite={handleOpenRecognizedSite}
           onSaveCheckIn={handleSavePhotoCheckIn}
         />
@@ -2540,8 +3230,16 @@ function SmartHeritageAppContent() {
         onLanguageChange={setSelectedLanguage}
         contextSite={aiChatContextSite}
         userLocation={userLocation}
-        onClose={() => setAiChatVisible(false)}
+        onClose={() => {
+          setAiChatVisible(false);
+          if (returnDetailAfterAiChatRef.current) {
+            const prevSite = returnDetailAfterAiChatRef.current;
+            returnDetailAfterAiChatRef.current = null;
+            setSelectedSite(prevSite);
+          }
+        }}
         onOpenSiteById={(siteId) => {
+          returnDetailAfterAiChatRef.current = null;
           const target = catalogSites.find((s) => s.id === siteId);
           if (target) setSelectedSite(target);
         }}
@@ -2581,61 +3279,63 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.bg,
   },
   header: {
-    backgroundColor: COLORS.bg,
+    backgroundColor: COLORS.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
     paddingHorizontal: SPACING.lg,
     paddingBottom: 10,
+    alignItems: 'center',
   },
-  headerRow: {
+  headerInner: {
+    width: '100%',
+    maxWidth: 1120,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: SPACING.md,
   },
-  brandCol: {
-    flex: 1,
-    minWidth: 0,
+  brandRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flexShrink: 1,
+  },
+  brandMark: {
+    width: 34,
+    height: 34,
+    borderRadius: 11,
+    backgroundColor: COLORS.accentSoft,
+    borderWidth: 1,
+    borderColor: COLORS.accentBorder,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   brandTitle: {
     fontFamily: SERIF_FONT,
-    fontSize: 20,
+    fontSize: 19,
     fontWeight: '700',
     color: COLORS.ink,
     letterSpacing: -0.3,
   },
-  locationSubtitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    marginTop: 2,
-  },
   gpsDot: {
-    width: 6,
-    height: 6,
+    width: 7,
+    height: 7,
     borderRadius: RADII.pill,
     backgroundColor: COLORS.visitedDot,
-  },
-  gpsDotLocating: {
-    backgroundColor: COLORS.amberStar,
-  },
-  locationSubtitle: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: COLORS.inkSecondary,
-    flexShrink: 1,
   },
   headerActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 8,
   },
   headerWeatherBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    height: 34,
-    paddingHorizontal: 9,
+    gap: 5,
+    height: 38,
+    paddingHorizontal: 12,
     borderRadius: RADII.pill,
-    backgroundColor: COLORS.surface,
+    backgroundColor: COLORS.bg,
     borderWidth: 1,
     borderColor: COLORS.border,
   },
@@ -2644,84 +3344,36 @@ const styles = StyleSheet.create({
     borderColor: '#BFDBFE',
   },
   headerWeatherText: {
-    fontSize: 12,
+    fontSize: 12.5,
     fontWeight: '700',
     color: COLORS.ink,
     fontVariant: ['tabular-nums'],
   },
-  headerAudioBtn: {
-    width: 34,
-    height: 34,
+  headerMenuBtn: {
+    width: 38,
+    height: 38,
     borderRadius: RADII.pill,
-    backgroundColor: COLORS.surface,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
-  },
-  headerAudioBtnActive: {
     backgroundColor: COLORS.accentSoft,
+    borderWidth: 1,
     borderColor: COLORS.accentBorder,
-  },
-  audioActiveDot: {
-    position: 'absolute',
-    top: 2,
-    right: 2,
-    width: 7,
-    height: 7,
-    borderRadius: RADII.pill,
-    backgroundColor: COLORS.visitedDot,
-    borderWidth: 1.5,
-    borderColor: COLORS.surface,
-  },
-  weatherHeaderPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    height: 34,
-    paddingHorizontal: 9,
-    borderRadius: RADII.pill,
-    backgroundColor: COLORS.surface,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  weatherHeaderTemp: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: COLORS.ink,
-    fontVariant: ['tabular-nums'],
-  },
-  langPillBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    height: 34,
-    paddingHorizontal: 9,
-    borderRadius: RADII.pill,
-    backgroundColor: COLORS.surface,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  langPillText: {
-    fontSize: 11.5,
-    fontWeight: '700',
-    color: COLORS.ink,
-  },
-  avatarBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: RADII.pill,
-    backgroundColor: COLORS.surface,
-    borderWidth: 1,
-    borderColor: COLORS.border,
     alignItems: 'center',
     justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 6,
     position: 'relative',
   },
-  avatarBtnSignedIn: {
-    backgroundColor: COLORS.visitedBg,
-    borderColor: COLORS.visitedBorder,
+  headerMenuBtnWide: {
+    width: 'auto',
+    paddingHorizontal: 14,
+  },
+  headerMenuBtnOpen: {
+    backgroundColor: COLORS.accentSoftStrong,
+    borderColor: COLORS.accent,
+  },
+  headerMenuLabel: {
+    fontSize: 12.5,
+    fontWeight: '700',
+    color: COLORS.accentDeep,
   },
   onlineDot: {
     position: 'absolute',
@@ -2766,14 +3418,17 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.bg,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
-    paddingTop: 2,
+    paddingTop: 10,
+    paddingBottom: 10,
+    paddingHorizontal: SPACING.lg,
+    alignItems: 'center',
   },
   searchFilterRow: {
+    width: '100%',
+    maxWidth: 1120,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    paddingHorizontal: SPACING.lg,
-    paddingBottom: 10,
   },
   searchPill: {
     flex: 1,
@@ -2785,8 +3440,148 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
     borderRadius: RADII.pill,
     paddingHorizontal: 14,
-    height: 42,
+    height: 44,
     ...SHADOWS.card,
+  },
+  searchPillFocused: {
+    borderColor: COLORS.accent,
+    borderWidth: 1.5,
+  },
+  searchOverlayBackdrop: {
+    position: 'absolute',
+    top: 64,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 35,
+    backgroundColor: 'rgba(19, 36, 34, 0.22)',
+  },
+  searchDropdownAnchor: {
+    position: 'absolute',
+    top: 60,
+    left: 0,
+    right: 0,
+    zIndex: 40,
+    paddingHorizontal: SPACING.lg,
+    alignItems: 'center',
+  },
+  searchDropdownCard: {
+    width: '100%',
+    maxWidth: 1120,
+    backgroundColor: COLORS.surface,
+    borderRadius: RADII.xl,
+    borderWidth: 1,
+    borderColor: COLORS.accentBorder,
+    overflow: 'hidden',
+    ...SHADOWS.floating,
+  },
+  searchDropdownHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    backgroundColor: COLORS.bg,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  searchDropdownHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flex: 1,
+  },
+  searchDropdownEyebrow: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: COLORS.accentDeep,
+  },
+  searchDropdownCloseText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.inkMuted,
+  },
+  searchDropdownScroll: {
+    maxHeight: 340,
+  },
+  searchEmptyRow: {
+    paddingHorizontal: 16,
+    paddingVertical: 20,
+    alignItems: 'center',
+  },
+  searchEmptyText: {
+    fontSize: 12.5,
+    color: COLORS.inkMuted,
+    textAlign: 'center',
+  },
+  searchGroupSection: {
+    paddingVertical: 4,
+  },
+  searchGroupLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0.7,
+    color: COLORS.inkMuted,
+    paddingHorizontal: 14,
+    paddingTop: 8,
+    paddingBottom: 4,
+  },
+  searchSuggestionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 11,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.surfaceMuted,
+  },
+  searchSuggestionThumb: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    backgroundColor: COLORS.surfaceMuted,
+  },
+  searchFoodIconBox: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    backgroundColor: COLORS.accentSoft,
+    borderWidth: 1,
+    borderColor: COLORS.accentBorder,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  searchSuggestionInfo: {
+    flex: 1,
+    minWidth: 0,
+    gap: 2,
+  },
+  searchSuggestionTitle: {
+    fontFamily: SERIF_FONT,
+    fontSize: 14,
+    fontWeight: '700',
+    color: COLORS.ink,
+  },
+  searchSuggestionSub: {
+    fontSize: 11.5,
+    color: COLORS.inkSecondary,
+    fontVariant: ['tabular-nums'],
+  },
+  searchFoodCtaPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    borderRadius: RADII.pill,
+    backgroundColor: COLORS.accentSoft,
+    borderWidth: 1,
+    borderColor: COLORS.accentBorder,
+  },
+  searchFoodCtaText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: COLORS.accentDeep,
   },
   searchInput: {
     flex: 1,
@@ -2794,81 +3589,138 @@ const styles = StyleSheet.create({
     color: COLORS.ink,
     paddingVertical: 0,
   },
-  filterIconBtn: {
-    width: 42,
-    height: 42,
+  areaChipBtn: {
+    height: 44,
+    maxWidth: 162,
+    paddingHorizontal: 13,
     borderRadius: RADII.pill,
     backgroundColor: COLORS.surface,
     borderWidth: 1,
     borderColor: COLORS.border,
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
+    gap: 5,
     ...SHADOWS.card,
   },
-  filterIconBtnActive: {
-    backgroundColor: COLORS.ink,
-    borderColor: COLORS.ink,
-  },
-  filterCountBadge: {
-    position: 'absolute',
-    top: -2,
-    right: -2,
-    width: 17,
-    height: 17,
-    borderRadius: RADII.pill,
+  areaChipBtnActive: {
     backgroundColor: COLORS.accent,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1.5,
-    borderColor: COLORS.bg,
+    borderColor: COLORS.accent,
   },
-  filterCountText: {
-    fontFamily: SERIF_FONT,
+  areaChipText: {
+    fontSize: 12.5,
+    fontWeight: '700',
+    color: COLORS.accentDeep,
+    flexShrink: 1,
+  },
+  areaChipTextActive: {
     color: COLORS.white,
-    fontSize: 9.5,
-    fontWeight: '700',
-  },
-  categoryBar: {
-    paddingHorizontal: SPACING.lg,
-    gap: 18,
-  },
-  catTab: {
-    paddingVertical: 9,
-    borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
-  },
-  catTabActive: {
-    borderBottomColor: COLORS.ink,
-  },
-  catTabText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: COLORS.inkMuted,
-  },
-  catTabTextActive: {
-    color: COLORS.ink,
-    fontWeight: '700',
   },
   listHeaderWrap: {
     paddingHorizontal: SPACING.lg,
-    paddingTop: 10,
-    paddingBottom: 10,
-    gap: 10,
+    paddingTop: 14,
+    paddingBottom: 14,
+    gap: 12,
   },
-  exploreControlsRow: {
+  conciergeBanner: {
+    backgroundColor: COLORS.accentSoft,
+    borderRadius: RADII.xl,
+    borderWidth: 1,
+    borderColor: COLORS.accentBorder,
+    padding: 15,
+    gap: 12,
+  },
+  conciergeBannerWide: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+  },
+  conciergeTextCol: {
+    flex: 1,
+    gap: 4,
+  },
+  conciergeEyebrowRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  conciergeEyebrow: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    letterSpacing: 0.7,
+    color: COLORS.accentDeep,
+  },
+  conciergeHeadline: {
+    fontFamily: SERIF_FONT,
+    fontSize: 15,
+    fontWeight: '700',
+    lineHeight: 21,
+    color: COLORS.ink,
+  },
+  conciergeActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  conciergeActionsWide: {
+    flexShrink: 0,
+  },
+  conciergePrimaryBtn: {
+    flex: 1,
+    height: 40,
+    paddingHorizontal: 16,
+    borderRadius: RADII.pill,
+    backgroundColor: COLORS.accent,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  conciergePrimaryText: {
+    fontSize: 12.5,
+    fontWeight: '700',
+    color: COLORS.white,
+  },
+  conciergeSecondaryBtn: {
+    flex: 1,
+    height: 40,
+    paddingHorizontal: 16,
+    borderRadius: RADII.pill,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.accentBorder,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  conciergeSecondaryText: {
+    fontSize: 12.5,
+    fontWeight: '700',
+    color: COLORS.accentDeep,
+  },
+  exploreControlsBar: {
+    gap: 10,
+  },
+  exploreControlsBarWide: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 14,
   },
   segmentedControl: {
-    flex: 1,
     flexDirection: 'row',
-    backgroundColor: COLORS.surfaceMuted,
-    borderRadius: RADII.pill,
-    padding: 3,
-    gap: 3,
+    backgroundColor: COLORS.accentSoft,
+    borderRadius: RADII.lg,
+    padding: 4,
+    gap: 4,
     borderWidth: 1,
     borderColor: COLORS.border,
+  },
+  segmentedControlWide: {
+    width: 300,
+    flexShrink: 0,
   },
   segBtn: {
     flex: 1,
@@ -2876,67 +3728,85 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    paddingVertical: 8,
-    borderRadius: RADII.pill,
+    paddingVertical: 9,
+    borderRadius: RADII.md,
   },
   segBtnActive: {
-    backgroundColor: COLORS.ink,
+    backgroundColor: COLORS.accent,
   },
   segBtnText: {
     fontSize: 12.5,
     fontWeight: '700',
-    color: COLORS.inkSecondary,
+    color: COLORS.accentDeep,
   },
   segBtnTextActive: {
     color: COLORS.white,
   },
-  quickActionPillsRow: {
+  categoryPillsRow: {
     gap: 8,
-    paddingRight: SPACING.md,
-  },
-  quickAiPillDark: {
-    flexDirection: 'row',
+    paddingRight: SPACING.sm,
     alignItems: 'center',
-    gap: 6,
-    backgroundColor: COLORS.ink,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
+  },
+  catPill: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
     borderRadius: RADII.pill,
-  },
-  quickAiPillDarkText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: COLORS.white,
-  },
-  quickAiPillLight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
     backgroundColor: COLORS.surface,
     borderWidth: 1,
-    borderColor: COLORS.accentBorder,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: RADII.pill,
+    borderColor: COLORS.border,
   },
-  quickAiPillLightText: {
-    fontSize: 12,
+  catPillActive: {
+    backgroundColor: COLORS.ink,
+    borderColor: COLORS.ink,
+  },
+  catPillText: {
+    fontSize: 12.5,
+    fontWeight: '600',
+    color: COLORS.inkSecondary,
+  },
+  catPillTextActive: {
+    color: COLORS.white,
     fontWeight: '700',
-    color: COLORS.accent,
   },
   quickResetPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
     backgroundColor: COLORS.accentSoft,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
+    borderWidth: 1,
+    borderColor: COLORS.accentBorder,
+    paddingHorizontal: 11,
+    paddingVertical: 8,
     borderRadius: RADII.pill,
   },
   quickResetPillText: {
-    fontSize: 11.5,
+    fontSize: 12,
     fontWeight: '700',
-    color: COLORS.accent,
+    color: COLORS.accentDeep,
+  },
+  gridRow: {
+    paddingHorizontal: SPACING.lg,
+    gap: 14,
+    marginBottom: 14,
+  },
+  gridCell: {
+    flex: 1,
+  },
+  listContentWide: {
+    width: '100%',
+    maxWidth: 1152,
+    alignSelf: 'center',
+  },
+  diningFeedCardGrid: {
+    flex: 1,
+    marginHorizontal: 0,
+    marginBottom: 0,
+    justifyContent: 'space-between',
+  },
+  quickAudioInner: {
+    width: '100%',
+    maxWidth: 1120,
+    alignSelf: 'center',
   },
   diningFeedCard: {
     backgroundColor: COLORS.surface,
@@ -3030,10 +3900,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    backgroundColor: COLORS.ink,
+    backgroundColor: COLORS.accent,
     borderRadius: RADII.pill,
     paddingHorizontal: 13,
-    paddingVertical: 7,
+    paddingVertical: 8,
   },
   diningFeedGoText: {
     fontSize: 12,
@@ -3135,8 +4005,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    backgroundColor: COLORS.ink,
-    paddingHorizontal: 12,
+    backgroundColor: COLORS.accent,
+    paddingHorizontal: 13,
     paddingVertical: 8,
     borderRadius: RADII.pill,
   },
@@ -3380,7 +4250,7 @@ const styles = StyleSheet.create({
   },
   emptyResetBtn: {
     marginTop: SPACING.sm,
-    backgroundColor: COLORS.ink,
+    backgroundColor: COLORS.accent,
     paddingHorizontal: 18,
     paddingVertical: 10,
     borderRadius: RADII.pill,
@@ -3438,7 +4308,7 @@ const styles = StyleSheet.create({
     color: COLORS.inkMuted,
   },
   tabLabelActive: {
-    color: COLORS.ink,
+    color: COLORS.accentDeep,
     fontWeight: '700',
   },
   routeActiveDot: {
@@ -3559,8 +4429,8 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
   },
   sheetChipActive: {
-    backgroundColor: COLORS.ink,
-    borderColor: COLORS.ink,
+    backgroundColor: COLORS.accent,
+    borderColor: COLORS.accent,
   },
   sheetChipText: {
     fontFamily: SERIF_FONT,
@@ -3597,8 +4467,8 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   sheetApplyBtn: {
-    backgroundColor: COLORS.ink,
-    borderRadius: RADII.lg,
+    backgroundColor: COLORS.accent,
+    borderRadius: RADII.pill,
     paddingVertical: 13,
     alignItems: 'center',
     marginTop: 8,
@@ -3760,6 +4630,209 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
     color: COLORS.ink,
+  },
+  // Floating ☰ Menu Popover Styles
+  menuBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(19, 36, 34, 0.30)',
+    paddingHorizontal: SPACING.md,
+    alignItems: 'flex-end',
+  },
+  menuPopoverCard: {
+    width: '100%',
+    maxWidth: 360,
+    backgroundColor: COLORS.surface,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    overflow: 'hidden',
+    ...SHADOWS.floating,
+  },
+  menuPopoverCardWide: {
+    marginRight: 12,
+  },
+  menuProfileBlock: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+    padding: 14,
+    backgroundColor: COLORS.bg,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  menuProfileLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flex: 1,
+    minWidth: 0,
+  },
+  menuAvatarCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: RADII.pill,
+    backgroundColor: COLORS.accentSoft,
+    borderWidth: 1,
+    borderColor: COLORS.accentBorder,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  menuAvatarCircleOnline: {
+    backgroundColor: COLORS.visitedBg,
+    borderColor: COLORS.visitedBorder,
+  },
+  menuProfileTextCol: {
+    flex: 1,
+    minWidth: 0,
+    gap: 2,
+  },
+  menuProfileName: {
+    fontFamily: SERIF_FONT,
+    fontSize: 14.5,
+    fontWeight: '700',
+    color: COLORS.ink,
+  },
+  menuProfileSub: {
+    fontSize: 11.5,
+    color: COLORS.inkSecondary,
+  },
+  menuAuthBtn: {
+    height: 34,
+    paddingHorizontal: 13,
+    borderRadius: RADII.pill,
+    backgroundColor: COLORS.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  menuAuthBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.white,
+  },
+  menuSettingsGroup: {
+    paddingHorizontal: 14,
+  },
+  menuRowBlock: {
+    paddingVertical: 12,
+  },
+  menuRowTouchable: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  menuRowInline: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+    paddingVertical: 12,
+  },
+  menuRowDivider: {
+    height: 1,
+    backgroundColor: COLORS.border,
+  },
+  menuRowLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flex: 1,
+    minWidth: 0,
+  },
+  menuRowIconBox: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    backgroundColor: COLORS.accentSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  menuRowTextCol: {
+    flex: 1,
+    minWidth: 0,
+    gap: 1,
+  },
+  menuRowTitle: {
+    fontSize: 13.5,
+    fontWeight: '700',
+    color: COLORS.ink,
+  },
+  menuRowSub: {
+    fontSize: 11.5,
+    color: COLORS.inkMuted,
+  },
+  menuLangList: {
+    marginTop: 10,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+    gap: 4,
+  },
+  menuLangOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: RADII.md,
+  },
+  menuLangOptionActive: {
+    backgroundColor: COLORS.accentSoft,
+  },
+  menuLangOptionLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  menuLangNative: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLORS.inkSecondary,
+  },
+  menuLangNativeActive: {
+    fontWeight: '700',
+    color: COLORS.accentDeep,
+  },
+  menuLangCode: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: COLORS.inkMuted,
+  },
+  menuGpsRefreshBtn: {
+    height: 30,
+    paddingHorizontal: 11,
+    borderRadius: RADII.pill,
+    backgroundColor: COLORS.bg,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  menuGpsRefreshText: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: COLORS.accentDeep,
+  },
+  menuFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    backgroundColor: COLORS.bg,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+  },
+  menuFooterLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  menuFooterText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: COLORS.inkMuted,
   },
   adminShellRoot: {
     flex: 1,
