@@ -1,20 +1,31 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
-  ScrollView,
+  Animated,
+  GestureResponderEvent,
+  LayoutChangeEvent,
+  Platform,
+  Pressable,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
 import {
+  Check,
+  ChevronDown,
+  ChevronUp,
+  FileText,
+  Globe,
+  Mic,
   Pause,
   Play,
+  Repeat,
+  RotateCcw,
+  RotateCw,
   SkipBack,
   SkipForward,
-  Sparkles,
   Square,
-  Volume2,
 } from 'lucide-react-native';
 import {
   HeritageSite,
@@ -27,10 +38,19 @@ import {
   SpeechPlayState,
   SpeechRate,
   SpeechVoiceGender,
-  VOICE_GENDER_OPTIONS,
   speechService,
 } from '../services/speechService';
-import { COLORS, RADII, SPACING } from '../theme';
+import { COLORS, RADII, SERIF_FONT, SHADOWS, SPACING } from '../theme';
+
+export interface AudioPlaybackSnapshot {
+  playState: SpeechPlayState;
+  progressPercent: number;
+  currentSeconds: number;
+  durationSeconds: number;
+  activeSegment: number;
+  totalSegments: number;
+  isBuffering: boolean;
+}
 
 export interface AudioGuidePlayerProps {
   site: HeritageSite;
@@ -38,6 +58,25 @@ export interface AudioGuidePlayerProps {
   onLanguageChange: (lang: SupportedLanguage) => void;
   autoPlayOnOpen?: boolean;
   compact?: boolean;
+  onPlaybackSnapshotChange?: (snapshot: AudioPlaybackSnapshot) => void;
+}
+
+const LOCALIZED_VOICE_LABELS: Record<
+  SupportedLanguage,
+  { female: string; male: string }
+> = {
+  vi: { female: 'Nữ · Hoài My', male: 'Nam · Nam Minh' },
+  en: { female: 'Female · Aria', male: 'Male · Guy' },
+  fr: { female: 'Femme · Denise', male: 'Homme · Henri' },
+  zh: { female: '女声 · 晓晓', male: '男声 · 云希' },
+  ja: { female: '女性 · 七海', male: '男性 · 圭太' },
+};
+
+export function formatAudioClock(seconds: number): string {
+  const safe = Math.max(0, Math.floor(seconds));
+  const mins = Math.floor(safe / 60);
+  const secs = safe % 60;
+  return `${mins < 10 ? '0' : ''}${mins}:${secs < 10 ? '0' : ''}${secs}`;
 }
 
 export const AudioGuidePlayer: React.FC<AudioGuidePlayerProps> = ({
@@ -46,6 +85,7 @@ export const AudioGuidePlayer: React.FC<AudioGuidePlayerProps> = ({
   onLanguageChange,
   autoPlayOnOpen = false,
   compact = false,
+  onPlaybackSnapshotChange,
 }) => {
   const [playState, setPlayState] = useState<SpeechPlayState>('idle');
   const [activeSegment, setActiveSegment] = useState<number>(0);
@@ -64,10 +104,61 @@ export const AudioGuidePlayer: React.FC<AudioGuidePlayerProps> = ({
     duration: number;
   }>({ current: 0, duration: 0 });
   const [speechError, setSpeechError] = useState<string | null>(null);
+  const [langMenuOpen, setLangMenuOpen] = useState<boolean>(false);
+  const [showTranscript, setShowTranscript] = useState<boolean>(true);
+  const [seekbarWidth, setSeekbarWidth] = useState<number>(0);
 
   const mountedRef = useRef(true);
+  const bar1 = useRef(new Animated.Value(0.35)).current;
+  const bar2 = useRef(new Animated.Value(0.55)).current;
+  const bar3 = useRef(new Animated.Value(0.3)).current;
+
   const localized = site.translations[selectedLanguage] || site.translations.vi;
   const segments = localized.audioScript;
+  const currentLangMeta =
+    SUPPORTED_LANGUAGES.find((l) => l.code === selectedLanguage) ||
+    SUPPORTED_LANGUAGES[0];
+
+  // Subtle equalizer animation when playing
+  useEffect(() => {
+    if (playState !== 'playing') {
+      bar1.setValue(0.35);
+      bar2.setValue(0.55);
+      bar3.setValue(0.3);
+      return;
+    }
+
+    const useNative = Platform.OS !== 'web';
+    const makeWave = (val: Animated.Value, duration: number, delay: number) =>
+      Animated.loop(
+        Animated.sequence([
+          Animated.delay(delay),
+          Animated.timing(val, {
+            toValue: 1,
+            duration,
+            useNativeDriver: useNative,
+          }),
+          Animated.timing(val, {
+            toValue: 0.28,
+            duration,
+            useNativeDriver: useNative,
+          }),
+        ])
+      );
+
+    const a1 = makeWave(bar1, 420, 0);
+    const a2 = makeWave(bar2, 360, 120);
+    const a3 = makeWave(bar3, 460, 220);
+    a1.start();
+    a2.start();
+    a3.start();
+
+    return () => {
+      a1.stop();
+      a2.stop();
+      a3.stop();
+    };
+  }, [playState, bar1, bar2, bar3]);
 
   const startSpeaking = useCallback(
     (
@@ -95,8 +186,6 @@ export const AudioGuidePlayer: React.FC<AudioGuidePlayerProps> = ({
           onSegmentChange: (idx) => {
             if (mountedRef.current) {
               setActiveSegment(idx);
-              setSegmentProgress(0);
-              setSegmentTiming({ current: 0, duration: 0 });
             }
           },
           onStateChange: (st) => {
@@ -148,6 +237,7 @@ export const AudioGuidePlayer: React.FC<AudioGuidePlayerProps> = ({
     setSegmentProgress(0);
     setSegmentTiming({ current: 0, duration: 0 });
     setSpeechError(null);
+    setLangMenuOpen(false);
 
     if (autoPlayOnOpen) {
       startSpeaking(0, selectedLanguage, speechRate);
@@ -170,12 +260,58 @@ export const AudioGuidePlayer: React.FC<AudioGuidePlayerProps> = ({
     );
   }, [selectedLanguage, segments.length]);
 
-  // Tiền tải (pre-warm) toàn bộ bài thuyết minh liên mạch ngay khi mở di tích / đổi ngôn ngữ hoặc giọng đọc
   useEffect(() => {
     if (segments.length > 0) {
       speechService.prefetchScript(segments, selectedLanguage, voiceGender);
     }
   }, [site.id, selectedLanguage, voiceGender, segments]);
+
+  const progressPercent = (() => {
+    if (segments.length === 0) return 0;
+    if (segmentTiming.duration > 0 && playState !== 'idle') {
+      return Math.max(
+        0,
+        Math.min(
+          100,
+          Math.round((segmentTiming.current / segmentTiming.duration) * 100)
+        )
+      );
+    }
+    if (playState === 'idle' && segmentProgress === 0) return 0;
+    const weights = segments.map((s) => Math.max(24, s.length));
+    const totalWeight = weights.reduce((acc, w) => acc + w, 0) || 1;
+    let completed = 0;
+    for (let i = 0; i < safeActiveSegment; i += 1) {
+      completed += weights[i];
+    }
+    completed += weights[safeActiveSegment] * segmentProgress;
+    return Math.max(
+      0,
+      Math.min(100, Math.round((completed / totalWeight) * 100))
+    );
+  })();
+
+  // Emit live snapshot so parent HeritageDetailModal can render persistent Mini Audio Bar across tabs
+  useEffect(() => {
+    onPlaybackSnapshotChange?.({
+      playState,
+      progressPercent,
+      currentSeconds: segmentTiming.current,
+      durationSeconds: segmentTiming.duration,
+      activeSegment: safeActiveSegment,
+      totalSegments: segments.length,
+      isBuffering: isBufferingAudio,
+    });
+  }, [
+    onPlaybackSnapshotChange,
+    playState,
+    progressPercent,
+    segmentTiming.current,
+    segmentTiming.duration,
+    safeActiveSegment,
+    segments.length,
+    isBufferingAudio,
+  ]);
 
   const handleTogglePlay = () => {
     if (playState === 'idle') {
@@ -197,6 +333,8 @@ export const AudioGuidePlayer: React.FC<AudioGuidePlayerProps> = ({
   };
 
   const handleLanguageSwitch = (lang: SupportedLanguage) => {
+    setLangMenuOpen(false);
+    if (lang === selectedLanguage) return;
     onLanguageChange(lang);
     const nextScript = (site.translations[lang] || site.translations.vi)
       .audioScript;
@@ -210,14 +348,18 @@ export const AudioGuidePlayer: React.FC<AudioGuidePlayerProps> = ({
     }
   };
 
-  const handleRateChange = (nextRate: SpeechRate) => {
+  const handleCycleRate = () => {
+    const curIdx = SPEECH_RATES.indexOf(speechRate);
+    const nextRate = SPEECH_RATES[(curIdx + 1) % SPEECH_RATES.length];
     setSpeechRate(nextRate);
     if (playState === 'playing' || playState === 'paused') {
       speechService.setRate(nextRate);
     }
   };
 
-  const handleVoiceGenderChange = (nextGender: SpeechVoiceGender) => {
+  const handleToggleVoiceGender = () => {
+    const nextGender: SpeechVoiceGender =
+      voiceGender === 'female' ? 'male' : 'female';
     setVoiceGender(nextGender);
     speechService.setVoiceGender(nextGender);
   };
@@ -228,8 +370,6 @@ export const AudioGuidePlayer: React.FC<AudioGuidePlayerProps> = ({
       Math.min(segments.length - 1, safeActiveSegment + delta)
     );
     setActiveSegment(nextIdx);
-    setSegmentProgress(0);
-    setSegmentTiming({ current: 0, duration: 0 });
     if (playState === 'playing') {
       speechService.jumpToSegment(nextIdx, true);
     } else if (playState === 'paused') {
@@ -237,290 +377,438 @@ export const AudioGuidePlayer: React.FC<AudioGuidePlayerProps> = ({
     }
   };
 
-  const formatAudioTime = (seconds: number): string => {
-    const safe = Math.max(0, Math.floor(seconds));
-    const mins = Math.floor(safe / 60);
-    const secs = safe % 60;
-    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+  const handleSeekBySeconds = (deltaSeconds: number) => {
+    if (playState === 'idle') {
+      const targetIdx = deltaSeconds > 0
+        ? Math.min(segments.length - 1, safeActiveSegment + 1)
+        : Math.max(0, safeActiveSegment - 1);
+      startSpeaking(targetIdx, selectedLanguage, speechRate);
+      return;
+    }
+    speechService.seekBySeconds(deltaSeconds);
   };
 
-  // Tiến độ thời gian thực mượt từ 0% → 100% theo tỷ trọng độ dài từng đoạn + tiến độ đang đọc
-  const progressPercent = (() => {
-    if (segments.length === 0) return 0;
-    if (playState === 'idle' && segmentProgress === 0) return 0;
-    const weights = segments.map((s) => Math.max(24, s.length));
-    const totalWeight = weights.reduce((acc, w) => acc + w, 0) || 1;
-    let completed = 0;
-    for (let i = 0; i < safeActiveSegment; i += 1) {
-      completed += weights[i];
+  const handleSeekbarLayout = (e: LayoutChangeEvent) => {
+    const w = e.nativeEvent.layout.width;
+    if (w > 0) setSeekbarWidth(w);
+  };
+
+  const handleSeekbarPress = (e: GestureResponderEvent) => {
+    if (segments.length === 0) return;
+    let tapX = 0;
+    let width = seekbarWidth;
+
+    if (Platform.OS === 'web') {
+      const target = e.currentTarget as unknown as {
+        getBoundingClientRect?: () => { left: number; width: number };
+      };
+      const nativeEv = e.nativeEvent as unknown as {
+        pageX?: number;
+        clientX?: number;
+        locationX?: number;
+      };
+      const rect = target?.getBoundingClientRect?.();
+      if (rect && rect.width > 0) {
+        width = rect.width;
+        const clientX = nativeEv.clientX ?? nativeEv.pageX ?? 0;
+        tapX = clientX - rect.left;
+      } else {
+        tapX = nativeEv.locationX ?? 0;
+      }
+    } else {
+      tapX = e.nativeEvent.locationX ?? 0;
     }
-    completed += weights[safeActiveSegment] * segmentProgress;
-    return Math.max(0, Math.min(100, Math.round((completed / totalWeight) * 100)));
-  })();
+
+    if (width <= 0) return;
+    const ratio = Math.max(0, Math.min(1, tapX / width));
+
+    if (playState === 'idle') {
+      const segIdx = Math.min(
+        segments.length - 1,
+        Math.floor(ratio * segments.length)
+      );
+      startSpeaking(segIdx, selectedLanguage, speechRate);
+      return;
+    }
+
+    speechService.seekToRatio(ratio);
+  };
+
+  const statusText = isBufferingAudio
+    ? 'Đang chuẩn bị giọng đọc…'
+    : playState === 'playing'
+      ? `Đang phát · Đoạn ${safeActiveSegment + 1}/${segments.length}`
+      : playState === 'paused'
+        ? `Tạm dừng · Đoạn ${safeActiveSegment + 1}/${segments.length}`
+        : `Sẵn sàng phát · Đoạn ${
+            segments.length > 0 ? safeActiveSegment + 1 : 0
+          }/${segments.length}`;
+
+  const voiceDisplayLabel =
+    LOCALIZED_VOICE_LABELS[selectedLanguage]?.[voiceGender] ||
+    LOCALIZED_VOICE_LABELS.vi[voiceGender];
 
   return (
-    <View style={styles.container}>
-      {/* Header Row */}
-      <View style={styles.headerRow}>
-        <View style={styles.titleBlock}>
-          <View
-            style={[
-              styles.iconBadge,
-              playState === 'playing' && styles.iconBadgePlaying,
-            ]}
-          >
-            <Volume2
-              size={16}
-              color={playState === 'playing' ? COLORS.white : COLORS.ink}
-            />
-          </View>
-          <View style={styles.titleTextWrap}>
-            <View style={styles.titleTopLine}>
-              <View style={styles.titleLeftGroup}>
-                <Text style={styles.headerTitle}>Thuyết minh âm thanh</Text>
-                {playState !== 'idle' && (
-                  <View
-                    style={[
-                      styles.engineChip,
-                      engineMode === 'neural' && styles.engineChipNeural,
-                    ]}
-                  >
-                    {engineMode === 'neural' && (
-                      <Sparkles size={10} color={COLORS.accent} />
-                    )}
-                    <Text
-                      style={[
-                        styles.engineChipText,
-                        engineMode === 'neural' && styles.engineChipTextNeural,
-                      ]}
-                      numberOfLines={1}
-                    >
-                      {activeVoiceLabel ||
-                        (engineMode === 'neural'
-                          ? 'AI Neural'
-                          : 'Giọng thiết bị')}
-                    </Text>
-                  </View>
-                )}
-              </View>
-              <Text style={styles.segmentCounter}>
-                Đoạn {segments.length > 0 ? safeActiveSegment + 1 : 0}/
-                {segments.length}
+    <View style={styles.outerWrap}>
+      {/* Main Soft Jade Audio Player Card */}
+      <View style={styles.playerCard}>
+        {/* Top Row: Animated Equalizer + Status + Dropdown Language Trigger */}
+        <View style={styles.headerRow}>
+          <View style={styles.headerLeft}>
+            <View
+              style={[
+                styles.eqBadge,
+                playState === 'playing' && styles.eqBadgePlaying,
+              ]}
+            >
+              <Animated.View
+                style={[
+                  styles.eqBar,
+                  {
+                    height: 14,
+                    transform: [{ scaleY: bar1 }],
+                    backgroundColor:
+                      playState === 'playing'
+                        ? COLORS.white
+                        : COLORS.accentDeep,
+                  },
+                ]}
+              />
+              <Animated.View
+                style={[
+                  styles.eqBar,
+                  {
+                    height: 18,
+                    transform: [{ scaleY: bar2 }],
+                    backgroundColor:
+                      playState === 'playing'
+                        ? COLORS.white
+                        : COLORS.accentDeep,
+                  },
+                ]}
+              />
+              <Animated.View
+                style={[
+                  styles.eqBar,
+                  {
+                    height: 12,
+                    transform: [{ scaleY: bar3 }],
+                    backgroundColor:
+                      playState === 'playing'
+                        ? COLORS.white
+                        : COLORS.accentDeep,
+                  },
+                ]}
+              />
+            </View>
+
+            <View style={styles.titleCol}>
+              <Text style={styles.headerTitle} numberOfLines={1}>
+                Thuyết minh âm thanh
+              </Text>
+              <Text style={styles.statusSub} numberOfLines={1}>
+                {statusText}
+                {playState !== 'idle' && activeVoiceLabel
+                  ? ` · ${
+                      engineMode === 'neural' ? activeVoiceLabel : 'Offline'
+                    }`
+                  : ''}
               </Text>
             </View>
-            <Text style={styles.siteSubtitle} numberOfLines={1}>
-              {localized.name}
+          </View>
+
+          {/* Dropdown Language Selector Trigger */}
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={() => setLangMenuOpen((prev) => !prev)}
+            style={[
+              styles.langTriggerBtn,
+              langMenuOpen && styles.langTriggerBtnOpen,
+            ]}
+            accessibilityRole="button"
+            accessibilityLabel="Chọn ngôn ngữ thuyết minh"
+          >
+            <Globe size={13} color={COLORS.accentDeep} strokeWidth={2} />
+            <Text style={styles.langTriggerText} numberOfLines={1}>
+              {currentLangMeta.nativeLabel}
+            </Text>
+            <ChevronDown
+              size={13}
+              color={COLORS.accentDeep}
+              strokeWidth={2}
+              style={
+                langMenuOpen ? { transform: [{ rotate: '180deg' }] } : undefined
+              }
+            />
+          </TouchableOpacity>
+        </View>
+
+        {/* Expandable 5-Language Dropdown Panel */}
+        {langMenuOpen && (
+          <View style={styles.langDropdownCard}>
+            {SUPPORTED_LANGUAGES.map((lang) => {
+              const active = selectedLanguage === lang.code;
+              return (
+                <TouchableOpacity
+                  key={lang.code}
+                  activeOpacity={0.78}
+                  onPress={() => handleLanguageSwitch(lang.code)}
+                  style={[
+                    styles.langOptionRow,
+                    active && styles.langOptionRowActive,
+                  ]}
+                >
+                  <View style={styles.langOptionLeft}>
+                    <Text
+                      style={[
+                        styles.langOptionNative,
+                        active && styles.langOptionNativeActive,
+                      ]}
+                    >
+                      {lang.nativeLabel}
+                    </Text>
+                    <Text style={styles.langOptionCode}>
+                      {lang.code.toUpperCase()}
+                    </Text>
+                  </View>
+                  {active && (
+                    <Check
+                      size={15}
+                      color={COLORS.accentDeep}
+                      strokeWidth={2.4}
+                    />
+                  )}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        )}
+
+        {/* Interactive Real-time Seekbar (Tap anywhere to seek + Thumb dot) */}
+        <View style={styles.progressSection}>
+          <Pressable
+            onLayout={handleSeekbarLayout}
+            onPress={handleSeekbarPress}
+            style={styles.seekbarHitArea}
+            accessibilityRole="adjustable"
+            accessibilityLabel="Thanh tiến độ thuyết minh, chạm để tua"
+          >
+            <View style={styles.progressTrack} pointerEvents="none">
+              <View
+                style={[
+                  styles.progressFill,
+                  { width: `${progressPercent}%` },
+                ]}
+              />
+            </View>
+            <View
+              pointerEvents="none"
+              style={[
+                styles.seekThumb,
+                {
+                  left: `${progressPercent}%`,
+                },
+              ]}
+            />
+          </Pressable>
+
+          <View style={styles.progressMetaRow}>
+            <Text style={styles.timeText}>
+              {segmentTiming.duration > 0 && playState !== 'idle'
+                ? formatAudioClock(segmentTiming.current)
+                : `${progressPercent}%`}
+            </Text>
+            <Text style={styles.timeText}>
+              {segmentTiming.duration > 0 && playState !== 'idle'
+                ? formatAudioClock(segmentTiming.duration)
+                : `Đoạn ${
+                    segments.length > 0 ? safeActiveSegment + 1 : 0
+                  }/${segments.length}`}
             </Text>
           </View>
         </View>
-      </View>
 
-      {/* Language Selector (5 languages: VI, EN, FR, ZH, JA) */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.langRow}
-      >
-        {SUPPORTED_LANGUAGES.map((lang) => {
-          const active = selectedLanguage === lang.code;
-          return (
-            <TouchableOpacity
-              key={lang.code}
-              onPress={() => handleLanguageSwitch(lang.code)}
-              style={[styles.langPill, active && styles.langPillActive]}
-              activeOpacity={0.75}
-            >
-              <Text style={styles.langFlag}>{lang.flag}</Text>
-              <Text
-                style={[styles.langLabel, active && styles.langLabelActive]}
-              >
-                {lang.code.toUpperCase()}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </ScrollView>
+        {/* Centered 5-Button Transport Controls (-10s · Prev · Play 56px · Next · +10s) */}
+        <View style={styles.transportRow}>
+          <TouchableOpacity
+            onPress={() => handleSeekBySeconds(-10)}
+            style={styles.seekStepBtn}
+            accessibilityLabel="Tua lùi 10 giây"
+            activeOpacity={0.75}
+          >
+            <RotateCcw size={16} color={COLORS.accentDeep} strokeWidth={2} />
+            <Text style={styles.seekStepText}>10</Text>
+          </TouchableOpacity>
 
-      {/* Progress Bar (Real-time smooth audio progress) */}
-      <View style={styles.progressWrap}>
-        <View style={styles.progressTrack}>
-          <View
-            style={[
-              styles.progressFill,
-              {
-                width: `${progressPercent}%`,
-                backgroundColor:
-                  playState === 'playing' ? COLORS.accent : COLORS.ink,
-              },
-            ]}
-          />
-        </View>
-        <Text style={styles.progressPct}>
-          {segmentTiming.duration > 0 && playState !== 'idle'
-            ? `${formatAudioTime(segmentTiming.current)} / ${formatAudioTime(
-                segmentTiming.duration
-              )}`
-            : `${progressPercent}%`}
-        </Text>
-      </View>
-
-      {/* Transport Controls */}
-      <View style={styles.controlsRow}>
-        <TouchableOpacity
-          onPress={handleTogglePlay}
-          style={[
-            styles.playPrimaryBtn,
-            playState === 'playing' && styles.playPrimaryBtnActive,
-          ]}
-          activeOpacity={0.8}
-        >
-          {isBufferingAudio ? (
-            <>
-              <ActivityIndicator size="small" color={COLORS.white} />
-              <Text style={styles.playPrimaryText}>Đang tạo giọng AI…</Text>
-            </>
-          ) : playState === 'playing' ? (
-            <>
-              <Pause size={15} color={COLORS.white} />
-              <Text style={styles.playPrimaryText}>Tạm dừng</Text>
-            </>
-          ) : (
-            <>
-              <Play size={15} color={COLORS.white} fill={COLORS.white} />
-              <Text style={styles.playPrimaryText}>
-                {playState === 'paused' ? 'Tiếp tục' : 'Nghe thuyết minh'}
-              </Text>
-            </>
-          )}
-        </TouchableOpacity>
-
-        <View style={styles.stepControls}>
           <TouchableOpacity
             onPress={() => handleStepSegment(-1)}
             disabled={safeActiveSegment === 0}
             style={[
-              styles.iconControlBtn,
-              safeActiveSegment === 0 && styles.iconControlBtnDisabled,
+              styles.stepBtn,
+              safeActiveSegment === 0 && styles.stepBtnDisabled,
             ]}
             accessibilityLabel="Đoạn trước"
-            activeOpacity={0.7}
+            activeOpacity={0.75}
           >
-            <SkipBack size={15} color={COLORS.ink} />
+            <SkipBack size={16} color={COLORS.ink} strokeWidth={2} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={handleTogglePlay}
+            style={[
+              styles.playCircleBtn,
+              playState === 'playing' && styles.playCircleBtnPlaying,
+            ]}
+            accessibilityLabel={
+              playState === 'playing'
+                ? 'Tạm dừng thuyết minh'
+                : 'Phát thuyết minh'
+            }
+            activeOpacity={0.85}
+          >
+            {isBufferingAudio ? (
+              <ActivityIndicator size="small" color={COLORS.white} />
+            ) : playState === 'playing' ? (
+              <Pause size={22} color={COLORS.white} fill={COLORS.white} />
+            ) : (
+              <Play
+                size={22}
+                color={COLORS.white}
+                fill={COLORS.white}
+                style={{ marginLeft: 2 }}
+              />
+            )}
           </TouchableOpacity>
 
           <TouchableOpacity
             onPress={() => handleStepSegment(1)}
             disabled={safeActiveSegment >= segments.length - 1}
             style={[
-              styles.iconControlBtn,
+              styles.stepBtn,
               safeActiveSegment >= segments.length - 1 &&
-                styles.iconControlBtnDisabled,
+                styles.stepBtnDisabled,
             ]}
             accessibilityLabel="Đoạn tiếp theo"
-            activeOpacity={0.7}
+            activeOpacity={0.75}
           >
-            <SkipForward size={15} color={COLORS.ink} />
+            <SkipForward size={16} color={COLORS.ink} strokeWidth={2} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => handleSeekBySeconds(10)}
+            style={styles.seekStepBtn}
+            accessibilityLabel="Tua tới 10 giây"
+            activeOpacity={0.75}
+          >
+            <RotateCw size={16} color={COLORS.accentDeep} strokeWidth={2} />
+            <Text style={styles.seekStepText}>10</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Compact 1-Row Utility Bar: Voice Persona + Speed Cycle + Optional Stop */}
+        <View style={styles.utilityRow}>
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={handleToggleVoiceGender}
+            style={styles.voiceTogglePill}
+            accessibilityLabel="Chuyển giọng đọc Nam hoặc Nữ"
+          >
+            <Mic size={13} color={COLORS.accentDeep} strokeWidth={2} />
+            <Text style={styles.voiceToggleText} numberOfLines={1}>
+              {voiceDisplayLabel}
+            </Text>
+            <Repeat size={12} color={COLORS.inkMuted} strokeWidth={2} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={handleCycleRate}
+            style={styles.speedCyclePill}
+            accessibilityLabel={`Tốc độ đọc ${speechRate}x, chạm để thay đổi`}
+          >
+            <Text style={styles.speedCycleText}>{speechRate}x</Text>
           </TouchableOpacity>
 
           {playState !== 'idle' && (
             <TouchableOpacity
               onPress={handleStop}
-              style={styles.iconControlBtn}
-              accessibilityLabel="Dừng đọc"
-              activeOpacity={0.7}
+              style={styles.stopMiniBtn}
+              accessibilityLabel="Dừng phát hoàn toàn"
+              activeOpacity={0.75}
             >
-              <Square size={14} color={COLORS.accent} fill={COLORS.accent} />
+              <Square
+                size={13}
+                color={COLORS.accentDeep}
+                fill={COLORS.accentDeep}
+              />
             </TouchableOpacity>
           )}
         </View>
+
+        {speechError ? (
+          <View style={styles.errorBox}>
+            <Text style={styles.errorText}>{speechError}</Text>
+          </View>
+        ) : null}
       </View>
 
-      {/* Voice Persona Selector: Female (Hoài My) vs Male (Nam Minh) */}
-      <View style={styles.rateRow}>
-        <Text style={styles.rateLabel}>Giọng đọc:</Text>
-        <View style={styles.rateChips}>
-          {VOICE_GENDER_OPTIONS.map((opt) => {
-            const active = voiceGender === opt.id;
-            return (
-              <TouchableOpacity
-                key={opt.id}
-                onPress={() => handleVoiceGenderChange(opt.id)}
-                style={[styles.rateChip, active && styles.rateChipActive]}
-                activeOpacity={0.75}
-              >
-                <Text
-                  style={[
-                    styles.rateChipText,
-                    active && styles.rateChipTextActive,
-                  ]}
-                >
-                  {selectedLanguage === 'vi' ? opt.labelVi : opt.shortLabel}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-      </View>
-
-      {/* Speed Selector: 0.75x, 1.0x, 1.25x, 1.5x */}
-      <View style={styles.rateRow}>
-        <Text style={styles.rateLabel}>Tốc độ đọc:</Text>
-        <View style={styles.rateChips}>
-          {SPEECH_RATES.map((rate) => {
-            const active = speechRate === rate;
-            return (
-              <TouchableOpacity
-                key={rate}
-                onPress={() => handleRateChange(rate)}
-                style={[styles.rateChip, active && styles.rateChipActive]}
-                activeOpacity={0.75}
-              >
-                <Text
-                  style={[
-                    styles.rateChipText,
-                    active && styles.rateChipTextActive,
-                  ]}
-                >
-                  {rate}x
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-      </View>
-
-      {speechError ? (
-        <View style={styles.errorBox}>
-          <Text style={styles.errorText}>{speechError}</Text>
-        </View>
-      ) : null}
-
-      {/* Synchronized Highlighted Transcript Segments */}
+      {/* Collapsible Synchronized Interactive Transcript */}
       {!compact && segments.length > 0 && (
         <View style={styles.transcriptWrap}>
-          <Text style={styles.transcriptHeading}>
-            Nội dung đồng bộ (chạm để nghe từ đoạn bất kỳ)
-          </Text>
-          <View style={styles.transcriptList}>
-            {segments.map((segment, idx) => {
-              const isCurrent = idx === safeActiveSegment;
-              return (
-                <TouchableOpacity
-                  key={idx}
-                  onPress={() => {
-                    if (playState === 'playing' || playState === 'paused') {
-                      speechService.jumpToSegment(idx, true);
-                    } else {
-                      startSpeaking(idx, selectedLanguage, speechRate);
-                    }
-                  }}
-                  style={[
-                    styles.segmentCard,
-                    isCurrent && styles.segmentCardActive,
-                  ]}
-                  activeOpacity={0.75}
-                >
-                  <View style={styles.segmentIndexWrap}>
+          <TouchableOpacity
+            activeOpacity={0.78}
+            onPress={() => setShowTranscript((prev) => !prev)}
+            style={styles.transcriptToggleBar}
+            accessibilityRole="button"
+            accessibilityLabel={
+              showTranscript
+                ? 'Ẩn nội dung thuyết minh đồng bộ'
+                : 'Hiện nội dung thuyết minh đồng bộ'
+            }
+          >
+            <View style={styles.transcriptToggleLeft}>
+              <FileText size={14} color={COLORS.accentDeep} strokeWidth={2} />
+              <Text style={styles.transcriptHeading}>
+                Nội dung đồng bộ ({segments.length} đoạn)
+              </Text>
+            </View>
+
+            <View style={styles.transcriptTogglePill}>
+              <Text style={styles.transcriptTogglePillText}>
+                {showTranscript ? 'Ẩn' : 'Hiện'}
+              </Text>
+              {showTranscript ? (
+                <ChevronUp size={13} color={COLORS.accentDeep} strokeWidth={2.2} />
+              ) : (
+                <ChevronDown
+                  size={13}
+                  color={COLORS.accentDeep}
+                  strokeWidth={2.2}
+                />
+              )}
+            </View>
+          </TouchableOpacity>
+
+          {showTranscript && (
+            <View style={styles.transcriptList}>
+              {segments.map((segment, idx) => {
+                const isCurrent = idx === safeActiveSegment;
+                return (
+                  <TouchableOpacity
+                    key={idx}
+                    onPress={() => {
+                      if (playState === 'playing' || playState === 'paused') {
+                        speechService.jumpToSegment(idx, true);
+                      } else {
+                        startSpeaking(idx, selectedLanguage, speechRate);
+                      }
+                    }}
+                    style={[
+                      styles.segmentCard,
+                      isCurrent && styles.segmentCardActive,
+                    ]}
+                    activeOpacity={0.78}
+                  >
                     <Text
                       style={[
                         styles.segmentIndex,
@@ -528,20 +816,25 @@ export const AudioGuidePlayer: React.FC<AudioGuidePlayerProps> = ({
                       ]}
                     >
                       {idx + 1 < 10 ? `0${idx + 1}` : `${idx + 1}`}
+                      {isCurrent
+                        ? playState === 'playing'
+                          ? ' · Đang phát'
+                          : ' · Đang chọn'
+                        : ''}
                     </Text>
-                  </View>
-                  <Text
-                    style={[
-                      styles.segmentText,
-                      isCurrent && styles.segmentTextActive,
-                    ]}
-                  >
-                    {segment}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
+                    <Text
+                      style={[
+                        styles.segmentText,
+                        isCurrent && styles.segmentTextActive,
+                      ]}
+                    >
+                      {segment}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          )}
         </View>
       )}
     </View>
@@ -549,268 +842,342 @@ export const AudioGuidePlayer: React.FC<AudioGuidePlayerProps> = ({
 };
 
 const styles = StyleSheet.create({
-  container: {
-    backgroundColor: COLORS.bg,
-    borderRadius: RADII.lg,
+  outerWrap: {
+    gap: 12,
+  },
+  playerCard: {
+    backgroundColor: COLORS.surface,
+    borderRadius: RADII.xl,
     borderWidth: 1,
     borderColor: COLORS.border,
-    padding: SPACING.md,
-    gap: SPACING.sm + 2,
+    padding: 15,
+    gap: 13,
+    ...SHADOWS.card,
   },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingBottom: SPACING.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+    gap: 10,
   },
-  titleBlock: {
+  headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: SPACING.sm + 2,
-    flex: 1,
-  },
-  iconBadge: {
-    width: 34,
-    height: 34,
-    borderRadius: RADII.md,
-    backgroundColor: COLORS.surfaceMuted,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  iconBadgePlaying: {
-    backgroundColor: COLORS.accent,
-  },
-  titleTextWrap: {
-    flex: 1,
-    gap: 2,
-  },
-  titleTopLine: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: SPACING.sm,
-  },
-  titleLeftGroup: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
+    gap: 10,
     flex: 1,
     minWidth: 0,
   },
-  engineChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: RADII.pill,
-    backgroundColor: COLORS.surfaceMuted,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    maxWidth: 112,
-  },
-  engineChipNeural: {
+  eqBadge: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
     backgroundColor: COLORS.accentSoft,
+    borderWidth: 1,
     borderColor: COLORS.accentBorder,
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+    gap: 3,
+    paddingBottom: 9,
   },
-  engineChipText: {
-    fontSize: 9.5,
-    fontWeight: '700',
-    color: COLORS.inkSecondary,
+  eqBadgePlaying: {
+    backgroundColor: COLORS.accent,
+    borderColor: COLORS.accent,
   },
-  engineChipTextNeural: {
-    color: COLORS.accent,
+  eqBar: {
+    width: 3,
+    borderRadius: 99,
+  },
+  titleCol: {
+    flex: 1,
+    minWidth: 0,
+    gap: 2,
   },
   headerTitle: {
-    fontSize: 13,
+    fontFamily: SERIF_FONT,
+    fontSize: 14.5,
     fontWeight: '700',
     color: COLORS.ink,
   },
-  segmentCounter: {
-    fontSize: 11,
-    fontWeight: '600',
+  statusSub: {
+    fontSize: 11.5,
     color: COLORS.inkMuted,
-    fontVariant: ['tabular-nums'],
   },
-  siteSubtitle: {
-    fontSize: 12,
-    color: COLORS.inkSecondary,
-  },
-  langRow: {
-    gap: 6,
-  },
-  langPill: {
+  langTriggerBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: RADII.md,
+    height: 34,
+    paddingHorizontal: 11,
+    borderRadius: RADII.pill,
+    backgroundColor: COLORS.accentSoft,
     borderWidth: 1,
-    borderColor: COLORS.border,
-    backgroundColor: COLORS.surface,
+    borderColor: COLORS.accentBorder,
+    maxWidth: 136,
   },
-  langPillActive: {
-    backgroundColor: COLORS.ink,
-    borderColor: COLORS.ink,
+  langTriggerBtnOpen: {
+    backgroundColor: COLORS.accentSoftStrong,
+    borderColor: COLORS.accent,
   },
-  langFlag: {
-    fontSize: 13,
-  },
-  langLabel: {
-    fontSize: 11,
+  langTriggerText: {
+    fontSize: 12,
     fontWeight: '700',
-    color: COLORS.inkSecondary,
+    color: COLORS.accentDeep,
+    flexShrink: 1,
   },
-  langLabelActive: {
-    color: COLORS.white,
+  langDropdownCard: {
+    backgroundColor: COLORS.bg,
+    borderRadius: RADII.lg,
+    borderWidth: 1,
+    borderColor: COLORS.accentBorder,
+    padding: 6,
+    gap: 3,
   },
-  progressWrap: {
+  langOptionRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: SPACING.sm,
+    justifyContent: 'space-between',
+    paddingHorizontal: 11,
+    paddingVertical: 9,
+    borderRadius: RADII.md,
+  },
+  langOptionRowActive: {
+    backgroundColor: COLORS.accentSoft,
+  },
+  langOptionLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  langOptionNative: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLORS.ink,
+  },
+  langOptionNativeActive: {
+    fontWeight: '700',
+    color: COLORS.accentDeep,
+  },
+  langOptionCode: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: COLORS.inkMuted,
+  },
+  progressSection: {
+    gap: 4,
+  },
+  seekbarHitArea: {
+    width: '100%',
+    height: 24,
+    justifyContent: 'center',
+    position: 'relative',
   },
   progressTrack: {
-    flex: 1,
-    height: 5,
+    width: '100%',
+    height: 6,
     borderRadius: RADII.pill,
-    backgroundColor: COLORS.border,
+    backgroundColor: COLORS.accentSoft,
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
     borderRadius: RADII.pill,
-  },
-  progressPct: {
-    fontSize: 10.5,
-    fontWeight: '700',
-    color: COLORS.inkMuted,
-    minWidth: 34,
-    textAlign: 'right',
-    fontVariant: ['tabular-nums'],
-  },
-  controlsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: SPACING.sm,
-  },
-  playPrimaryBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 10,
-    paddingHorizontal: SPACING.md,
-    borderRadius: RADII.md,
-    backgroundColor: COLORS.ink,
-  },
-  playPrimaryBtnActive: {
     backgroundColor: COLORS.accent,
   },
-  playPrimaryText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: COLORS.white,
+  seekThumb: {
+    position: 'absolute',
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    marginLeft: -7,
+    backgroundColor: COLORS.accentDeep,
+    borderWidth: 2,
+    borderColor: COLORS.surface,
+    ...SHADOWS.card,
   },
-  stepControls: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  iconControlBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: RADII.md,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    backgroundColor: COLORS.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  iconControlBtnDisabled: {
-    opacity: 0.35,
-  },
-  rateRow: {
+  progressMetaRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: SPACING.sm,
   },
-  rateLabel: {
+  timeText: {
     fontSize: 11,
     fontWeight: '600',
     color: COLORS.inkMuted,
-  },
-  rateChips: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  rateChip: {
-    paddingHorizontal: 9,
-    paddingVertical: 5,
-    borderRadius: RADII.sm,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    backgroundColor: COLORS.surface,
-  },
-  rateChipActive: {
-    backgroundColor: COLORS.ink,
-    borderColor: COLORS.ink,
-  },
-  rateChipText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: COLORS.inkSecondary,
     fontVariant: ['tabular-nums'],
   },
-  rateChipTextActive: {
-    color: COLORS.white,
+  transportRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    paddingVertical: 2,
+  },
+  seekStepBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: RADII.pill,
+    backgroundColor: COLORS.accentSoft,
+    borderWidth: 1,
+    borderColor: COLORS.accentBorder,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 1,
+  },
+  seekStepText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: COLORS.accentDeep,
+    marginTop: -2,
+    fontVariant: ['tabular-nums'],
+  },
+  stepBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: RADII.pill,
+    backgroundColor: COLORS.bg,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stepBtnDisabled: {
+    opacity: 0.35,
+  },
+  playCircleBtn: {
+    width: 56,
+    height: 56,
+    borderRadius: RADII.pill,
+    backgroundColor: COLORS.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...SHADOWS.floating,
+  },
+  playCircleBtnPlaying: {
+    backgroundColor: COLORS.accentDeep,
+  },
+  stopMiniBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: RADII.pill,
+    backgroundColor: COLORS.accentSoft,
+    borderWidth: 1,
+    borderColor: COLORS.accentBorder,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  utilityRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+  },
+  voiceTogglePill: {
+    flex: 1,
+    height: 38,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    borderRadius: RADII.pill,
+    backgroundColor: COLORS.bg,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  voiceToggleText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.ink,
+    flexShrink: 1,
+  },
+  speedCyclePill: {
+    height: 38,
+    minWidth: 56,
+    paddingHorizontal: 14,
+    borderRadius: RADII.pill,
+    backgroundColor: COLORS.accentSoft,
+    borderWidth: 1,
+    borderColor: COLORS.accentBorder,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  speedCycleText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.accentDeep,
+    fontVariant: ['tabular-nums'],
   },
   errorBox: {
     backgroundColor: COLORS.amberBg,
     borderWidth: 1,
     borderColor: COLORS.amberBorder,
-    borderRadius: RADII.sm,
+    borderRadius: RADII.md,
     padding: SPACING.sm,
   },
   errorText: {
-    fontSize: 11,
+    fontSize: 11.5,
     color: COLORS.ink,
   },
   transcriptWrap: {
-    gap: SPACING.xs + 2,
-    paddingTop: 2,
+    gap: 8,
+  },
+  transcriptToggleBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: COLORS.surface,
+    borderRadius: RADII.lg,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    paddingHorizontal: 13,
+    paddingVertical: 10,
+  },
+  transcriptToggleLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
   },
   transcriptHeading: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: COLORS.inkMuted,
+    fontSize: 12.5,
+    fontWeight: '700',
+    color: COLORS.ink,
+  },
+  transcriptTogglePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: RADII.pill,
+    backgroundColor: COLORS.accentSoft,
+    borderWidth: 1,
+    borderColor: COLORS.accentBorder,
+  },
+  transcriptTogglePillText: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: COLORS.accentDeep,
   },
   transcriptList: {
-    gap: 6,
+    gap: 8,
   },
   segmentCard: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: SPACING.sm,
-    paddingVertical: SPACING.sm + 2,
-    paddingHorizontal: SPACING.sm + 2,
-    borderRadius: RADII.md,
-    borderLeftWidth: 3,
-    borderLeftColor: 'transparent',
-    backgroundColor: 'rgba(255,255,255,0.55)',
+    backgroundColor: COLORS.surface,
+    borderRadius: RADII.lg,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    paddingHorizontal: 13,
+    paddingVertical: 11,
+    gap: 4,
   },
   segmentCardActive: {
+    backgroundColor: COLORS.accentSoft,
+    borderColor: COLORS.accentBorder,
+    borderLeftWidth: 4,
     borderLeftColor: COLORS.accent,
-    backgroundColor: COLORS.surface,
-  },
-  segmentIndexWrap: {
-    paddingTop: 2,
   },
   segmentIndex: {
     fontSize: 11,
@@ -819,16 +1186,15 @@ const styles = StyleSheet.create({
     fontVariant: ['tabular-nums'],
   },
   segmentIndexActive: {
-    color: COLORS.accent,
+    color: COLORS.accentDeep,
   },
   segmentText: {
-    flex: 1,
-    fontSize: 13,
-    lineHeight: 20,
+    fontSize: 13.5,
+    lineHeight: 20.5,
     color: COLORS.inkSecondary,
   },
   segmentTextActive: {
     color: COLORS.ink,
-    fontWeight: '500',
+    fontWeight: '600',
   },
 });
