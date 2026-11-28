@@ -288,3 +288,30 @@ export function scoreSpeechVoice(
 
   return score;
 }
+
+/**
+ * Tính mốc giây mới khi tua tương đối (-10s / +10s), luôn giữ trong [0, max(0, duration - 0.25)].
+ */
+export function computeSeekTargetSeconds(
+  currentSeconds: number,
+  durationSeconds: number,
+  deltaSeconds: number
+): number {
+  if (!Number.isFinite(durationSeconds) || durationSeconds <= 0) return 0;
+  const safeCur = Number.isFinite(currentSeconds) ? currentSeconds : 0;
+  const maxAllowed = Math.max(0, durationSeconds - 0.25);
+  return Math.max(0, Math.min(maxAllowed, safeCur + deltaSeconds));
+}
+
+/**
+ * Tính mốc giây đích từ tỷ lệ 0..1 khi người dùng chạm trực tiếp lên thanh tiến độ (Seekbar).
+ */
+export function computeSeekSecondsFromRatio(
+  ratio: number,
+  durationSeconds: number
+): number {
+  if (!Number.isFinite(durationSeconds) || durationSeconds <= 0) return 0;
+  const clampedRatio = Math.max(0, Math.min(1, Number.isFinite(ratio) ? ratio : 0));
+  const maxAllowed = Math.max(0, durationSeconds - 0.25);
+  return Math.max(0, Math.min(maxAllowed, clampedRatio * durationSeconds));
+}
