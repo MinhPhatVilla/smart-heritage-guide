@@ -24,6 +24,21 @@ function toDegrees(radians: number): number {
 }
 
 /**
+ * Chuẩn hóa chuỗi tiếng Việt (bỏ dấu thanh, chuyển đ -> d, chữ thường)
+ * để tìm kiếm thông minh hỗ trợ cả gõ có dấu lẫn không dấu.
+ */
+export function normalizeVietnamese(input: string): string {
+  return (input || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd')
+    .replace(/Đ/g, 'd')
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/**
  * Tính góc phương vị (bearing, 0° = Bắc, 90° = Đông, 180° = Nam, 270° = Tây) từ điểm A tới điểm B.
  */
 export function calculateBearingDegrees(

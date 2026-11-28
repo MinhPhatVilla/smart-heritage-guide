@@ -5,6 +5,7 @@ import {
   estimateWalkingSeconds,
   getRecommendedRestaurants,
   interpolateRouteForSmoothWalk,
+  normalizeVietnamese,
   rankVisitedSitesByWalkingTime,
   smoothAngleDegrees,
 } from './geoUtils';
@@ -137,5 +138,13 @@ describe('geoUtils - Định vị, Ẩm thực & Xếp hạng thời gian đi b�
     expect(dense.length).toBeGreaterThan(8);
     expect(dense[0]).toEqual([10.7725, 106.698]);
     expect(dense[dense.length - 1]).toEqual([10.7745, 106.698]);
+  });
+
+  it('Chuẩn hóa tiếng Việt không dấu để tìm kiếm thông minh khớp cả có dấu và không dấu', () => {
+    expect(normalizeVietnamese('Dinh Độc Lập')).toBe('dinh doc lap');
+    expect(normalizeVietnamese('Chợ Bến Thành · Quận 1')).toBe(
+      'cho ben thanh · quan 1'
+    );
+    expect(normalizeVietnamese('  ĐỊA   ĐẠO Củ Chi  ')).toBe('dia dao cu chi');
   });
 });
